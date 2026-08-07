@@ -24,6 +24,7 @@ Last updated / Обновлено: 2026-08-07
 - Добавлены pytest, pytest-django, Ruff, mypy и coverage в `pyproject.toml`.
 - Зависимости установлены в локальный `.venv`.
 - Добавлено правило: сообщения commit должны быть понятными человеческими фразами, без закодированных префиксов вроде `feat:`, `fix:`, `chore:`.
+- Ветка `feature/backend-foundation` переоснована на `origin/develop`, чтобы PR корректно сравнивался с remote `develop`.
 
 ## Проверки
 
@@ -39,6 +40,9 @@ Last updated / Обновлено: 2026-08-07
 - `make check` — passed, полный backend quality gate пройден.
 - `backend/manage.py spectacular --validate` — passed, OpenAPI schema генерируется без ошибок.
 - `make check` — passed после обновления правила commit messages.
+- `make check` — passed после rebase на `origin/develop`.
+- `backend/manage.py spectacular --validate` — passed после rebase на `origin/develop`.
+- `git status --short --branch` — clean на `feature/backend-foundation` перед обновлением статуса публикации.
 
 ## Следующий этап
 
