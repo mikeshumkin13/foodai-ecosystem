@@ -22,12 +22,15 @@ Last updated: 2026-08-07
 - Created baseline monorepo directories.
 - Added local infrastructure placeholders.
 - Added basic project memory validation commands.
+- Добавлена языковая политика: по возможности использовать русский язык или дублировать перевод, когда нужен английский.
 
 ## Verification
 
 - `make test` - passed. Validates required project memory structure.
 - `make lint` - passed. Checks syntax for the foundation validation script.
 - `git push -u origin develop feature/prompt-0-project-foundation` - passed. Published initial `develop` and feature branches.
+- `make test` - passed after language policy update / пройден после обновления языковой политики.
+- `make lint` - passed after language policy update / пройден после обновления языковой политики.
 
 ## Next Task
 

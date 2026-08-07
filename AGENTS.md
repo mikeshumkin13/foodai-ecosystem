@@ -20,6 +20,12 @@ These rules apply to every future Codex session in this repository.
 7. Run available tests and linters before completing the task.
 8. Do not merge into `develop`, `main`, `release/*`, or `hotfix/*` yourself.
 
+## Language Policy / Языковая политика
+
+По возможности использовать русский язык для проектной коммуникации, обновлений документации, текстов PR, статус-отчётов и объяснений. Если английский нужен для кода, сторонних терминов, команд, API-названий или устойчивой технической формулировки, оставить английский термин или продублировать его переводом на русский.
+
+Use Russian for project communication, documentation updates, PR text, status reports, and explanations where practical. If English is required for code, third-party terms, commands, API names, or established technical wording, keep the English term or duplicate it with a Russian translation.
+
 ## GitFlow
 
 - Development starts from `develop`.
@@ -49,4 +55,3 @@ Potentially dangerous situations require explicit safety logic and escalation gu
 - Use type hints, tests, migrations, structured logging, and clear separation of concerns.
 - Keep secrets in environment variables only.
 - Never commit `.env`, real credentials, tokens, user photos, health data, or generated private artifacts.
-
