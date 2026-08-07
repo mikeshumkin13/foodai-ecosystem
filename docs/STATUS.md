@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-07
 
 ## Текущий завершённый этап
 
-ЭТАП 5, PROMPT 5 — RBAC завершён.
+ЭТАП 6, PROMPT 6 — Authentication завершён.
 
 ## Состояние
 
@@ -44,6 +44,17 @@ Last updated / Обновлено: 2026-08-07
 - DRF API закрыт по умолчанию через `IsAuthenticated`; публичный health endpoint явно использует `AllowAny`.
 - Добавлен минимальный `UserProfile` API с object-level permissions.
 - Добавлены тесты на role groups, запрет доступа, support/content-manager ограничения, admin/superuser доступ и отдельный IDOR-сценарий по UUID.
+- Создана ветка `feature/auth` от актуального `develop`.
+- Реализована регистрация через `POST /api/v1/auth/register/`.
+- Реализованы login, logout, refresh и endpoint `GET /api/v1/auth/me/`.
+- Для web-клиента выбрана session-cookie схема: access token не выдаётся и не хранится в `localStorage`.
+- Добавлен CSRF bootstrap endpoint `GET /api/v1/auth/csrf/`.
+- Добавлена email verification architecture: inactive user при регистрации, одноразовый hashed DB token, verify/resend endpoints.
+- Добавлен password reset flow с одноразовыми hashed DB tokens и generic response без email enumeration.
+- Добавлено изменение пароля текущего пользователя.
+- Добавлены cookie/session/CSRF настройки через environment variables.
+- Добавлены scoped throttles для brute-force/rate limiting.
+- OAuth в этом этапе не реализовывался.
 
 ## Проверки
 
@@ -96,7 +107,12 @@ Last updated / Обновлено: 2026-08-07
 - `docker compose -p foodai_rbac_check --env-file .env exec -T backend python backend/manage.py migrate --check --settings=config.settings.local` — passed, unapplied migrations нет.
 - `docker compose -p foodai_rbac_check --env-file .env exec -T backend python -m pytest` — passed, 25 tests passed, coverage 89.61%.
 - `docker compose -p foodai_rbac_check --env-file .env down` — passed, isolated stack остановлен без удаления volumes.
+- `make check` — passed для PROMPT 6: Ruff без ошибок, mypy без ошибок в 41 source files, Django system check без ошибок, pytest: 39 passed, coverage 92.71%.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend` — passed.
 
 ## Следующий этап
 
-Остановиться после PROMPT 5. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 6. Следующую задачу начинать только после явной команды пользователя.

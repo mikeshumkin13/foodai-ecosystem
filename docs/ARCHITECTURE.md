@@ -64,6 +64,10 @@ foodai-ecosystem/
 - Роли `user`, `support`, `content_manager` и `admin` являются business roles; `superuser` остаётся отдельным техническим механизмом Django.
 - DRF API закрыт по умолчанию через `IsAuthenticated`; публичные endpoint-ы должны явно указывать `AllowAny`.
 - Object-level permissions для пользовательских объектов реализуются централизованными DRF permission-классами; текущий `UserProfile` API проверяет владельца и защищён от IDOR по UUID.
+- Authentication для web-клиента использует Django session cookie, а не bearer access token в browser storage.
+- `sessionid` должен быть `HttpOnly`, `SameSite` и `Secure` в production; unsafe requests защищаются CSRF.
+- Email verification и password reset используют одноразовые DB tokens, где хранится только hash токена.
+- Login, registration, email verification и password reset endpoints имеют scoped rate limiting.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 

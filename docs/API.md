@@ -35,6 +35,17 @@ API не должен привязывать клиентов к одному ч
 ## Текущие endpoint-ы
 
 - `GET /api/v1/health/` — проверка доступности backend. Ответ: `{"status": "ok"}`.
+- `GET /api/v1/auth/csrf/` — выдаёт CSRF cookie/token для browser client.
+- `POST /api/v1/auth/register/` — регистрация. Создаёт inactive user, `UserProfile`, role `user` и email verification token.
+- `POST /api/v1/auth/login/` — login через Django session cookie. Access/refresh bearer tokens не возвращаются.
+- `POST /api/v1/auth/logout/` — logout, очищает текущую session.
+- `POST /api/v1/auth/refresh/` — продлевает session, ротирует session key и CSRF token.
+- `GET /api/v1/auth/me/` — текущий пользователь без password/token fields.
+- `POST /api/v1/auth/email/verify/` — подтверждение email по одноразовому token.
+- `POST /api/v1/auth/email/resend/` — повторная отправка verification email с generic response.
+- `POST /api/v1/auth/password/reset/request/` — запрос password reset с generic response.
+- `POST /api/v1/auth/password/reset/confirm/` — применение password reset token и установка нового пароля.
+- `POST /api/v1/auth/password/change/` — изменение пароля текущего пользователя.
 - `GET /api/v1/accounts/profiles/{id}/` — чтение `UserProfile`.
 - `PUT/PATCH /api/v1/accounts/profiles/{id}/` — обновление `UserProfile`.
 - `GET /api/v1/schema/` — OpenAPI schema.
@@ -43,6 +54,14 @@ API не должен привязывать клиентов к одному ч
 В Docker Compose health endpoint используется также для backend healthcheck после ожидания PostgreSQL/Redis и выполнения migrations.
 
 Account API пока реализован только минимально для `UserProfile`.
+
+Auth API использует cookie/session схему:
+
+- web-клиент сначала вызывает `GET /api/v1/auth/csrf/`;
+- для unsafe methods frontend отправляет `X-CSRFToken`;
+- requests должны идти with credentials;
+- bearer access/refresh token для web-клиента не выдаётся;
+- password reset request и email resend возвращают generic response, чтобы не раскрывать наличие аккаунта.
 
 Правила доступа:
 

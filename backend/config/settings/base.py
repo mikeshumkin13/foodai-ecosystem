@@ -92,12 +92,27 @@ DATABASES = {
 REDIS_URL = get_env("REDIS_URL", default="")
 
 AUTH_USER_MODEL = "accounts.User"
+AUTH_EMAIL_VERIFICATION_TOKEN_MAX_AGE_SECONDS = get_env_int(
+    "AUTH_EMAIL_VERIFICATION_TOKEN_MAX_AGE_SECONDS",
+    default=60 * 60 * 24,
+)
+AUTH_PASSWORD_RESET_TOKEN_MAX_AGE_SECONDS = get_env_int(
+    "AUTH_PASSWORD_RESET_TOKEN_MAX_AGE_SECONDS",
+    default=60 * 60,
+)
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+EMAIL_BACKEND = get_env(
+    "DJANGO_EMAIL_BACKEND",
+    default="django.core.mail.backends.locmem.EmailBackend",
+)
+DEFAULT_FROM_EMAIL = get_env("DJANGO_DEFAULT_FROM_EMAIL", default="security@foodai.local")
+FRONTEND_BASE_URL = get_env("FRONTEND_BASE_URL", default="http://localhost:3000")
 
 LANGUAGE_CODE = get_env("DJANGO_LANGUAGE_CODE", default="ru")
 LANGUAGES = [
@@ -113,13 +128,37 @@ STATIC_ROOT = get_env("DJANGO_STATIC_ROOT", default=str(ROOT_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOWED_ORIGINS = get_env_list("DJANGO_CORS_ALLOWED_ORIGINS", default="")
+CORS_ALLOW_CREDENTIALS = get_env_bool("DJANGO_CORS_ALLOW_CREDENTIALS", default=False)
 CSRF_TRUSTED_ORIGINS = get_env_list("DJANGO_CSRF_TRUSTED_ORIGINS", default="")
+CSRF_COOKIE_HTTPONLY = get_env_bool("DJANGO_CSRF_COOKIE_HTTPONLY", default=False)
+CSRF_COOKIE_NAME = get_env("DJANGO_CSRF_COOKIE_NAME", default="csrftoken")
+CSRF_COOKIE_SAMESITE = get_env("DJANGO_CSRF_COOKIE_SAMESITE", default="Lax")
+SESSION_COOKIE_AGE = get_env_int("DJANGO_SESSION_COOKIE_AGE", default=60 * 60 * 24 * 14)
+SESSION_COOKIE_HTTPONLY = get_env_bool("DJANGO_SESSION_COOKIE_HTTPONLY", default=True)
+SESSION_COOKIE_NAME = get_env("DJANGO_SESSION_COOKIE_NAME", default="sessionid")
+SESSION_COOKIE_SAMESITE = get_env("DJANGO_SESSION_COOKIE_SAMESITE", default="Lax")
+SESSION_SAVE_EVERY_REQUEST = get_env_bool("DJANGO_SESSION_SAVE_EVERY_REQUEST", default=True)
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "DEFAULT_THROTTLE_RATES": {
+        "auth_register": get_env("AUTH_REGISTER_THROTTLE_RATE", default="5/hour"),
+        "auth_login": get_env("AUTH_LOGIN_THROTTLE_RATE", default="5/minute"),
+        "auth_logout": get_env("AUTH_LOGOUT_THROTTLE_RATE", default="20/minute"),
+        "auth_refresh": get_env("AUTH_REFRESH_THROTTLE_RATE", default="20/minute"),
+        "auth_email_verification": get_env(
+            "AUTH_EMAIL_VERIFICATION_THROTTLE_RATE",
+            default="10/hour",
+        ),
+        "auth_password_reset": get_env("AUTH_PASSWORD_RESET_THROTTLE_RATE", default="5/hour"),
+        "auth_password_change": get_env("AUTH_PASSWORD_CHANGE_THROTTLE_RATE", default="5/hour"),
+    },
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
