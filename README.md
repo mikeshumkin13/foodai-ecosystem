@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend, а также приложение `accounts` с custom User model и RBAC foundation на Django Groups/Permissions. Food/Diary модели пока не создавались.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend, а также приложение `accounts` с custom User model, RBAC foundation и session-cookie authentication. Food/Diary модели пока не создавались.
 
 ## Backend: локальная установка
 
@@ -64,6 +64,7 @@ export DJANGO_SECRET_KEY=local-dev-only
 export DJANGO_DEBUG=true
 export DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,testserver
 export DJANGO_CORS_ALLOWED_ORIGINS=http://localhost:3000
+export DJANGO_CORS_ALLOW_CREDENTIALS=true
 export DATABASE_URL=sqlite:///backend/db.sqlite3
 ```
 
@@ -81,6 +82,15 @@ python backend/manage.py runserver 0.0.0.0:8000 --settings=config.settings.local
 Backend endpoints:
 
 - `GET /api/v1/health/` — health check.
+- `GET /api/v1/auth/csrf/` — выдаёт CSRF cookie/token для web-клиента.
+- `POST /api/v1/auth/register/` — регистрация, создаёт inactive user и email verification token.
+- `POST /api/v1/auth/login/` — login через Django session cookie; access token не выдаётся.
+- `POST /api/v1/auth/logout/` — logout и сброс session.
+- `POST /api/v1/auth/refresh/` — продление session и ротация session/CSRF.
+- `GET /api/v1/auth/me/` — текущий пользователь.
+- `POST /api/v1/auth/email/verify/` и `POST /api/v1/auth/email/resend/` — email verification flow.
+- `POST /api/v1/auth/password/reset/request/` и `POST /api/v1/auth/password/reset/confirm/` — password reset flow.
+- `POST /api/v1/auth/password/change/` — изменение пароля текущего пользователя.
 - `GET /api/v1/accounts/profiles/{id}/` — чтение профиля с object-level permissions.
 - `PUT/PATCH /api/v1/accounts/profiles/{id}/` — обновление профиля с object-level permissions.
 - `GET /api/v1/schema/` — OpenAPI schema.

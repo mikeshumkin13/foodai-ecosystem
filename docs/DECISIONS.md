@@ -205,3 +205,50 @@ Consequences / Последствия:
 - content manager управляет каталогом/контентом, но не приватными дневниками пользователей;
 - admin получает административные permissions, но не заменяет `superuser`;
 - `superuser` не должен использоваться для повседневной работы.
+
+## ADR-0009: Web Authentication With Django Session Cookies
+
+Date / Дата: 2026-08-07
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Для web-клиента FoodAI Ecosystem использует Django session-cookie authentication:
+
+- backend не выдаёт browser-facing access token;
+- access token не хранится в `localStorage`;
+- session идентификатор хранится в cookie `sessionid`;
+- `sessionid` должен быть `HttpOnly`;
+- `Secure` включается в production через environment variables;
+- `SameSite` по умолчанию `Lax`;
+- unsafe requests требуют CSRF token/header;
+- `GET /api/v1/auth/csrf/` выдаёт CSRF cookie/token для web-клиента;
+- `POST /api/v1/auth/refresh/` продлевает session, выполняет session key rotation и CSRF rotation.
+
+Refresh token rotation/revocation для bearer token scheme не реализуется на этом этапе, потому что выбранная web-схема не выдаёт bearer refresh token. Logout выполняет `session.flush()`, password change обновляет текущий session auth hash и инвалидирует другие sessions через стандартный Django password hash mechanism.
+
+Email verification и password reset используют одноразовые DB tokens:
+
+- raw token отправляется только через email backend;
+- в БД хранится только SHA-256 hash;
+- старые unused tokens отзываются при выпуске нового token;
+- token помечается `used_at` после успешного применения;
+- password reset request всегда возвращает generic response, чтобы не раскрывать наличие аккаунта.
+
+Rationale / Обоснование:
+
+- session-cookie схема снижает риск XSS-кражи bearer access token из browser storage;
+- Django уже предоставляет зрелые session, CSRF и password hashing механизмы;
+- `HttpOnly` session cookie отделяет credential от JavaScript;
+- CSRF защита обязательна, потому что browser автоматически отправляет cookies;
+- одноразовые hashed DB tokens дают простую revocation-модель без хранения plaintext secrets.
+
+Consequences / Последствия:
+
+- frontend должен выполнять requests с credentials и передавать `X-CSRFToken` для unsafe методов;
+- CORS должен оставаться строгим allowlist и использовать credentials только для доверенных origins;
+- production должен включать `DJANGO_SESSION_COOKIE_SECURE=true` и `DJANGO_CSRF_COOKIE_SECURE=true`;
+- production email backend должен быть настроен отдельно, без логирования raw tokens;
+- мобильное приложение или B2B API могут потребовать отдельную token-схему в будущем через отдельное ADR;
+- OAuth не реализуется в этом этапе.

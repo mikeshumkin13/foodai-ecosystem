@@ -43,6 +43,34 @@ FoodAI Ecosystem строится по принципам privacy-by-design и s
 - `UserProfile` отделён от `User` для пользовательских данных, но health/fitness данные не должны храниться ни в `User`, ни в generic profile без отдельного архитектурного решения.
 - Все будущие модели, связанные с пользователем, должны ссылаться на `settings.AUTH_USER_MODEL`.
 
+## Authentication security
+
+Web authentication использует Django session cookies:
+
+- access token не выдаётся web-клиенту и не хранится в `localStorage`;
+- `sessionid` хранится в `HttpOnly` cookie;
+- `SameSite=Lax` по умолчанию;
+- `Secure` должен быть включён в production;
+- unsafe requests требуют CSRF token/header;
+- refresh endpoint продлевает session и ротирует session key/CSRF token;
+- logout очищает session;
+- password change использует `update_session_auth_hash` для текущей session.
+
+Email verification и password reset:
+
+- raw tokens не хранятся в БД;
+- хранится только hash token;
+- tokens одноразовые и имеют expiry;
+- выпуск нового token отзывает старые unused tokens;
+- password reset request всегда возвращает generic response для existing и unknown email;
+- OAuth не реализован на этом этапе.
+
+Brute-force/rate limiting:
+
+- registration, login, logout, refresh, email verification, password reset и password change имеют scoped throttling;
+- login/password reset throttling учитывает IP и нормализованный email hash;
+- production multi-instance deployment должен перевести throttle cache на shared backend, например Redis.
+
 ## Upload security
 
 Загрузка фотографий должна включать:
