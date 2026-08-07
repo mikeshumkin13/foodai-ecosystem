@@ -60,6 +60,10 @@ foodai-ecosystem/
 - `AUTH_USER_MODEL = "accounts.User"`.
 - `accounts.User` использует UUID primary key, уникальный email как основной логин, стандартный Django password hashing, `is_active`, `is_staff` и timestamps.
 - Пользовательские данные вне authentication/authorization хранятся в `UserProfile`; health/fitness данные не помещаются в `User`.
+- RBAC foundation реализован через централизованные Django Groups/Permissions в `accounts.rbac`.
+- Роли `user`, `support`, `content_manager` и `admin` являются business roles; `superuser` остаётся отдельным техническим механизмом Django.
+- DRF API закрыт по умолчанию через `IsAuthenticated`; публичные endpoint-ы должны явно указывать `AllowAny`.
+- Object-level permissions для пользовательских объектов реализуются централизованными DRF permission-классами; текущий `UserProfile` API проверяет владельца и защищён от IDOR по UUID.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 

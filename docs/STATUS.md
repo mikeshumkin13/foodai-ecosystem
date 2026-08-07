@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-07
 
 ## Текущий завершённый этап
 
-ЭТАП 4, PROMPT 4 — Custom User завершён.
+ЭТАП 5, PROMPT 5 — RBAC завершён.
 
 ## Состояние
 
@@ -37,6 +37,13 @@ Last updated / Обновлено: 2026-08-07
 - `accounts.User` использует UUID primary key, уникальный email как основной логин, стандартный Django password hashing, `is_active`, `is_staff` и timestamps.
 - Дополнительные пользовательские данные вынесены в `accounts.UserProfile`; health/fitness данные не помещены в `User`.
 - Добавлены initial migration, Django admin, test factories и тесты для user creation, superuser creation, unique email и password hashing.
+- Создана ветка `feature/rbac` от актуального `develop`.
+- RBAC foundation реализован через централизованные Django Groups/Permissions в `accounts.rbac`.
+- Добавлены business roles: `user`, `support`, `content_manager`, `admin`.
+- `superuser` сохранён как отдельный технический Django-механизм и не входит в business roles.
+- DRF API закрыт по умолчанию через `IsAuthenticated`; публичный health endpoint явно использует `AllowAny`.
+- Добавлен минимальный `UserProfile` API с object-level permissions.
+- Добавлены тесты на role groups, запрет доступа, support/content-manager ограничения, admin/superuser доступ и отдельный IDOR-сценарий по UUID.
 
 ## Проверки
 
@@ -77,7 +84,19 @@ Last updated / Обновлено: 2026-08-07
 - `docker compose -p foodai_accounts_check --env-file .env exec -T backend python backend/manage.py migrate --check --settings=config.settings.local` — passed, unapplied migrations нет.
 - `docker compose -p foodai_accounts_check --env-file .env exec -T backend python -m pytest` — passed, 11 tests passed, coverage 88.07%.
 - `docker compose -p foodai_accounts_check --env-file .env down` — passed, isolated stack остановлен без удаления volumes.
+- `make check` — passed для PROMPT 5: Ruff без ошибок, mypy без ошибок в 36 source files, Django system check без ошибок, pytest: 25 passed, coverage 90.02%.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate` с безопасными локальными env — passed.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend` — passed.
+- `docker compose -p foodai_rbac_check --env-file .env up --build -d` — passed на fresh isolated volumes.
+- `docker compose -p foodai_rbac_check --env-file .env ps` — PostgreSQL, Redis и backend healthy; PostgreSQL/Redis не публикуют host ports.
+- Fresh Docker logs — migrations применены в корректном порядке: `accounts.0001_initial`, затем `accounts.0002_rolepermission_alter_userprofile_options`, затем `admin.0001_initial`.
+- `curl -fsS http://127.0.0.1:8000/api/v1/health/` на isolated stack — passed, ответ `{"status":"ok"}`.
+- `docker compose -p foodai_rbac_check --env-file .env exec -T backend python backend/manage.py migrate --check --settings=config.settings.local` — passed, unapplied migrations нет.
+- `docker compose -p foodai_rbac_check --env-file .env exec -T backend python -m pytest` — passed, 25 tests passed, coverage 89.61%.
+- `docker compose -p foodai_rbac_check --env-file .env down` — passed, isolated stack остановлен без удаления volumes.
 
 ## Следующий этап
 
-Остановиться после PROMPT 4. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 5. Следующую задачу начинать только после явной команды пользователя.

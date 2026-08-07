@@ -35,12 +35,23 @@ API не должен привязывать клиентов к одному ч
 ## Текущие endpoint-ы
 
 - `GET /api/v1/health/` — проверка доступности backend. Ответ: `{"status": "ok"}`.
+- `GET /api/v1/accounts/profiles/{id}/` — чтение `UserProfile`.
+- `PUT/PATCH /api/v1/accounts/profiles/{id}/` — обновление `UserProfile`.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 
 В Docker Compose health endpoint используется также для backend healthcheck после ожидания PostgreSQL/Redis и выполнения migrations.
 
-Account API пока не реализован. В backend добавлена только модельная основа: `accounts.User` с UUID и email-login, а также `accounts.UserProfile` для пользовательских данных.
+Account API пока реализован только минимально для `UserProfile`.
+
+Правила доступа:
+
+- unauthenticated requests запрещены для account API;
+- обычный `user` читает и изменяет только собственный профиль;
+- обращение User A к UUID профиля User B не возвращает чужие данные;
+- `support` и `content_manager` не получают доступ к пользовательским профилям по умолчанию;
+- `admin` с permission `accounts.administer_accounts` может работать с профилями;
+- `superuser` использует технический Django override.
 
 ## Breaking changes
 

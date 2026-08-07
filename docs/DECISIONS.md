@@ -168,3 +168,40 @@ Consequences / Последствия:
 - нельзя импортировать `django.contrib.auth.models.User` как доменную модель пользователя;
 - `UserProfile` не должен становиться местом для health/fitness данных;
 - account API будет проектироваться отдельно и должен сохранять object-level permissions.
+
+## ADR-0008: Centralized RBAC With Django Groups And Permissions
+
+Date / Дата: 2026-08-07
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+RBAC реализуется централизованно через Django Groups/Permissions.
+
+Business roles:
+
+- `user`;
+- `support`;
+- `content_manager`;
+- `admin`.
+
+`superuser` не является business role и остаётся отдельным техническим механизмом Django.
+
+Ролевая матрица и синхронизация групп описаны в `accounts.rbac`. Проверки доступа в API должны использовать централизованные permission-классы, а не распределённые проверки вида `if role == ...` в бизнес-коде.
+
+Rationale / Обоснование:
+
+- Django Groups/Permissions дают стандартный механизм least privilege;
+- deny-by-default проще обеспечить на уровне DRF settings и permission classes;
+- support и content-management доступы должны развиваться независимо от приватных пользовательских данных;
+- object-level permissions нужны с самого начала, чтобы снизить риск IDOR при появлении новых UUID-ресурсов.
+
+Consequences / Последствия:
+
+- новые роли и permissions добавляются через `accounts.rbac`, миграции и `docs/SECURITY.md`;
+- новые пользовательские API должны явно тестировать object-level permissions;
+- support не получает доступ к health data, фото, дневникам и AI-диалогам без отдельной процедуры и audit log;
+- content manager управляет каталогом/контентом, но не приватными дневниками пользователей;
+- admin получает административные permissions, но не заменяет `superuser`;
+- `superuser` не должен использоваться для повседневной работы.

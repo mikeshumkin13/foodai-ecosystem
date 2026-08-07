@@ -51,4 +51,8 @@ class UserManager(BaseUserManager):
         user = cast("User", self.model(email=normalized_email, **extra_fields))
         user.set_password(password)
         user.save(using=self._db)
+        if not user.is_superuser:
+            from accounts.rbac import Role, assign_role
+
+            assign_role(user, Role.USER, using=self._db or "default")
         return user
