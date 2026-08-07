@@ -1,0 +1,45 @@
+# Environment and secrets / Окружение и секреты
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Django/runtime artifacts
+staticfiles/
+media/
+local_uploads/
+
+# Node/frontend
+node_modules/
+.next/
+out/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE and OS
+.DS_Store
+.idea/
+.vscode/
+
+# Build and logs / Сборка и логи
+*.log
+tmp/
+dist/
+build/
+
