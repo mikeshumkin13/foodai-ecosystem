@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend, а также приложение `accounts` с custom User model, RBAC foundation и session-cookie authentication. Food/Diary модели пока не создавались.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend, а также приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication и защищённой Django Admin foundation. Food/Diary модели пока не создавались.
 
 ## Backend: локальная установка
 
@@ -81,6 +81,7 @@ python backend/manage.py runserver 0.0.0.0:8000 --settings=config.settings.local
 
 Backend endpoints:
 
+- `GET /admin/` — Django Admin для внутренних ролей, пользователей и read-only audit foundation.
 - `GET /api/v1/health/` — health check.
 - `GET /api/v1/auth/csrf/` — выдаёт CSRF cookie/token для web-клиента.
 - `POST /api/v1/auth/register/` — регистрация, создаёт inactive user и email verification token.
