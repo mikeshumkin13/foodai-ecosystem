@@ -23,6 +23,7 @@ Last updated / Обновлено: 2026-08-07
 - Добавлены OpenAPI schema и Swagger UI.
 - Добавлены pytest, pytest-django, Ruff, mypy и coverage в `pyproject.toml`.
 - Зависимости установлены в локальный `.venv`.
+- Добавлено правило: сообщения commit должны быть понятными человеческими фразами, без закодированных префиксов вроде `feat:`, `fix:`, `chore:`.
 
 ## Проверки
 
@@ -37,6 +38,7 @@ Last updated / Обновлено: 2026-08-07
 - `make django-check` — passed, Django system check identified no issues.
 - `make check` — passed, полный backend quality gate пройден.
 - `backend/manage.py spectacular --validate` — passed, OpenAPI schema генерируется без ошибок.
+- `make check` — passed после обновления правила commit messages.
 
 ## Следующий этап
 
