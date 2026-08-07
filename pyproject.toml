@@ -1,0 +1,98 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "foodai-ecosystem-backend"
+version = "0.1.0"
+description = "FoodAI Ecosystem backend foundation"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "Django>=5.1,<5.3",
+  "dj-database-url>=2.2,<3.0",
+  "django-cors-headers>=4.4,<5.0",
+  "djangorestframework>=3.15,<3.17",
+  "drf-spectacular>=0.27,<0.29",
+  "psycopg[binary]>=3.2,<4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "coverage[toml]>=7.6,<8.0",
+  "django-stubs[compatible-mypy]>=5.1,<5.3",
+  "djangorestframework-stubs[compatible-mypy]>=3.15,<3.17",
+  "mypy>=1.13,<2.0",
+  "pytest>=8.3,<9.0",
+  "pytest-cov>=5.0,<7.0",
+  "pytest-django>=4.9,<5.0",
+  "pytest-env>=1.1,<2.0",
+  "ruff>=0.8,<0.14",
+]
+
+[tool.setuptools]
+package-dir = {"" = "backend"}
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+include = ["config*", "core*"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+DJANGO_SETTINGS_MODULE = "config.settings.local"
+pythonpath = ["backend"]
+testpaths = ["backend"]
+addopts = [
+  "--strict-config",
+  "--strict-markers",
+  "--cov=backend",
+  "--cov-report=term-missing:skip-covered",
+  "--cov-report=xml",
+]
+env = [
+  "DJANGO_SECRET_KEY=test-secret-key-for-pytest-only",
+  "DJANGO_DEBUG=true",
+  "DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,testserver",
+  "DJANGO_CORS_ALLOWED_ORIGINS=http://localhost:3000",
+  "DATABASE_URL=sqlite:///:memory:",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["backend"]
+omit = [
+  "backend/manage.py",
+  "backend/config/asgi.py",
+  "backend/config/wsgi.py",
+  "*/migrations/*",
+  "*/tests/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 80
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["backend"]
+
+[tool.ruff.lint]
+select = ["B", "DJ", "E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "backend"
+plugins = ["mypy_django_plugin.main"]
+ignore_missing_imports = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_return_any = true
+warn_unused_ignores = true
+no_implicit_optional = true
+exclude = ["migrations"]
+
+[tool.django-stubs]
+django_settings_module = "config.settings.local"
+

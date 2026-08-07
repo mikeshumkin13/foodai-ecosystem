@@ -32,6 +32,12 @@ API не должен привязывать клиентов к одному ч
 - Data export и deletion.
 - AI assistant conversations с safety boundaries.
 
+## Текущие endpoint-ы
+
+- `GET /api/v1/health/` — проверка доступности backend. Ответ: `{"status": "ok"}`.
+- `GET /api/v1/schema/` — OpenAPI schema.
+- `GET /api/v1/docs/` — Swagger UI.
+
 ## Breaking changes
 
 Breaking API changes требуют:
@@ -39,4 +45,3 @@ Breaking API changes требуют:
 1. документированного решения в `docs/DECISIONS.md`;
 2. обновления `docs/API.md`;
 3. тестов на новое поведение.
-

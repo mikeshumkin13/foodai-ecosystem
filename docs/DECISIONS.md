@@ -89,3 +89,28 @@ Consequences / Последствия:
 - пользовательские backend-сообщения должны быть локализуемыми;
 - пользовательский каталог и managed content должны поддерживать языковые варианты при необходимости.
 
+## ADR-0005: Backend Foundation Tooling
+
+Date / Дата: 2026-08-07
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Backend foundation использует Django + Django REST Framework, разделённые settings (`base`, `local`, `production`), drf-spectacular для OpenAPI/Swagger, pytest/pytest-django для тестов, Ruff для lint, mypy для type checking и coverage для оценки покрытия.
+
+Зависимости backend описываются в root `pyproject.toml`. Локальная изоляция выполняется через `.venv` и `pip install -e ".[dev]"`.
+
+Rationale / Обоснование:
+
+- `pyproject.toml` даёт единый современный формат для зависимостей и инструментов;
+- `.venv + pip` достаточно просты для раннего monorepo и не добавляют отдельный lock-in;
+- OpenAPI нужен сразу, чтобы API-контракты не расходились с реализацией;
+- mypy полезен уже на foundation-этапе и пока не создаёт искусственной сложности.
+
+Consequences / Последствия:
+
+- команды backend quality gate живут в root `Makefile`;
+- настройки Django должны приходить через environment variables;
+- каждый новый backend endpoint должен иметь тест;
+- при росте зависимостей можно отдельно принять решение о lock-файле или другом dependency manager.

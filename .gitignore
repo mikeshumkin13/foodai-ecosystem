@@ -13,11 +13,15 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 .coverage
+coverage.xml
 htmlcov/
 .venv/
 venv/
+*.egg-info/
 
 # Django/runtime artifacts
+*.sqlite3
+db.sqlite3
 staticfiles/
 media/
 local_uploads/
@@ -42,4 +46,3 @@ pnpm-debug.log*
 tmp/
 dist/
 build/
-

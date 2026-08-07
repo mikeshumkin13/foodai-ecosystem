@@ -35,6 +35,8 @@ foodai-ecosystem/
 - PostgreSQL.
 - Redis.
 - Celery.
+- pytest, pytest-django, Ruff, mypy и coverage для backend quality gate.
+- drf-spectacular для OpenAPI/Swagger.
 
 Ответственность:
 
@@ -47,6 +49,15 @@ foodai-ecosystem/
 - AI safety boundaries;
 - экспорт и удаление данных;
 - audit log административных операций.
+
+Текущее foundation-состояние:
+
+- Django project расположен в `backend/config`.
+- Настройки разделены на `config.settings.base`, `config.settings.local`, `config.settings.production`.
+- Настройки читаются из environment variables.
+- Приложение `core` содержит только инфраструктурные endpoint-ы, без доменных моделей.
+- Health endpoint: `GET /api/v1/health/`.
+- Swagger UI: `GET /api/v1/docs/`.
 
 ## Vision Service
 
@@ -105,4 +116,3 @@ API должны:
 - возвращать стабильные machine-readable error codes;
 - не связывать клиентов с одним человеческим языком;
 - поддерживать локализацию пользовательских сообщений на русский и английский, когда backend генерирует такие сообщения.
-
