@@ -139,3 +139,32 @@ Consequences / Последствия:
 - PostgreSQL и Redis не публикуют host-порты без отдельной необходимости;
 - backend ждёт PostgreSQL/Redis перед запуском и выполняет migrations через entrypoint;
 - production deployment не обязан использовать этот compose-файл без отдельной адаптации.
+
+## ADR-0007: Custom User Model With UUID And Email Login
+
+Date / Дата: 2026-08-07
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Backend использует custom user model `accounts.User` с `AUTH_USER_MODEL = "accounts.User"`.
+
+`User` хранит только authentication/authorization минимум: UUID primary key, уникальный email как основной логин, password hash через стандартный Django механизм, `is_active`, `is_staff`, timestamps и стандартные permission-связи Django.
+
+Дополнительные пользовательские данные размещаются в `accounts.UserProfile`.
+
+Rationale / Обоснование:
+
+- custom user model нужно вводить до появления доменных моделей и production-данных;
+- email-login лучше соответствует потребительскому продукту, чем username;
+- UUID снижает риск раскрытия последовательных публичных идентификаторов;
+- минимальный `User` уменьшает объём чувствительных данных в auth-сущности;
+- health/fitness данные должны жить в отдельных доменных моделях с отдельными permissions и retention rules.
+
+Consequences / Последствия:
+
+- все будущие связи с пользователем должны ссылаться на `settings.AUTH_USER_MODEL`;
+- нельзя импортировать `django.contrib.auth.models.User` как доменную модель пользователя;
+- `UserProfile` не должен становиться местом для health/fitness данных;
+- account API будет проектироваться отдельно и должен сохранять object-level permissions.

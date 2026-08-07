@@ -40,6 +40,8 @@ API не должен привязывать клиентов к одному ч
 
 В Docker Compose health endpoint используется также для backend healthcheck после ожидания PostgreSQL/Redis и выполнения migrations.
 
+Account API пока не реализован. В backend добавлена только модельная основа: `accounts.User` с UUID и email-login, а также `accounts.UserProfile` для пользовательских данных.
+
 ## Breaking changes
 
 Breaking API changes требуют:
