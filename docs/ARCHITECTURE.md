@@ -106,6 +106,15 @@ Vision не владеет пользователями, дневниками, �
 
 Production-окружение должно использовать deny-by-default, least privilege, приватное object storage и безопасное управление секретами.
 
+Текущее dev-состояние:
+
+- локальная инфраструктура запускается через Docker Compose;
+- `postgres` и `redis` не публикуют порты наружу и доступны backend только внутри compose-сети;
+- данные PostgreSQL и Redis хранятся в named volumes `postgres_data` и `redis_data`;
+- backend container ждёт готовности PostgreSQL и Redis через healthchecks и management command `wait_for_dependencies`;
+- migrations выполняются при старте backend через `migrate --noinput`, если `DJANGO_RUN_MIGRATIONS=true`;
+- один понятный запуск для разработки: `make dev-up`.
+
 ## API и i18n
 
 Стабильного публичного API пока нет.

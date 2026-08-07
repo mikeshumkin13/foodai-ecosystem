@@ -38,6 +38,8 @@ API не должен привязывать клиентов к одному ч
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 
+В Docker Compose health endpoint используется также для backend healthcheck после ожидания PostgreSQL/Redis и выполнения migrations.
+
 ## Breaking changes
 
 Breaking API changes требуют:

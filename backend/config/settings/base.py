@@ -88,6 +88,7 @@ DB_CONN_MAX_AGE = get_env_int("DJANGO_DB_CONN_MAX_AGE", default=60)
 DATABASES = {
     "default": dj_database_url.parse(DATABASE_URL, conn_max_age=DB_CONN_MAX_AGE),
 }
+REDIS_URL = get_env("REDIS_URL", default="")
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -125,4 +126,3 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
-
