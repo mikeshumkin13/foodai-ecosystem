@@ -56,6 +56,10 @@ foodai-ecosystem/
 - Настройки разделены на `config.settings.base`, `config.settings.local`, `config.settings.production`.
 - Настройки читаются из environment variables.
 - Приложение `core` содержит только инфраструктурные endpoint-ы, без доменных моделей.
+- Приложение `accounts` содержит custom User model и `UserProfile`.
+- `AUTH_USER_MODEL = "accounts.User"`.
+- `accounts.User` использует UUID primary key, уникальный email как основной логин, стандартный Django password hashing, `is_active`, `is_staff` и timestamps.
+- Пользовательские данные вне authentication/authorization хранятся в `UserProfile`; health/fitness данные не помещаются в `User`.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 

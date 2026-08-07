@@ -40,6 +40,7 @@ DEBUG = get_env_bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = get_env_list("DJANGO_ALLOWED_HOSTS")
 
 INSTALLED_APPS = [
+    "accounts",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -90,6 +91,7 @@ DATABASES = {
 }
 REDIS_URL = get_env("REDIS_URL", default="")
 
+AUTH_USER_MODEL = "accounts.User"
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},

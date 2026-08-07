@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-07
 
 ## Текущий завершённый этап
 
-ЭТАП 3, PROMPT 3 — PostgreSQL + Redis + Docker dev infrastructure завершён.
+ЭТАП 4, PROMPT 4 — Custom User завершён.
 
 ## Состояние
 
@@ -31,6 +31,12 @@ Last updated / Обновлено: 2026-08-07
 - Backend ждёт готовности PostgreSQL/Redis через healthchecks и `wait_for_dependencies`.
 - Migrations выполняются предсказуемо через backend entrypoint при `DJANGO_RUN_MIGRATIONS=true`.
 - Локальный запуск выполняется одной командой: `make dev-up`.
+- Создана ветка `feature/accounts` от `develop`.
+- Добавлено Django-приложение `accounts`.
+- С самого начала доменной разработки backend использует custom `accounts.User` через `AUTH_USER_MODEL`.
+- `accounts.User` использует UUID primary key, уникальный email как основной логин, стандартный Django password hashing, `is_active`, `is_staff` и timestamps.
+- Дополнительные пользовательские данные вынесены в `accounts.UserProfile`; health/fitness данные не помещены в `User`.
+- Добавлены initial migration, Django admin, test factories и тесты для user creation, superuser creation, unique email и password hashing.
 
 ## Проверки
 
@@ -58,7 +64,20 @@ Last updated / Обновлено: 2026-08-07
 - `curl -fsS http://127.0.0.1:8000/api/v1/health/` — passed, ответ `{"status":"ok"}`.
 - `docker compose --env-file .env exec -T backend python -m pytest` — passed, 3 tests passed, coverage 83.52%.
 - `docker compose --env-file .env down` — passed, локальный стек остановлен без удаления volumes.
+- `make check` — passed для PROMPT 4: Ruff без ошибок, mypy без ошибок в 29 source files, Django system check без ошибок, pytest: 11 passed, coverage 88.77%.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate` с безопасными локальными env — passed.
+- `docker compose --env-file .env config --quiet` — passed.
+- `make dev-up-detached` на существующем dev volume из PROMPT 3 выявил ожидаемую локальную проблему `InconsistentMigrationHistory`, потому что volume был создан до `AUTH_USER_MODEL = "accounts.User"`.
+- Удаление существующих локальных Docker volumes не выполнялось без явного подтверждения пользователя.
+- `docker compose -p foodai_accounts_check --env-file .env up --build -d` — passed на fresh isolated volumes.
+- `docker compose -p foodai_accounts_check --env-file .env ps` — PostgreSQL, Redis и backend healthy; PostgreSQL/Redis не публикуют host ports.
+- Fresh Docker logs — migrations применены в корректном порядке: `accounts.0001_initial` до `admin.0001_initial`.
+- `curl -fsS http://127.0.0.1:8000/api/v1/health/` на isolated stack — passed, ответ `{"status":"ok"}`.
+- `docker compose -p foodai_accounts_check --env-file .env exec -T backend python backend/manage.py migrate --check --settings=config.settings.local` — passed, unapplied migrations нет.
+- `docker compose -p foodai_accounts_check --env-file .env exec -T backend python -m pytest` — passed, 11 tests passed, coverage 88.07%.
+- `docker compose -p foodai_accounts_check --env-file .env down` — passed, isolated stack остановлен без удаления volumes.
 
 ## Следующий этап
 
-Остановиться после PROMPT 3. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 4. Следующую задачу начинать только после явной команды пользователя.

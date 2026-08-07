@@ -35,7 +35,7 @@ package-dir = {"" = "backend"}
 
 [tool.setuptools.packages.find]
 where = ["backend"]
-include = ["config*", "core*"]
+include = ["accounts*", "config*", "core*"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
@@ -95,4 +95,3 @@ exclude = ["migrations"]
 
 [tool.django-stubs]
 django_settings_module = "config.settings.local"
-

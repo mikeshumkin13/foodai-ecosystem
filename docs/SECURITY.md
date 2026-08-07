@@ -34,6 +34,15 @@ FoodAI Ecosystem строится по принципам privacy-by-design и s
 
 Логи не должны содержать пароли, токены, health profile, фотографии и другую чувствительную информацию. Токены и секреты должны редактироваться из логов.
 
+## Account security
+
+- Backend использует custom `accounts.User` с UUID primary key.
+- Email является основным логином и хранится уникально.
+- Пароли не хранятся в plaintext; используется стандартный Django password hashing.
+- `User` хранит только authentication/authorization минимум: email, password hash, active/staff flags и timestamps.
+- `UserProfile` отделён от `User` для пользовательских данных, но health/fitness данные не должны храниться ни в `User`, ни в generic profile без отдельного архитектурного решения.
+- Все будущие модели, связанные с пользователем, должны ссылаться на `settings.AUTH_USER_MODEL`.
+
 ## Upload security
 
 Загрузка фотографий должна включать:

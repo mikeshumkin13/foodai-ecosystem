@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework и локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend. User/Food/Diary модели пока не создавались.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend, а также приложение `accounts` с custom User model. Food/Diary модели пока не создавались.
 
 ## Backend: локальная установка
 
@@ -115,3 +115,5 @@ Health endpoint после запуска:
 ```bash
 curl http://localhost:8000/api/v1/health/
 ```
+
+Если локальная Docker Compose БД была создана до появления `accounts.User`, Django может сообщить `InconsistentMigrationHistory` из-за старой истории `admin` migrations. Это относится только к локальным dev volumes. Если данные не нужны, после явного подтверждения удаления локальной dev БД можно пересоздать volumes командой `docker compose --env-file .env down -v`, затем снова выполнить `make dev-up`.
