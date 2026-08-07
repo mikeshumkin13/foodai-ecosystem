@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-07
 
 ## Текущий завершённый этап
 
-ЭТАП 2, PROMPT 2 — Django backend foundation.
+ЭТАП 3, PROMPT 3 — PostgreSQL + Redis + Docker dev infrastructure завершён.
 
 ## Состояние
 
@@ -25,6 +25,12 @@ Last updated / Обновлено: 2026-08-07
 - Зависимости установлены в локальный `.venv`.
 - Добавлено правило: сообщения commit должны быть понятными человеческими фразами, без закодированных префиксов вроде `feat:`, `fix:`, `chore:`.
 - Ветка `feature/backend-foundation` переоснована на `origin/develop`, чтобы PR корректно сравнивался с remote `develop`.
+- Создана ветка `feature/dev-infrastructure` от `develop`.
+- Добавлена локальная Docker Compose инфраструктура: PostgreSQL, Redis, backend, volumes и healthchecks.
+- PostgreSQL и Redis не публикуют порты наружу.
+- Backend ждёт готовности PostgreSQL/Redis через healthchecks и `wait_for_dependencies`.
+- Migrations выполняются предсказуемо через backend entrypoint при `DJANGO_RUN_MIGRATIONS=true`.
+- Локальный запуск выполняется одной командой: `make dev-up`.
 
 ## Проверки
 
@@ -43,7 +49,16 @@ Last updated / Обновлено: 2026-08-07
 - `make check` — passed после rebase на `origin/develop`.
 - `backend/manage.py spectacular --validate` — passed после rebase на `origin/develop`.
 - `git status --short --branch` — clean на `feature/backend-foundation` перед обновлением статуса публикации.
+- `make check` — passed для PROMPT 3: Ruff без ошибок, mypy без ошибок в 21 source files, Django system check без ошибок, pytest: 3 passed, coverage 84.62%.
+- `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `make dev-up-detached` — passed, Docker image backend собран, PostgreSQL/Redis/backend запущены.
+- `docker compose --env-file .env ps` — PostgreSQL, Redis и backend healthy; PostgreSQL/Redis не публикуют host ports.
+- `docker compose --env-file .env exec -T backend python backend/manage.py wait_for_dependencies --timeout 10 --interval 1 --settings=config.settings.local` — passed, backend видит PostgreSQL и Redis.
+- `curl -fsS http://127.0.0.1:8000/api/v1/health/` — passed, ответ `{"status":"ok"}`.
+- `docker compose --env-file .env exec -T backend python -m pytest` — passed, 3 tests passed, coverage 83.52%.
+- `docker compose --env-file .env down` — passed, локальный стек остановлен без удаления volumes.
 
 ## Следующий этап
 
-Остановиться после PROMPT 2. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 3. Следующую задачу начинать только после явной команды пользователя.

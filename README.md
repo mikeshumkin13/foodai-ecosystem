@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework. User/Food/Diary модели пока не создавались.
+Создан backend foundation на Django + Django REST Framework и локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend. User/Food/Diary модели пока не создавались.
 
 ## Backend: локальная установка
 
@@ -83,3 +83,35 @@ Backend endpoints:
 - `GET /api/v1/health/` — health check.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
+
+## Локальная инфраструктура через Docker Compose
+
+Одна команда для локального запуска backend с PostgreSQL и Redis:
+
+```bash
+make dev-up
+```
+
+Если `.env` отсутствует, команда создаст его из безопасного `.env.example`. PostgreSQL и Redis доступны только внутри Docker Compose network и не публикуют порты на host.
+
+Полезные команды:
+
+```bash
+make dev-up-detached
+make dev-health
+make dev-test
+make dev-logs
+make dev-down
+```
+
+Что запускается:
+
+- `postgres` — PostgreSQL с volume `postgres_data` и healthcheck.
+- `redis` — Redis с volume `redis_data` и healthcheck.
+- `backend` — Django backend, который ждёт PostgreSQL/Redis, предсказуемо выполняет `migrate --noinput`, затем стартует `runserver`.
+
+Health endpoint после запуска:
+
+```bash
+curl http://localhost:8000/api/v1/health/
+```

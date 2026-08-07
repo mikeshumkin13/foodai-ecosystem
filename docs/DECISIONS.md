@@ -114,3 +114,28 @@ Consequences / Последствия:
 - настройки Django должны приходить через environment variables;
 - каждый новый backend endpoint должен иметь тест;
 - при росте зависимостей можно отдельно принять решение о lock-файле или другом dependency manager.
+
+## ADR-0006: Docker Compose For Local Development Infrastructure
+
+Date / Дата: 2026-08-07
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Локальная инфраструктура разработки запускается через Docker Compose и включает `postgres`, `redis` и `backend`.
+
+Rationale / Обоснование:
+
+- PostgreSQL и Redis нужны backend уже на раннем этапе;
+- Docker Compose даёт воспроизводимый локальный запуск одной командой;
+- named volumes сохраняют состояние между перезапусками;
+- healthchecks и explicit wait command делают порядок старта предсказуемым.
+
+Consequences / Последствия:
+
+- `docker-compose.yml` не должен содержать секреты напрямую;
+- значения читаются из `.env`, а `.env.example` содержит только безопасные локальные примеры;
+- PostgreSQL и Redis не публикуют host-порты без отдельной необходимости;
+- backend ждёт PostgreSQL/Redis перед запуском и выполняет migrations через entrypoint;
+- production deployment не обязан использовать этот compose-файл без отдельной адаптации.
