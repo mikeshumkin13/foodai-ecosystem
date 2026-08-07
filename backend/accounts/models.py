@@ -52,6 +52,24 @@ class UserProfile(models.Model):
 
     class Meta:
         ordering = ["user__email"]
+        permissions = [
+            ("view_own_userprofile", "Can view own user profile"),
+            ("change_own_userprofile", "Can change own user profile"),
+        ]
 
     def __str__(self) -> str:
         return f"Profile for {self.user.email}"
+
+
+class RolePermission(models.Model):
+    class Meta:
+        managed = False
+        default_permissions = ()
+        permissions = [
+            ("access_support_tools", "Can access support tools without private user data"),
+            ("manage_catalog_content", "Can manage nutrition catalog content"),
+            ("administer_accounts", "Can administer accounts"),
+        ]
+
+    def __str__(self) -> str:
+        return "Role permission namespace"

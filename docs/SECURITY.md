@@ -75,6 +75,34 @@ FoodAI Ecosystem строится по принципам privacy-by-design и s
 
 Support-доступ к чувствительным данным возможен только через отдельную процедуру и должен логироваться.
 
+## Permission matrix / Матрица разрешений
+
+RBAC foundation использует Django Groups/Permissions:
+
+- business role group names: `user`, `support`, `content_manager`, `admin`;
+- `superuser` не входит в business-role groups и остаётся техническим override-механизмом Django;
+- DRF API закрыт по умолчанию через `IsAuthenticated`;
+- публичные endpoint-ы должны явно указывать `AllowAny`;
+- пользовательские объекты должны иметь object-level permissions и IDOR-тесты.
+
+| Роль | Разрешено | Запрещено по умолчанию |
+| --- | --- | --- |
+| `anonymous` | Только явно публичные endpoint-ы, например `GET /api/v1/health/`. | Любые приватные профили, дневники, фото, health data, AI-диалоги, admin/support/content endpoints. |
+| `user` | Читать и изменять только собственный `UserProfile`; будущие дневники, фото и цели только в пределах собственных объектов. | Доступ к чужим UUID-ресурсам, чужим дневникам, чужим фото, support/admin/content-management функциям. |
+| `support` | Доступ к support tooling без приватных пользовательских данных. | Health data, фото еды, дневники, AI-диалоги и пользовательские профили по умолчанию. |
+| `content_manager` | Управление будущим каталогом продуктов, нутриентами, справочниками и контентом. | Приватные дневники пользователей, фото, health data, AI-диалоги и пользовательские профили по умолчанию. |
+| `admin` | Административные permissions для управления users/profiles и системными справочниками согласно Django permissions. | Автоматический обход object-level policy без выданных permissions; использование как замена `superuser`. |
+| `superuser` | Полный технический доступ Django для аварийных/системных операций. | Повседневная операционная работа и роль обычного администратора продукта. |
+
+Текущие permission groups:
+
+- `user`: `accounts.view_own_userprofile`, `accounts.change_own_userprofile`.
+- `support`: `accounts.access_support_tools`.
+- `content_manager`: `accounts.manage_catalog_content`.
+- `admin`: `accounts.administer_accounts` и текущие account model permissions.
+
+IDOR baseline: User A не должен читать или менять ресурс User B даже при знании UUID. Для `UserProfile` это покрыто API-тестом.
+
 ## AI safety
 
 AI получает только минимально необходимый контекст пользователя.
