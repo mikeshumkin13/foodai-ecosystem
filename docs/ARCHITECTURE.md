@@ -84,6 +84,10 @@ Responsibilities:
 - goals and progress views;
 - user-facing AI workflows with safety boundaries.
 
+Frontend user-facing strings must be localization-ready for Russian (`ru`) and English (`en`). Do not hardcode UI text in a way that blocks future i18n.
+
+Пользовательские строки фронтенда должны быть готовы к локализации на русский (`ru`) и английский (`en`). Не хардкодить UI-тексты так, чтобы это блокировало будущую i18n-поддержку.
+
 ### Infrastructure
 
 Initial local dependencies:
@@ -114,3 +118,22 @@ Production target:
 
 No stable public API exists yet. Future API changes must be documented in `docs/API.md`, and breaking changes require an explicit decision in `docs/DECISIONS.md`.
 
+## Internationalization / Интернационализация
+
+Primary product languages are Russian (`ru`) and English (`en`).
+
+Основные языки продукта: русский (`ru`) и английский (`en`).
+
+Architecture implications:
+
+- user-facing frontend text must be localization-ready;
+- backend APIs should prefer stable machine-readable error codes over hardcoded prose-only errors;
+- backend-generated user-facing messages, emails, notifications, safety copy, and consent text must support Russian and English;
+- product catalog and content-management data that is visible to users should allow language variants when needed.
+
+Архитектурные последствия:
+
+- пользовательские тексты фронтенда должны быть готовы к локализации;
+- backend API должны предпочитать стабильные машиночитаемые коды ошибок вместо ошибок только в виде текста;
+- пользовательские сообщения, email, уведомления, safety-тексты и consent-тексты, генерируемые backend, должны поддерживать русский и английский;
+- каталог продуктов и контент, видимые пользователю, должны при необходимости поддерживать языковые варианты.

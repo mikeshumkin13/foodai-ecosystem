@@ -2,6 +2,16 @@
 
 FoodAI Ecosystem is a commercial nutrition and physical activity tracking product with computer vision and AI assistance.
 
+## Languages / Языки
+
+Основные языки проекта и пользовательского продукта: русский (`ru`) и английский (`en`).
+
+Primary project and user-facing product languages are Russian (`ru`) and English (`en`).
+
+User-facing product copy, notifications, safety guidance, consent text, help content, and public materials must be planned for both languages.
+
+Пользовательские тексты продукта, уведомления, safety-инструкции, consent-тексты, справка и публичные материалы должны планироваться для обоих языков.
+
 ## Core User Scenario
 
 1. The user photographs food.
@@ -48,4 +58,3 @@ Potentially dangerous situations require separate safety logic.
 - `content_manager`: manages product catalog, nutrients, references, and content.
 - `admin`: manages system and users according to permissions.
 - `superuser`: technical system access, not for daily operations.
-

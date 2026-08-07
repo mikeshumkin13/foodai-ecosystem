@@ -13,6 +13,12 @@ Core flow:
 
 AI is an assistant only. It does not diagnose, prescribe, or replace medical professionals.
 
+## Languages / Языки
+
+Primary project and user-facing product languages are Russian (`ru`) and English (`en`).
+
+Основные языки проекта и пользовательского продукта: русский (`ru`) и английский (`en`).
+
 ## Planned Monorepo Structure
 
 ```text
@@ -52,4 +58,3 @@ make check
 ## Local Environment
 
 Copy `.env.example` to `.env` for local development when services are introduced. Do not commit `.env`.
-

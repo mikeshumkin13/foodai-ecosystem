@@ -23,6 +23,8 @@ Last updated: 2026-08-07
 - Added local infrastructure placeholders.
 - Added basic project memory validation commands.
 - Добавлена языковая политика: по возможности использовать русский язык или дублировать перевод, когда нужен английский.
+- Зафиксировано, что основные языки проекта и пользовательского продукта: русский (`ru`) и английский (`en`).
+- Обновлены продуктовый контекст, архитектурные заметки, API-принципы, roadmap и ADR по i18n.
 
 ## Verification
 
@@ -31,6 +33,8 @@ Last updated: 2026-08-07
 - `git push -u origin develop feature/prompt-0-project-foundation` - passed. Published initial `develop` and feature branches.
 - `make test` - passed after language policy update / пройден после обновления языковой политики.
 - `make lint` - passed after language policy update / пройден после обновления языковой политики.
+- `make test` - passed after Russian/English primary languages update / пройден после фиксации русского и английского как основных языков.
+- `make lint` - passed after Russian/English primary languages update / пройден после фиксации русского и английского как основных языков.
 
 ## Next Task
 

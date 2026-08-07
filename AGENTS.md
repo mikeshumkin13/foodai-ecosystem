@@ -22,9 +22,13 @@ These rules apply to every future Codex session in this repository.
 
 ## Language Policy / Языковая политика
 
+Основные языки проекта и пользовательского продукта: русский (`ru`) и английский (`en`).
+
 По возможности использовать русский язык для проектной коммуникации, обновлений документации, текстов PR, статус-отчётов и объяснений. Если английский нужен для кода, сторонних терминов, команд, API-названий или устойчивой технической формулировки, оставить английский термин или продублировать его переводом на русский.
 
-Use Russian for project communication, documentation updates, PR text, status reports, and explanations where practical. If English is required for code, third-party terms, commands, API names, or established technical wording, keep the English term or duplicate it with a Russian translation.
+Пользовательские тексты, публичные материалы, уведомления, safety-тексты, consent-тексты и UX-копирайтинг должны проектироваться с поддержкой русского и английского языков. Не хардкодить пользовательские строки так, чтобы это блокировало локализацию.
+
+Primary project and user-facing product languages are Russian (`ru`) and English (`en`). Use Russian for project communication where practical. User-facing copy, public materials, notifications, safety copy, consent copy, and UX text must be designed for Russian and English localization.
 
 ## GitFlow
 

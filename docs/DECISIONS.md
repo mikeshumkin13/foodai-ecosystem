@@ -89,3 +89,26 @@ Consequences:
 - object-level authorization is required;
 - lifecycle, deletion, and export behavior must be implemented deliberately.
 
+## ADR-0005: Support Russian And English As Primary Languages
+
+Date: 2026-08-07
+
+Status: Accepted
+
+Decision:
+
+FoodAI Ecosystem uses Russian (`ru`) and English (`en`) as the primary project and user-facing product languages.
+
+Rationale:
+
+- project communication and product usage are expected in Russian and English;
+- nutrition, health-adjacent safety guidance, consent text, notifications, and AI responses must be understandable to users in both languages;
+- localization should be considered before UI, API errors, content, and notifications become difficult to change.
+
+Consequences:
+
+- frontend UI strings must be localization-ready;
+- backend APIs should prefer stable machine-readable error codes over prose-only errors;
+- backend-generated user-facing messages must be localizable in Russian and English;
+- product catalog and managed content visible to users should support language variants where needed;
+- code identifiers, commands, API names, and third-party terms may stay in English, with Russian explanation or translation where useful.

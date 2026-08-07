@@ -13,6 +13,7 @@
 - Add PostgreSQL, Redis, Celery integration.
 - Implement authentication and user model strategy.
 - Implement roles and object-level permissions.
+- Add localization-ready API error codes and user-facing backend message strategy for Russian and English.
 - Add food photo upload with size, MIME, real format validation, EXIF stripping, and private storage.
 - Add meal diary primitives.
 - Add nutrition catalog primitives.
@@ -29,6 +30,7 @@
 ## Phase 3: Frontend MVP
 
 - Scaffold Next.js PWA.
+- Add Russian and English localization foundation.
 - Add auth flow.
 - Add photo upload and recognition review UX.
 - Add diary and daily summary views.
@@ -61,4 +63,3 @@
 - Threat model update.
 - Backup and disaster recovery checks.
 - Operational monitoring and incident response process.
-
