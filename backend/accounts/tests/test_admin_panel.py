@@ -14,6 +14,8 @@ from django.urls import reverse
 from accounts.models import (
     AdminAuditLog,
     EmailVerificationToken,
+    NutritionProfile,
+    NutritionSensitiveRestriction,
     PasswordResetToken,
     User,
     UserProfile,
@@ -118,6 +120,8 @@ def test_admin_bulk_actions_are_disabled_and_security_tokens_are_hidden() -> Non
     assert admin.site._registry[Group].actions is None
     assert admin.site._registry[AdminAuditLog].actions is None
     assert EmailVerificationToken not in admin.site._registry
+    assert NutritionProfile not in admin.site._registry
+    assert NutritionSensitiveRestriction not in admin.site._registry
     assert PasswordResetToken not in admin.site._registry
 
 

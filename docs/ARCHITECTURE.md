@@ -71,6 +71,10 @@ foodai-ecosystem/
 - Django Admin используется как внутренний protected admin foundation для users/profiles/role groups и read-only admin audit log.
 - `accounts.AdminAuditLog` зеркалирует `django_admin_log` и хранит минимальные sanitized metadata административных действий.
 - Support/content-manager admin visibility строится через Django model permissions; без явных permissions они не видят чувствительные account/audit/role models.
+- `accounts.NutritionProfile` хранит MVP-настройки питания отдельно от `User` и `UserProfile`.
+- Возраст хранится как `age_category`, а не дата рождения или точный год рождения.
+- Аллергии, intolerance и медицинские ограничения отделены в `accounts.NutritionSensitiveRestriction` и доступны только владельцу через object-level permissions.
+- Nutrition profile API требует owner-only доступ и consent/version foundation для изменения пользовательских nutrition/health данных.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 

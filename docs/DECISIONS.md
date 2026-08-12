@@ -291,3 +291,44 @@ Consequences / Последствия:
 - Все admin permissions добавляются через `accounts.rbac`, миграции и `docs/SECURITY.md`.
 - Support/content-manager admin visibility должна покрываться тестами.
 - `AdminAuditLog` read-only; изменение или удаление audit records через обычный admin запрещено.
+
+## ADR-0011: Privacy-Friendly Nutrition Profile Foundation
+
+Date / Дата: 2026-08-12
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+MVP nutrition/health profile реализуется в `accounts.NutritionProfile`, отдельно от `accounts.User` и `accounts.UserProfile`.
+
+`NutritionProfile` хранит только минимальные MVP-настройки:
+
+- цель пользователя;
+- рост;
+- массу;
+- age category вместо даты рождения или точного года рождения;
+- activity level;
+- preferred units;
+- dietary preferences;
+- consent/version metadata.
+
+Аллергии, intolerance и медицинские ограничения считаются более чувствительными данными и вынесены в отдельную модель `accounts.NutritionSensitiveRestriction`. Модель хранит только тип ограничения, короткую user-provided label, active flag и consent/version metadata. Диагнозы не реализуются.
+
+Business roles `support`, `content_manager` и `admin` не получают API-доступ к nutrition profile и sensitive restrictions по умолчанию. Обычный `user` получает только own permissions; `superuser` остаётся техническим override-механизмом Django.
+
+Rationale / Обоснование:
+
+- Nutrition profile нужен MVP для персонализации дневника питания и будущих расчётов.
+- Точная дата рождения или год рождения не нужны MVP; age category снижает privacy risk.
+- Аллергии и медицинские ограничения имеют повышенную чувствительность и должны быть логически отделены от обычных предпочтений питания.
+- Consent/version fields нужны до production, чтобы future consent copy и schema changes можно было отслеживать без пересоздания модели.
+- Support/content/admin доступ к health profile без отдельной процедуры противоречит least privilege.
+
+Consequences / Последствия:
+
+- Новые health/nutrition поля нельзя добавлять в `User` или generic `UserProfile`.
+- Новые sensitive health/nutrition данные должны получать отдельную оценку модели, permissions, audit/logging и consent impact.
+- API для nutrition profile должен покрываться owner-only и IDOR-тестами.
+- AI и future recommendation logic должны получать только минимально необходимый nutrition контекст.
+- Это не medical diagnosis model и не заменяет врача, лицензированного нутрициолога или психолога.

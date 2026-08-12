@@ -4,7 +4,9 @@ from collections.abc import Iterator
 from itertools import count
 from typing import Any
 
-from accounts.models import User, UserProfile
+from django.utils import timezone
+
+from accounts.models import NutritionProfile, NutritionSensitiveRestriction, User, UserProfile
 
 _user_sequence: Iterator[int] = count(1)
 
@@ -44,3 +46,27 @@ def make_user_profile(
 ) -> UserProfile:
     resolved_user = user or make_user()
     return UserProfile.objects.create(user=resolved_user, **extra_fields)
+
+
+def make_nutrition_profile(
+    *,
+    user: User | None = None,
+    **extra_fields: Any,
+) -> NutritionProfile:
+    resolved_user = user or make_user()
+    return NutritionProfile.objects.create(user=resolved_user, **extra_fields)
+
+
+def make_nutrition_sensitive_restriction(
+    *,
+    user: User | None = None,
+    **extra_fields: Any,
+) -> NutritionSensitiveRestriction:
+    resolved_user = user or make_user()
+    extra_fields.setdefault(
+        "restriction_type",
+        NutritionSensitiveRestriction.RestrictionType.ALLERGY,
+    )
+    extra_fields.setdefault("label", "Peanut")
+    extra_fields.setdefault("consent_granted_at", timezone.now())
+    return NutritionSensitiveRestriction.objects.create(user=resolved_user, **extra_fields)
