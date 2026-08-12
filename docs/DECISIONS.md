@@ -474,3 +474,44 @@ Consequences / Последствия:
 - Signed URL можно добавить только отдельным решением с коротким TTL, owner checks и audit/logging policy.
 - Локальные файлы в `FOOD_SCAN_PRIVATE_MEDIA_ROOT` считаются private runtime artifacts и не коммитятся.
 - Новые upload formats требуют отдельной оценки security/risk и тестов на фактический формат.
+
+## ADR-0015: FastAPI Vision Service Foundation And Backend Client Boundary
+
+Date / Дата: 2026-08-12
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Vision foundation реализуется отдельным FastAPI service в `services/vision`.
+
+MVP contract:
+
+- `GET /health`;
+- `POST /v1/analyze`;
+- request содержит internal `object_reference` на уже безопасно подготовленный backend food scan object: `scan_id`, `storage_backend`, `object_key`, `content_type`, `checksum_sha256`;
+- response содержит список detected items с `label` и `confidence`;
+- до подключения ML-модели сервис возвращает mock result `rice` с confidence `0.92`.
+
+Backend не размещает HTTP-вызовы к Vision в Django views. Все вызовы идут через `integrations.vision.client`, а доменный adapter для `FoodScan` живёт в `food_scans.vision`.
+
+Client behavior:
+
+- один HTTP request на анализ;
+- timeout задаётся через `VISION_SERVICE_TIMEOUT_SECONDS`;
+- automatic retries не выполняются;
+- unavailable, timeout и invalid response маппятся в отдельные exception-классы.
+
+Rationale / Обоснование:
+
+- Vision имеет отдельные CV/ML зависимости и resource profile, поэтому остаётся отдельным сервисом.
+- Backend должен владеть users, permissions, private storage metadata и orchestration, а Vision должен получать минимальный внутренний reference.
+- Отдельный client boundary упрощает тестирование контракта, обработку деградации Vision и будущую замену transport/auth без переписывания views.
+- Отсутствие retries на foundation-этапе снижает риск retry storm.
+
+Consequences / Последствия:
+
+- Future Vision integration в food scan processing должна использовать `food_scans.vision` или аналогичный service layer, а не прямой `httpx` в views/tasks.
+- Добавление signed URL, service-to-service auth или прямой передачи image bytes требует отдельной оценки security и обновления контракта.
+- Future ML model подключается внутри `services/vision` без передачи долгосрочных пользовательских данных в Vision.
+- Contract tests должны обновляться вместе с изменением request/response schema.

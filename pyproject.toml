@@ -14,6 +14,7 @@ dependencies = [
   "django-cors-headers>=4.4,<5.0",
   "djangorestframework>=3.15,<3.17",
   "drf-spectacular>=0.27,<0.29",
+  "httpx>=0.27,<0.29",
   "Pillow>=11.0,<12.0",
   "psycopg[binary]>=3.2,<4.0",
 ]
@@ -36,17 +37,18 @@ package-dir = {"" = "backend"}
 
 [tool.setuptools.packages.find]
 where = ["backend"]
-include = ["accounts*", "config*", "core*", "diary*", "food_scans*", "nutrition*"]
+include = ["accounts*", "config*", "core*", "diary*", "food_scans*", "integrations*", "nutrition*"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
 DJANGO_SETTINGS_MODULE = "config.settings.local"
-pythonpath = ["backend"]
-testpaths = ["backend"]
+pythonpath = ["backend", "services/vision"]
+testpaths = ["backend", "services/vision/tests"]
 addopts = [
   "--strict-config",
   "--strict-markers",
   "--cov=backend",
+  "--cov=services/vision/vision_service",
   "--cov-report=term-missing:skip-covered",
   "--cov-report=xml",
 ]
@@ -60,7 +62,7 @@ env = [
 
 [tool.coverage.run]
 branch = true
-source = ["backend"]
+source = ["backend", "services/vision/vision_service"]
 omit = [
   "backend/manage.py",
   "backend/config/asgi.py",
@@ -77,14 +79,14 @@ fail_under = 80
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["backend"]
+src = ["backend", "services/vision"]
 
 [tool.ruff.lint]
 select = ["B", "DJ", "E", "F", "I", "UP"]
 
 [tool.mypy]
 python_version = "3.12"
-mypy_path = "backend"
+mypy_path = "backend,services/vision"
 plugins = ["mypy_django_plugin.main"]
 ignore_missing_imports = true
 disallow_untyped_defs = true

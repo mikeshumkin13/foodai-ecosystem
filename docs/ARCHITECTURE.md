@@ -90,6 +90,8 @@ foodai-ecosystem/
 - Backend проверяет фактический формат через Pillow, разрешает только whitelist `JPEG`/`PNG`, ограничивает upload size и pixel count, удаляет EXIF/metadata перед сохранением.
 - Food scan API возвращает metadata без `object_key` и без постоянного публичного URL.
 - Private storage подключён через boundary `PrivateObjectStorage`; MVP использует локальный private filesystem storage, production может заменить реализацию на S3-compatible private object storage без изменения API.
+- Backend общается с Vision service только через `integrations.vision.client` и доменный adapter `food_scans.vision`; HTTP-вызовы не размещаются в Django views.
+- Vision client использует один HTTP-запрос без retries, timeout через `VISION_SERVICE_TIMEOUT_SECONDS` и отдельные ошибки для unavailable, timeout и invalid response.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 
@@ -111,6 +113,15 @@ foodai-ecosystem/
 - возврат структурированных candidates в backend.
 
 Vision не владеет пользователями, дневниками, оплатами или долгосрочными пользовательскими данными.
+
+Текущее foundation-состояние:
+
+- FastAPI service расположен в `services/vision`.
+- Endpoint `GET /health` возвращает `{"status": "ok"}`.
+- Endpoint `POST /v1/analyze` принимает internal object reference на уже подготовленное backend изображение и возвращает mock detection result.
+- Текущий mock response: `{"items": [{"label": "rice", "confidence": 0.92}]}`.
+- Vision service запускается отдельным контейнером Docker Compose и не публикует порт на host по умолчанию; backend обращается к нему внутри compose network по `VISION_SERVICE_URL`.
+- Тяжёлая ML/CV модель на этом этапе не подключается.
 
 ## Frontend
 
@@ -146,6 +157,7 @@ Production-окружение должно использовать deny-by-defa
 - `postgres` и `redis` не публикуют порты наружу и доступны backend только внутри compose-сети;
 - данные PostgreSQL и Redis хранятся в named volumes `postgres_data` и `redis_data`;
 - backend container ждёт готовности PostgreSQL и Redis через healthchecks и management command `wait_for_dependencies`;
+- vision container имеет собственный healthcheck `GET /health`;
 - migrations выполняются при старте backend через `migrate --noinput`, если `DJANGO_RUN_MIGRATIONS=true`;
 - один понятный запуск для разработки: `make dev-up`.
 

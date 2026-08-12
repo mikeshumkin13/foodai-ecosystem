@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов и нутриентов, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, а также `food_scans` для безопасной загрузки фотографий еды в private storage.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов и нутриентов, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage и FastAPI `services/vision` с mock-анализом.
 
 ## Backend: локальная установка
 
@@ -55,6 +55,7 @@ python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
+python -m pip install -e "services/vision[dev]"
 ```
 
 Минимальные переменные окружения для локального запуска:
@@ -77,6 +78,12 @@ make typecheck
 make django-check
 make check
 python backend/manage.py runserver 0.0.0.0:8000 --settings=config.settings.local
+```
+
+Vision service локально без Docker:
+
+```bash
+python -m uvicorn vision_service.main:app --app-dir services/vision --host 0.0.0.0 --port 8001
 ```
 
 Backend endpoints:
@@ -114,6 +121,11 @@ Backend endpoints:
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 
+Internal Vision endpoints:
+
+- `GET /health` — health check Vision service.
+- `POST /v1/analyze` — internal mock-анализ подготовленного food scan object reference. Возвращает `{"items": [{"label": "rice", "confidence": 0.92}]}`.
+
 Демо-данные nutrition catalog для локальной разработки:
 
 ```bash
@@ -122,7 +134,7 @@ python backend/manage.py loaddata demo_nutrition_catalog --settings=config.setti
 
 ## Локальная инфраструктура через Docker Compose
 
-Одна команда для локального запуска backend с PostgreSQL и Redis:
+Одна команда для локального запуска backend, Vision service, PostgreSQL и Redis:
 
 ```bash
 make dev-up
@@ -145,6 +157,7 @@ make dev-down
 - `postgres` — PostgreSQL с volume `postgres_data` и healthcheck.
 - `redis` — Redis с volume `redis_data` и healthcheck.
 - `backend` — Django backend, который ждёт PostgreSQL/Redis, предсказуемо выполняет `migrate --noinput`, затем стартует `runserver`.
+- `vision` — FastAPI Vision service foundation с `GET /health` и mock `POST /v1/analyze`.
 
 Health endpoint после запуска:
 
@@ -155,3 +168,5 @@ curl http://localhost:8000/api/v1/health/
 Если локальная Docker Compose БД была создана до появления `accounts.User`, Django может сообщить `InconsistentMigrationHistory` из-за старой истории `admin` migrations. Это относится только к локальным dev volumes. Если данные не нужны, после явного подтверждения удаления локальной dev БД можно пересоздать volumes командой `docker compose --env-file .env down -v`, затем снова выполнить `make dev-up`.
 
 Food scan uploads в local development сохраняются в приватный filesystem root `FOOD_SCAN_PRIVATE_MEDIA_ROOT`. API не возвращает постоянный публичный URL; будущий S3-compatible backend должен подключаться через private storage boundary.
+
+В Docker Compose backend обращается к Vision по `VISION_SERVICE_URL=http://vision:8001`. Vision port не публикуется на host по умолчанию; для прямого локального теста запускайте сервис командой `uvicorn` выше.

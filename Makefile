@@ -10,6 +10,7 @@ venv:
 install: venv
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install -e ".[dev]"
+	$(PYTHON) -m pip install -e "services/vision[dev]"
 
 test:
 	$(PYTHON) -m pytest
@@ -21,7 +22,7 @@ format:
 	$(PYTHON) -m ruff format .
 
 typecheck:
-	$(LOCAL_CHECK_ENV) $(PYTHON) -m mypy backend
+	$(LOCAL_CHECK_ENV) $(PYTHON) -m mypy backend services/vision
 
 django-check:
 	$(LOCAL_CHECK_ENV) $(PYTHON) backend/manage.py check --settings=config.settings.local

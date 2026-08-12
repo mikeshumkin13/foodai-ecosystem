@@ -67,6 +67,9 @@ API не должен привязывать клиентов к одному ч
 - `POST /api/v1/food-scans/` — загрузка фотографии блюда текущего пользователя. Принимает `multipart/form-data` поле `photo`; backend проверяет фактический формат, strip EXIF/metadata и сохраняет объект в private storage.
 - `GET /api/v1/food-scans/` — список собственных food scans; ответ содержит только metadata без private `object_key` и без постоянного публичного URL.
 - `GET /api/v1/food-scans/{id}/` — metadata собственного food scan по UUID.
+- Internal Vision API:
+  - `GET /health` — health check Vision service. Ответ: `{"status": "ok"}`.
+  - `POST /v1/analyze` — internal endpoint Vision service. Принимает `object_reference` на приватный backend-controlled объект: `scan_id`, `storage_backend`, `object_key`, `content_type`, `checksum_sha256`. MVP возвращает mock result `{"items": [{"label": "rice", "confidence": 0.92}]}`.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 
@@ -114,6 +117,8 @@ Nutrition catalog хранит nutrient values как `FoodNutrient.amount_per_1
 Meal history хранит nutrient snapshots внутри `MealItem`. Клиенты не должны пересчитывать прошлые дневниковые записи из текущего состояния global nutrition catalog.
 
 Food scan uploads принимают только whitelist фактических форматов `JPEG` и `PNG`. Клиенты не должны полагаться на extension или user-provided content type.
+
+Vision API является внутренним контрактом между backend и `services/vision`; публичные клиенты не должны вызывать его напрямую. Backend вызывает Vision через `integrations.vision.client`, а не из Django views. Ошибки внешнего сервиса нормализуются как `vision_unavailable`, `vision_timeout` и `vision_invalid_response` на уровне client abstraction.
 
 ## Breaking changes
 

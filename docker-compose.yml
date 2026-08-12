@@ -44,6 +44,8 @@ services:
       DJANGO_RUN_MIGRATIONS: ${DJANGO_RUN_MIGRATIONS:?Set DJANGO_RUN_MIGRATIONS in .env}
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
       REDIS_URL: ${REDIS_URL:?Set REDIS_URL in .env}
+      VISION_SERVICE_URL: ${VISION_SERVICE_URL:?Set VISION_SERVICE_URL in .env}
+      VISION_SERVICE_TIMEOUT_SECONDS: ${VISION_SERVICE_TIMEOUT_SECONDS:?Set VISION_SERVICE_TIMEOUT_SECONDS in .env}
     depends_on:
       postgres:
         condition: service_healthy
@@ -66,7 +68,26 @@ services:
       retries: 12
       start_period: 20s
 
+  vision:
+    build:
+      context: .
+      dockerfile: services/vision/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=2).read()",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
 volumes:
   postgres_data:
   redis_data:
-

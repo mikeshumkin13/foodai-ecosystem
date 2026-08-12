@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-12
 
 ## Текущий завершённый этап
 
-ЭТАП 11, PROMPT 11 — Secure food photo upload завершён.
+ЭТАП 12, PROMPT 12 — FastAPI Vision service foundation завершён.
 
 ## Состояние
 
@@ -103,6 +103,14 @@ Last updated / Обновлено: 2026-08-12
 - MVP storage использует private local filesystem root `FOOD_SCAN_PRIVATE_MEDIA_ROOT`; архитектура выделяет `PrivateObjectStorage` boundary для будущего S3-compatible private storage.
 - Business roles `support`, `content_manager` и `admin` не получают API-доступ к приватным food scans по умолчанию.
 - Добавлены tests для valid JPEG, valid PNG, fake JPEG, oversized file, unauthorized upload и cross-user access.
+- Создана ветка `feature/vision-service-foundation` от актуального `develop`.
+- Добавлен отдельный FastAPI service `services/vision` без тяжёлой ML-модели.
+- Vision service предоставляет `GET /health` и `POST /v1/analyze`.
+- `POST /v1/analyze` принимает internal object reference на безопасно подготовленный food scan object и возвращает mock result `rice` с confidence `0.92`.
+- Добавлен backend client boundary `integrations.vision.client` с timeout, отдельной обработкой `vision_unavailable`, `vision_timeout`, `vision_invalid_response` и без automatic retries.
+- Добавлен доменный adapter `food_scans.vision` для построения минимальной Vision reference из `FoodScan`.
+- Docker Compose теперь запускает отдельный `vision` container с healthcheck; Vision port не публикуется на host по умолчанию.
+- Добавлены contract tests для FastAPI Vision API, backend client, safe object reference validation и `FoodScan` adapter.
 
 ## Проверки
 
@@ -185,7 +193,16 @@ Last updated / Обновлено: 2026-08-12
 - `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
 - `docker compose --env-file .env config --quiet` — passed.
 - `docker compose --env-file .env build backend` — passed, backend image собран.
+- `make check` — passed для PROMPT 12: Ruff без ошибок, mypy без ошибок в 90 source files, Django system check без ошибок, pytest: 124 passed, coverage 89.16%.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend vision` — passed, backend и vision images собраны.
+- `docker compose -p foodai_vision_check --env-file .env up -d vision` — passed, isolated Vision container запущен.
+- `docker compose -p foodai_vision_check --env-file .env ps vision` — passed, Vision container healthy.
+- `docker compose -p foodai_vision_check --env-file .env exec -T vision python -c ".../health..."` — passed, ответ `{"status":"ok"}`.
+- `docker compose -p foodai_vision_check --env-file .env down` — passed, isolated Vision stack остановлен.
 
 ## Следующий этап
 
-Остановиться после PROMPT 11. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 12. Следующую задачу начинать только после явной команды пользователя.
