@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-12
 
 ## Текущий завершённый этап
 
-ЭТАП 10, PROMPT 10 — Meals и Diary завершён.
+ЭТАП 11, PROMPT 11 — Secure food photo upload завершён.
 
 ## Состояние
 
@@ -94,6 +94,15 @@ Last updated / Обновлено: 2026-08-12
 - Дневная агрегация считает totals и `micronutrient_totals` только по собственному дневнику пользователя.
 - Business roles `support`, `content_manager` и `admin` не получают API-доступ к приватным meals/diary по умолчанию.
 - Добавлены tests для snapshot stability, CRUD, date filters, дневной агрегации, object-level permissions и отдельного IDOR-сценария по UUID.
+- Создана ветка `feature/food-photo-upload` от актуального `develop`.
+- Добавлено Django-приложение `food_scans`.
+- Добавлена модель `FoodScan` с UUID, owner user, processing status, private object metadata, фактическим image format, byte sizes, dimensions, checksum, `exif_stripped` и timestamps.
+- Добавлен endpoint `POST /api/v1/food-scans/` для secure multipart upload поля `photo`.
+- Добавлены endpoint-ы `GET /api/v1/food-scans/` и `GET /api/v1/food-scans/{id}/` для owner-only metadata без private `object_key` и без публичного постоянного URL.
+- Upload pipeline проверяет фактический формат через Pillow, разрешает whitelist `JPEG`/`PNG`, ограничивает upload size и pixel count, генерирует safe object key из UUID, валидирует path traversal и strip EXIF/metadata перед private save.
+- MVP storage использует private local filesystem root `FOOD_SCAN_PRIVATE_MEDIA_ROOT`; архитектура выделяет `PrivateObjectStorage` boundary для будущего S3-compatible private storage.
+- Business roles `support`, `content_manager` и `admin` не получают API-доступ к приватным food scans по умолчанию.
+- Добавлены tests для valid JPEG, valid PNG, fake JPEG, oversized file, unauthorized upload и cross-user access.
 
 ## Проверки
 
@@ -171,7 +180,12 @@ Last updated / Обновлено: 2026-08-12
 - `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
 - `docker compose --env-file .env config --quiet` — passed.
 - `docker compose --env-file .env build backend` — passed, backend image собран.
+- `make check` — passed для PROMPT 11: Ruff без ошибок, mypy без ошибок в 78 source files, Django system check без ошибок, pytest: 108 passed, coverage 88.81%.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend` — passed, backend image собран.
 
 ## Следующий этап
 
-Остановиться после PROMPT 10. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 11. Следующую задачу начинать только после явной команды пользователя.

@@ -84,6 +84,12 @@ foodai-ecosystem/
 - `MealItem` ссылается на `nutrition.FoodItem`, но хранит исторический snapshot названия, source reference, calories/protein/fat/carbs, всех nutrients и micronutrients на момент добавления или ручной корректировки.
 - Изменение глобального `FoodItem` или `FoodNutrient` не должно менять исторические записи пользователя.
 - Diary API доступен обычному `user` только для собственных meals; `support`, `content_manager` и business `admin` не получают доступ к приватному дневнику по умолчанию.
+- Приложение `food_scans` содержит secure food photo upload foundation.
+- `FoodScan` принадлежит конкретному `accounts.User`, хранит metadata приватного объекта, фактический image format, размеры, byte sizes, checksum и processing status.
+- Пользовательское имя файла не используется для storage key; object key генерируется из UUID.
+- Backend проверяет фактический формат через Pillow, разрешает только whitelist `JPEG`/`PNG`, ограничивает upload size и pixel count, удаляет EXIF/metadata перед сохранением.
+- Food scan API возвращает metadata без `object_key` и без постоянного публичного URL.
+- Private storage подключён через boundary `PrivateObjectStorage`; MVP использует локальный private filesystem storage, production может заменить реализацию на S3-compatible private object storage без изменения API.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 

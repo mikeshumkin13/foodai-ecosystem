@@ -415,3 +415,62 @@ Consequences / Последствия:
 - Исправление catalog values влияет только на новые или явно пересчитанные записи, если такая функция будет добавлена отдельным решением.
 - Будущие Vision/AI flows должны записывать source/confidence и не подменять пользовательские ручные корректировки без подтверждения.
 - Любое расширение diary API должно сохранять owner-only доступ и IDOR-тесты.
+
+## ADR-0014: Secure Food Photo Upload With Private Storage Boundary
+
+Date / Дата: 2026-08-12
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Secure food photo upload реализуется отдельным Django app `food_scans` внутри модульного backend-монолита.
+
+`FoodScan` принадлежит конкретному `accounts.User` и хранит только metadata приватного объекта:
+
+- UUID scan;
+- owner user;
+- processing status;
+- private storage backend name;
+- private object key;
+- фактический image format и normalized content type;
+- uploaded/stored byte sizes;
+- width/height;
+- checksum;
+- `exif_stripped`;
+- timestamps.
+
+API:
+
+- `POST /api/v1/food-scans/`;
+- `GET /api/v1/food-scans/`;
+- `GET /api/v1/food-scans/{id}/`.
+
+API не возвращает `object_key`, не доверяет имени файла пользователя и не выдаёт постоянный публичный URL. Доступ к metadata owner-only; `support`, `content_manager` и business `admin` не получают доступ к food photos по умолчанию.
+
+Validation pipeline:
+
+- читать upload поток с hard size limit;
+- проверять фактический формат через Pillow;
+- разрешать только whitelist `JPEG`/`PNG`;
+- ограничивать pixel count;
+- переэнкодировать изображение без EXIF/metadata;
+- генерировать object key из UUID и валидировать его против path traversal;
+- сохранять объект в private storage.
+
+MVP storage backend — локальный private filesystem root. S3-compatible production storage должен реализовать тот же `PrivateObjectStorage` boundary и использовать private bucket; публичные bucket и постоянные public URLs запрещены.
+
+Rationale / Обоснование:
+
+- Фото еды являются чувствительными пользовательскими данными.
+- Extension и `Content-Type` контролируются клиентом и не могут быть источником доверия.
+- EXIF может содержать geolocation/device metadata и должен удаляться до сохранения.
+- Отсутствие публичного URL снижает риск случайного раскрытия фотографии.
+- Storage boundary позволяет заменить локальный filesystem на MinIO/S3-compatible storage без изменения доменной модели и API.
+
+Consequences / Последствия:
+
+- Future Vision service должен получать только минимально необходимый private object reference через backend-controlled flow.
+- Signed URL можно добавить только отдельным решением с коротким TTL, owner checks и audit/logging policy.
+- Локальные файлы в `FOOD_SCAN_PRIVATE_MEDIA_ROOT` считаются private runtime artifacts и не коммитятся.
+- Новые upload formats требуют отдельной оценки security/risk и тестов на фактический формат.
