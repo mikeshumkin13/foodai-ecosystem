@@ -53,6 +53,8 @@ VIEW_ROLE_GROUP_PERMISSION = "auth.view_group"
 CHANGE_ROLE_GROUP_PERMISSION = "auth.change_group"
 VIEW_OWN_MEAL_PERMISSION = "diary.view_own_meal"
 CHANGE_OWN_MEAL_PERMISSION = "diary.change_own_meal"
+VIEW_OWN_FOOD_SCAN_PERMISSION = "food_scans.view_own_foodscan"
+CHANGE_OWN_FOOD_SCAN_PERMISSION = "food_scans.change_own_foodscan"
 NUTRITION_CATALOG_MODEL_PERMISSIONS = frozenset(
     {
         "nutrition.add_foodcategory",
@@ -328,6 +330,18 @@ PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
         name="Can change own meal",
         app_label="diary",
     ),
+    PermissionDefinition(
+        codename="view_own_foodscan",
+        model="foodscan",
+        name="Can view own food scan",
+        app_label="food_scans",
+    ),
+    PermissionDefinition(
+        codename="change_own_foodscan",
+        model="foodscan",
+        name="Can change own food scan",
+        app_label="food_scans",
+    ),
 )
 
 ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
@@ -344,6 +358,8 @@ ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
                 CHANGE_OWN_NUTRITION_RESTRICTION_PERMISSION,
                 VIEW_OWN_MEAL_PERMISSION,
                 CHANGE_OWN_MEAL_PERMISSION,
+                VIEW_OWN_FOOD_SCAN_PERMISSION,
+                CHANGE_OWN_FOOD_SCAN_PERMISSION,
             }
         ),
     ),

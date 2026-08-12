@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов и нутриентов и приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов и нутриентов, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, а также `food_scans` для безопасной загрузки фотографий еды в private storage.
 
 ## Backend: локальная установка
 
@@ -108,6 +108,9 @@ Backend endpoints:
 - `PATCH /api/v1/meals/{id}/` — частичное изменение собственного приёма пищи; переданные `items` заменяют состав приёма пищи.
 - `DELETE /api/v1/meals/{id}/` — удаление собственного приёма пищи.
 - `GET /api/v1/diary/day/?date=YYYY-MM-DD` — дневная агрегация calories/protein/fat/carbs и micronutrients по собственному дневнику.
+- `POST /api/v1/food-scans/` — загрузка фотографии блюда в private storage; принимает `multipart/form-data` поле `photo`.
+- `GET /api/v1/food-scans/` — список собственных food scans без постоянных публичных URL.
+- `GET /api/v1/food-scans/{id}/` — metadata собственного food scan по UUID без `object_key` и публичного URL.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 
@@ -150,3 +153,5 @@ curl http://localhost:8000/api/v1/health/
 ```
 
 Если локальная Docker Compose БД была создана до появления `accounts.User`, Django может сообщить `InconsistentMigrationHistory` из-за старой истории `admin` migrations. Это относится только к локальным dev volumes. Если данные не нужны, после явного подтверждения удаления локальной dev БД можно пересоздать volumes командой `docker compose --env-file .env down -v`, затем снова выполнить `make dev-up`.
+
+Food scan uploads в local development сохраняются в приватный filesystem root `FOOD_SCAN_PRIVATE_MEDIA_ROOT`. API не возвращает постоянный публичный URL; будущий S3-compatible backend должен подключаться через private storage boundary.

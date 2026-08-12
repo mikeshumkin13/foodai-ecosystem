@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "accounts",
     "nutrition",
     "diary",
+    "food_scans",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -128,6 +129,20 @@ USE_TZ = True
 STATIC_URL = get_env("DJANGO_STATIC_URL", default="static/")
 STATIC_ROOT = get_env("DJANGO_STATIC_ROOT", default=str(ROOT_DIR / "staticfiles"))
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+FOOD_SCAN_ALLOWED_FORMATS = tuple(
+    item.upper() for item in get_env_list("FOOD_SCAN_ALLOWED_FORMATS", default="JPEG,PNG")
+)
+FOOD_SCAN_MAX_UPLOAD_BYTES = get_env_int("FOOD_SCAN_MAX_UPLOAD_BYTES", default=5 * 1024 * 1024)
+FOOD_SCAN_MAX_IMAGE_PIXELS = get_env_int("FOOD_SCAN_MAX_IMAGE_PIXELS", default=20_000_000)
+FOOD_SCAN_PRIVATE_STORAGE_BACKEND = get_env(
+    "FOOD_SCAN_PRIVATE_STORAGE_BACKEND",
+    default="local",
+)
+FOOD_SCAN_PRIVATE_MEDIA_ROOT = get_env(
+    "FOOD_SCAN_PRIVATE_MEDIA_ROOT",
+    default=str(ROOT_DIR / "local_uploads" / "private"),
+)
 
 CORS_ALLOWED_ORIGINS = get_env_list("DJANGO_CORS_ALLOWED_ORIGINS", default="")
 CORS_ALLOW_CREDENTIALS = get_env_bool("DJANGO_CORS_ALLOW_CREDENTIALS", default=False)

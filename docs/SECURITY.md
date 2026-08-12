@@ -115,6 +115,20 @@ Brute-force/rate limiting:
 - приватное object storage;
 - signed URL только при необходимости.
 
+Текущее secure food photo upload поведение:
+
+- `FoodScan` всегда принадлежит конкретному `accounts.User`.
+- API принимает только authenticated requests.
+- Разрешённые фактические форматы задаются whitelist `FOOD_SCAN_ALLOWED_FORMATS`, по умолчанию `JPEG,PNG`.
+- Фактический формат проверяется через Pillow, а не через extension или `Content-Type`.
+- Upload size ограничивается `FOOD_SCAN_MAX_UPLOAD_BYTES`; image dimensions ограничиваются `FOOD_SCAN_MAX_IMAGE_PIXELS`.
+- Пользовательское имя файла не используется для storage key.
+- Object key генерируется из UUID и валидируется против path traversal.
+- Перед сохранением изображение переэнкодируется без EXIF/metadata.
+- Локальный MVP storage — private filesystem root `FOOD_SCAN_PRIVATE_MEDIA_ROOT`.
+- API не возвращает private `object_key` и не выдаёт постоянный публичный URL.
+- S3-compatible production storage должен оставаться private bucket и подключаться через storage boundary без публичных bucket.
+
 ## Dev infrastructure security
 
 - Docker Compose не содержит секретов напрямую, а читает значения из `.env`.
@@ -160,7 +174,7 @@ RBAC foundation использует Django Groups/Permissions:
 | Роль | Разрешено | Запрещено по умолчанию |
 | --- | --- | --- |
 | `anonymous` | Только явно публичные endpoint-ы, например `GET /api/v1/health/`. | Любые приватные профили, дневники, фото, health data, AI-диалоги, admin/support/content endpoints. |
-| `user` | Читать и изменять только собственные `UserProfile`, `NutritionProfile`, `NutritionSensitiveRestriction` и meals/diary; читать nutrition catalog; будущие фото и цели только в пределах собственных объектов. | Доступ к чужим UUID-ресурсам, чужим дневникам, чужим фото, изменение nutrition catalog, support/admin/content-management функциям. |
+| `user` | Читать и изменять только собственные `UserProfile`, `NutritionProfile`, `NutritionSensitiveRestriction`, meals/diary и food scans; читать nutrition catalog; будущие цели только в пределах собственных объектов. | Доступ к чужим UUID-ресурсам, чужим дневникам, чужим фото, изменение nutrition catalog, support/admin/content-management функциям. |
 | `support` | Support tooling и support admin foundation без приватных пользовательских данных. | Health data, nutrition profile, allergies/medical restrictions, фото еды, дневники, AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
 | `content_manager` | Управление каталогом продуктов, nutrients, справочниками и контентом через catalog/reference permissions. | Приватные дневники пользователей, фото, health data, nutrition profile, allergies/medical restrictions, AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
 | `admin` | Административные permissions для управления users/profiles, role groups, nutrition catalog и просмотра read-only admin audit log согласно Django permissions. | Nutrition profile и sensitive restrictions без отдельной процедуры; автоматический обход object-level policy без выданных permissions; использование как замена `superuser`; изменение audit log. |
@@ -168,12 +182,12 @@ RBAC foundation использует Django Groups/Permissions:
 
 Текущие permission groups:
 
-- `user`: `accounts.view_own_userprofile`, `accounts.change_own_userprofile`, `accounts.view_own_nutritionprofile`, `accounts.change_own_nutritionprofile`, `accounts.view_own_nutritionsensitiverestriction`, `accounts.change_own_nutritionsensitiverestriction`, `diary.view_own_meal`, `diary.change_own_meal`.
+- `user`: `accounts.view_own_userprofile`, `accounts.change_own_userprofile`, `accounts.view_own_nutritionprofile`, `accounts.change_own_nutritionprofile`, `accounts.view_own_nutritionsensitiverestriction`, `accounts.change_own_nutritionsensitiverestriction`, `diary.view_own_meal`, `diary.change_own_meal`, `food_scans.view_own_foodscan`, `food_scans.change_own_foodscan`.
 - `support`: `accounts.access_support_tools`, `accounts.view_support_admin`.
 - `content_manager`: `accounts.manage_catalog_content`, `accounts.manage_reference_data`, `accounts.manage_food_catalog` и `nutrition` model permissions для `FoodCategory`, `FoodDataSource`, `Nutrient`, `FoodItem`, `FoodNutrient`.
 - `admin`: `accounts.administer_accounts`, account model permissions, `auth.view_group`, `auth.change_group`, `accounts.view_adminauditlog`, support/content/reference/catalog foundation permissions и `nutrition` model permissions.
 
-IDOR baseline: User A не должен читать или менять ресурс User B даже при знании UUID. Для `UserProfile`, nutrition profile/restrictions и `Meal` это покрыто API-тестами.
+IDOR baseline: User A не должен читать или менять ресурс User B даже при знании UUID. Для `UserProfile`, nutrition profile/restrictions, `Meal` и `FoodScan` это покрыто API-тестами.
 
 ## AI safety
 

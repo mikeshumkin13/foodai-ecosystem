@@ -64,6 +64,9 @@ API не должен привязывать клиентов к одному ч
 - `PATCH /api/v1/meals/{id}/` — изменение собственного приёма пищи; если передан `items`, состав заменяется новым набором snapshot items.
 - `DELETE /api/v1/meals/{id}/` — удаление собственного приёма пищи.
 - `GET /api/v1/diary/day/?date=YYYY-MM-DD` — дневная агрегация собственного дневника: totals по calories/protein/fat/carbs, `micronutrient_totals` и список meals за дату.
+- `POST /api/v1/food-scans/` — загрузка фотографии блюда текущего пользователя. Принимает `multipart/form-data` поле `photo`; backend проверяет фактический формат, strip EXIF/metadata и сохраняет объект в private storage.
+- `GET /api/v1/food-scans/` — список собственных food scans; ответ содержит только metadata без private `object_key` и без постоянного публичного URL.
+- `GET /api/v1/food-scans/{id}/` — metadata собственного food scan по UUID.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 
@@ -99,12 +102,18 @@ Auth API использует cookie/session схему:
 - обращение User A к UUID meal User B не возвращает чужие данные;
 - `support`, `content_manager` и business `admin` не получают API-доступ к приватным meals/diary day по умолчанию;
 - `superuser` использует технический Django override для diary API.
+- обычный `user` загружает и читает metadata только собственных food scans;
+- обращение User A к UUID food scan User B не возвращает чужие metadata;
+- `support`, `content_manager` и business `admin` не получают API-доступ к фотографиям еды по умолчанию;
+- food scan API не возвращает private storage key и не выдаёт постоянный публичный URL.
 
 Nutrition profile не реализует диагнозы. Аллергии, intolerance и medical restrictions хранятся отдельно от обычных dietary preferences.
 
 Nutrition catalog хранит nutrient values как `FoodNutrient.amount_per_100g`, связанный с расширяемым справочником `Nutrient`. Нельзя проектировать клиентов так, будто доступны только calories/protein/fat/carbohydrate.
 
 Meal history хранит nutrient snapshots внутри `MealItem`. Клиенты не должны пересчитывать прошлые дневниковые записи из текущего состояния global nutrition catalog.
+
+Food scan uploads принимают только whitelist фактических форматов `JPEG` и `PNG`. Клиенты не должны полагаться на extension или user-provided content type.
 
 ## Breaking changes
 
