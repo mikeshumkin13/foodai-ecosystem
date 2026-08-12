@@ -79,6 +79,11 @@ foodai-ecosystem/
 - `FoodItem` хранит canonical food item, names/synonyms, category, source, density metadata, verified flag и source reference.
 - Нутриенты не зашиты как только КБЖУ: `FoodNutrient` связывает food item с расширяемым `Nutrient` и хранит `amount_per_100g`.
 - `content_manager` управляет каталогом через централизованные Django permissions; обычный authenticated `user` имеет read-only API-доступ.
+- Приложение `diary` содержит пользовательский дневник питания: `Meal` и `MealItem`.
+- `Meal` всегда принадлежит конкретному `accounts.User` и использует UUID primary key.
+- `MealItem` ссылается на `nutrition.FoodItem`, но хранит исторический snapshot названия, source reference, calories/protein/fat/carbs, всех nutrients и micronutrients на момент добавления или ручной корректировки.
+- Изменение глобального `FoodItem` или `FoodNutrient` не должно менять исторические записи пользователя.
+- Diary API доступен обычному `user` только для собственных meals; `support`, `content_manager` и business `admin` не получают доступ к приватному дневнику по умолчанию.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 
