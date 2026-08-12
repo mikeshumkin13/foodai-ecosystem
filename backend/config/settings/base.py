@@ -42,6 +42,7 @@ ALLOWED_HOSTS = get_env_list("DJANGO_ALLOWED_HOSTS")
 INSTALLED_APPS = [
     "accounts",
     "nutrition",
+    "diary",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

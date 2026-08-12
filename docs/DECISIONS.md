@@ -375,3 +375,43 @@ Consequences / Последствия:
 - Клиенты API должны читать динамический список nutrients и не предполагать фиксированный набор КБЖУ.
 - Demo fixture не должен использоваться как production nutrition guidance.
 - Любое расширение catalog write API должно сохранять permission boundary `accounts.manage_food_catalog`.
+
+## ADR-0013: Historical Meal Nutrient Snapshots
+
+Date / Дата: 2026-08-12
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Дневник питания реализуется отдельным Django app `diary`.
+
+`Meal` принадлежит конкретному `accounts.User` и хранит meal type, дату/время, пользовательское название и timestamps.
+
+`MealItem` ссылается на canonical `nutrition.FoodItem`, но дополнительно хранит snapshot на момент добавления или ручной корректировки:
+
+- название продукта;
+- source reference;
+- массу;
+- calories/protein/fat/carbs;
+- полный `nutrient_snapshot`;
+- отдельный `micronutrient_snapshot`;
+- source, confidence и `manually_corrected`.
+
+Изменение `FoodItem`, `FoodNutrient` или справочника `Nutrient` в будущем не изменяет исторические дневниковые записи пользователя.
+
+Diary API выдаёт обычному `user` только собственные meals и дневную агрегацию. `support`, `content_manager` и business `admin` не получают доступ к приватному дневнику по умолчанию. `superuser` остаётся техническим override-механизмом Django.
+
+Rationale / Обоснование:
+
+- Дневник является пользовательской историей и должен быть стабилен во времени.
+- Каталог питания будет уточняться, импортироваться и исправляться; эти изменения не должны менять прошлые totals пользователя.
+- Snapshot нужен для auditability, объяснимости расчётов и корректной дневной агрегации.
+- Owner-only queryset и object-level permissions снижают IDOR риск при UUID lookup.
+
+Consequences / Последствия:
+
+- `MealItem` хранит намеренную денормализацию nutrient values.
+- Исправление catalog values влияет только на новые или явно пересчитанные записи, если такая функция будет добавлена отдельным решением.
+- Будущие Vision/AI flows должны записывать source/confidence и не подменять пользовательские ручные корректировки без подтверждения.
+- Любое расширение diary API должно сохранять owner-only доступ и IDOR-тесты.

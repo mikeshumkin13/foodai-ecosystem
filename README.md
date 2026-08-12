@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile, а также приложение `nutrition` с расширяемым каталогом продуктов и нутриентов. Diary модели пока не создавались.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов и нутриентов и приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией.
 
 ## Backend: локальная установка
 
@@ -102,6 +102,12 @@ Backend endpoints:
 - `GET /api/v1/foods/{id}/` — карточка продукта с nutrients per 100 g и единицами измерения.
 - `POST /api/v1/foods/` — создание food catalog item для `content_manager`/`admin`.
 - `PUT/PATCH/DELETE /api/v1/foods/{id}/` — изменение food catalog item для `content_manager`/`admin`.
+- `POST /api/v1/meals/` — создание приёма пищи текущего пользователя.
+- `GET /api/v1/meals/` — список собственных приёмов пищи; поддерживает фильтры `date`, `date_from`, `date_to`.
+- `GET /api/v1/meals/{id}/` — чтение собственного приёма пищи по UUID.
+- `PATCH /api/v1/meals/{id}/` — частичное изменение собственного приёма пищи; переданные `items` заменяют состав приёма пищи.
+- `DELETE /api/v1/meals/{id}/` — удаление собственного приёма пищи.
+- `GET /api/v1/diary/day/?date=YYYY-MM-DD` — дневная агрегация calories/protein/fat/carbs и micronutrients по собственному дневнику.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 
