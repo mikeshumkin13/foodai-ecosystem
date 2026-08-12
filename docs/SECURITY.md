@@ -129,6 +129,15 @@ Brute-force/rate limiting:
 - API не возвращает private `object_key` и не выдаёт постоянный публичный URL.
 - S3-compatible production storage должен оставаться private bucket и подключаться через storage boundary без публичных bucket.
 
+## Vision service security
+
+- Vision service является internal service и не владеет пользователями, дневниками или долгосрочными пользовательскими данными.
+- Backend передаёт только минимальную internal object reference на уже подготовленный private food scan объект.
+- Vision API не должен получать весь user profile, health profile, дневник или AI-историю.
+- Docker Compose не публикует Vision port на host по умолчанию; backend обращается к `vision` внутри compose network.
+- Backend client использует короткий timeout и не делает automatic retries, чтобы не создавать retry storm при деградации Vision.
+- Ошибки Vision нормализуются без включения object key, фото или пользовательских health/nutrition данных в логи/ответы.
+
 ## Dev infrastructure security
 
 - Docker Compose не содержит секретов напрямую, а читает значения из `.env`.

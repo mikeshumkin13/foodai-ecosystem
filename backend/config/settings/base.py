@@ -27,6 +27,11 @@ def get_env_int(name: str, *, default: int | None = None) -> int:
     return int(get_env(name, default=raw_default))
 
 
+def get_env_float(name: str, *, default: float | None = None) -> float:
+    raw_default = None if default is None else str(default)
+    return float(get_env(name, default=raw_default))
+
+
 def get_env_list(name: str, *, default: str | None = None) -> list[str]:
     value = get_env(name, default=default)
     return [item.strip() for item in value.split(",") if item.strip()]
@@ -143,6 +148,8 @@ FOOD_SCAN_PRIVATE_MEDIA_ROOT = get_env(
     "FOOD_SCAN_PRIVATE_MEDIA_ROOT",
     default=str(ROOT_DIR / "local_uploads" / "private"),
 )
+VISION_SERVICE_URL = get_env("VISION_SERVICE_URL", default="http://localhost:8001")
+VISION_SERVICE_TIMEOUT_SECONDS = get_env_float("VISION_SERVICE_TIMEOUT_SECONDS", default=2.0)
 
 CORS_ALLOWED_ORIGINS = get_env_list("DJANGO_CORS_ALLOWED_ORIGINS", default="")
 CORS_ALLOW_CREDENTIALS = get_env_bool("DJANGO_CORS_ALLOW_CREDENTIALS", default=False)

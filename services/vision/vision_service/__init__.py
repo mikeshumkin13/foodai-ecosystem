@@ -1,0 +1,1 @@
+"""FoodAI Vision service foundation."""
