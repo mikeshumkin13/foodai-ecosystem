@@ -92,6 +92,18 @@ Brute-force/rate limiting:
 - Backend публикует только HTTP-порт разработки.
 - Redis включён с паролем даже в локальной инфраструктуре.
 
+## Admin security
+
+- Django Admin доступен только active staff users через стандартную Django admin authentication.
+- В admin зарегистрированы только текущие операционные модели: `accounts.User`, `accounts.UserProfile`, Django `Group` для role groups и read-only `accounts.AdminAuditLog`.
+- `EmailVerificationToken` и `PasswordResetToken` не зарегистрированы в admin, чтобы не расширять поверхность доступа к token metadata.
+- `User` list view показывает email как login identifier, flags, roles и timestamps; password hash не выводится в списках.
+- `UserProfile` list view показывает UUID пользователя и language/timestamps; display name не выводится в списке.
+- Bulk actions отключены для зарегистрированных admin-моделей; опасные массовые действия не добавляются.
+- `AdminAuditLog` доступен только на чтение, зеркалирует стандартный `django_admin_log` и хранит минимальные metadata: actor, action, model label, object id, sanitized object representation, change message и timestamps.
+- Account object representations в audit log редактируются до `app.model:object_id`, чтобы не переносить email/profile/token-строки без необходимости.
+- `support` и `content_manager` могут войти в admin только при явном `is_staff=True`, но не видят чувствительные account/audit/role models без model permissions.
+
 ## Роли и доступ
 
 - `anonymous`: нет доступа к приватным данным.
@@ -117,17 +129,17 @@ RBAC foundation использует Django Groups/Permissions:
 | --- | --- | --- |
 | `anonymous` | Только явно публичные endpoint-ы, например `GET /api/v1/health/`. | Любые приватные профили, дневники, фото, health data, AI-диалоги, admin/support/content endpoints. |
 | `user` | Читать и изменять только собственный `UserProfile`; будущие дневники, фото и цели только в пределах собственных объектов. | Доступ к чужим UUID-ресурсам, чужим дневникам, чужим фото, support/admin/content-management функциям. |
-| `support` | Доступ к support tooling без приватных пользовательских данных. | Health data, фото еды, дневники, AI-диалоги и пользовательские профили по умолчанию. |
-| `content_manager` | Управление будущим каталогом продуктов, нутриентами, справочниками и контентом. | Приватные дневники пользователей, фото, health data, AI-диалоги и пользовательские профили по умолчанию. |
-| `admin` | Административные permissions для управления users/profiles и системными справочниками согласно Django permissions. | Автоматический обход object-level policy без выданных permissions; использование как замена `superuser`. |
+| `support` | Support tooling и support admin foundation без приватных пользовательских данных. | Health data, фото еды, дневники, AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
+| `content_manager` | Управление будущим каталогом продуктов, нутриентами, справочниками и контентом через catalog/reference permissions. | Приватные дневники пользователей, фото, health data, AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
+| `admin` | Административные permissions для управления users/profiles, role groups и просмотра read-only admin audit log согласно Django permissions. | Автоматический обход object-level policy без выданных permissions; использование как замена `superuser`; изменение audit log. |
 | `superuser` | Полный технический доступ Django для аварийных/системных операций. | Повседневная операционная работа и роль обычного администратора продукта. |
 
 Текущие permission groups:
 
 - `user`: `accounts.view_own_userprofile`, `accounts.change_own_userprofile`.
-- `support`: `accounts.access_support_tools`.
-- `content_manager`: `accounts.manage_catalog_content`.
-- `admin`: `accounts.administer_accounts` и текущие account model permissions.
+- `support`: `accounts.access_support_tools`, `accounts.view_support_admin`.
+- `content_manager`: `accounts.manage_catalog_content`, `accounts.manage_reference_data`, `accounts.manage_food_catalog`.
+- `admin`: `accounts.administer_accounts`, account model permissions, `auth.view_group`, `auth.change_group`, `accounts.view_adminauditlog`, support/content/reference/catalog foundation permissions.
 
 IDOR baseline: User A не должен читать или менять ресурс User B даже при знании UUID. Для `UserProfile` это покрыто API-тестом.
 

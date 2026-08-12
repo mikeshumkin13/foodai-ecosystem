@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-07
 
 ## Текущий завершённый этап
 
-ЭТАП 6, PROMPT 6 — Authentication завершён.
+ЭТАП 7, PROMPT 7 — защищённая Django Admin завершён.
 
 ## Состояние
 
@@ -55,6 +55,14 @@ Last updated / Обновлено: 2026-08-07
 - Добавлены cookie/session/CSRF настройки через environment variables.
 - Добавлены scoped throttles для brute-force/rate limiting.
 - OAuth в этом этапе не реализовывался.
+- Создана ветка `feature/admin-panel` от актуального `develop`.
+- Django Admin усилен для `accounts.User`, `accounts.UserProfile`, Django `Group` как foundation для ролей и `accounts.AdminAuditLog`.
+- В admin list view не выводятся password/token fields; `UserProfile` показывает UUID пользователя вместо лишних персональных данных.
+- Опасные bulk actions отключены для зарегистрированных admin-моделей.
+- Email verification и password reset token-модели не зарегистрированы в Django Admin.
+- Добавлен read-only `AdminAuditLog`, который зеркалирует стандартный `django_admin_log` и редактирует представление account-объектов в audit trail.
+- RBAC расширен permissions для admin-аудита, role groups, support admin foundation, справочников и будущего food catalog без создания преждевременных food-моделей.
+- Добавлены тесты admin permissions: видимость моделей, запрет changelist для `support`/`content_manager`, read-only audit log, отсутствие bulk actions и sanitization audit entry.
 
 ## Проверки
 
@@ -112,7 +120,12 @@ Last updated / Обновлено: 2026-08-07
 - `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
 - `docker compose --env-file .env config --quiet` — passed.
 - `docker compose --env-file .env build backend` — passed.
+- `make check` — passed для PROMPT 7: Ruff без ошибок, mypy без ошибок в 42 source files, Django system check без ошибок, pytest: 54 passed, coverage 91.64%.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend` — blocked в Codex sandbox из-за запрета записи Docker buildx в `~/.docker`; требуется ручная проверка вне sandbox.
 
 ## Следующий этап
 
-Остановиться после PROMPT 6. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 7. Следующую задачу начинать только после явной команды пользователя.

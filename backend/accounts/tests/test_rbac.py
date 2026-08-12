@@ -9,8 +9,11 @@ from rest_framework.test import APIClient
 from accounts.rbac import (
     ADMINISTER_ACCOUNTS_PERMISSION,
     CHANGE_OWN_PROFILE_PERMISSION,
+    CHANGE_ROLE_GROUP_PERMISSION,
     ROLE_DEFINITIONS,
+    VIEW_ADMIN_AUDIT_LOG_PERMISSION,
     VIEW_OWN_PROFILE_PERMISSION,
+    VIEW_ROLE_GROUP_PERMISSION,
     Role,
     assign_role,
     user_has_role,
@@ -74,6 +77,9 @@ def test_support_and_content_manager_do_not_get_private_user_permissions() -> No
         "accounts.change_userprofile",
         VIEW_OWN_PROFILE_PERMISSION,
         CHANGE_OWN_PROFILE_PERMISSION,
+        VIEW_ADMIN_AUDIT_LOG_PERMISSION,
+        VIEW_ROLE_GROUP_PERMISSION,
+        CHANGE_ROLE_GROUP_PERMISSION,
         ADMINISTER_ACCOUNTS_PERMISSION,
     }
 

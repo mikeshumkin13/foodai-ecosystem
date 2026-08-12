@@ -68,6 +68,9 @@ foodai-ecosystem/
 - `sessionid` должен быть `HttpOnly`, `SameSite` и `Secure` в production; unsafe requests защищаются CSRF.
 - Email verification и password reset используют одноразовые DB tokens, где хранится только hash токена.
 - Login, registration, email verification и password reset endpoints имеют scoped rate limiting.
+- Django Admin используется как внутренний protected admin foundation для users/profiles/role groups и read-only admin audit log.
+- `accounts.AdminAuditLog` зеркалирует `django_admin_log` и хранит минимальные sanitized metadata административных действий.
+- Support/content-manager admin visibility строится через Django model permissions; без явных permissions они не видят чувствительные account/audit/role models.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 

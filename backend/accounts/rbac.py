@@ -24,10 +24,11 @@ class PermissionDefinition:
     codename: str
     model: str
     name: str
+    app_label: str = "accounts"
 
     @property
     def code(self) -> str:
-        return f"accounts.{self.codename}"
+        return f"{self.app_label}.{self.codename}"
 
 
 @dataclass(frozen=True)
@@ -40,8 +41,26 @@ class RoleDefinition:
 VIEW_OWN_PROFILE_PERMISSION = "accounts.view_own_userprofile"
 CHANGE_OWN_PROFILE_PERMISSION = "accounts.change_own_userprofile"
 ADMINISTER_ACCOUNTS_PERMISSION = "accounts.administer_accounts"
+VIEW_ADMIN_AUDIT_LOG_PERMISSION = "accounts.view_adminauditlog"
+VIEW_SUPPORT_ADMIN_PERMISSION = "accounts.view_support_admin"
+MANAGE_REFERENCE_DATA_PERMISSION = "accounts.manage_reference_data"
+MANAGE_FOOD_CATALOG_PERMISSION = "accounts.manage_food_catalog"
+VIEW_ROLE_GROUP_PERMISSION = "auth.view_group"
+CHANGE_ROLE_GROUP_PERMISSION = "auth.change_group"
 
 PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
+    PermissionDefinition(
+        codename="view_group",
+        model="group",
+        name="Can view group",
+        app_label="auth",
+    ),
+    PermissionDefinition(
+        codename="change_group",
+        model="group",
+        name="Can change group",
+        app_label="auth",
+    ),
     PermissionDefinition(
         codename="add_user",
         model="user",
@@ -83,6 +102,11 @@ PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
         name="Can delete user profile",
     ),
     PermissionDefinition(
+        codename="view_adminauditlog",
+        model="adminauditlog",
+        name="Can view admin audit log",
+    ),
+    PermissionDefinition(
         codename="view_own_userprofile",
         model="userprofile",
         name="Can view own user profile",
@@ -101,6 +125,21 @@ PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
         codename="manage_catalog_content",
         model="rolepermission",
         name="Can manage nutrition catalog content",
+    ),
+    PermissionDefinition(
+        codename="view_support_admin",
+        model="rolepermission",
+        name="Can view support admin tools without private user data",
+    ),
+    PermissionDefinition(
+        codename="manage_reference_data",
+        model="rolepermission",
+        name="Can manage shared reference data",
+    ),
+    PermissionDefinition(
+        codename="manage_food_catalog",
+        model="rolepermission",
+        name="Can manage future food catalog content",
     ),
     PermissionDefinition(
         codename="administer_accounts",
@@ -123,18 +162,31 @@ ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
     Role.SUPPORT: RoleDefinition(
         role=Role.SUPPORT,
         group_name=Role.SUPPORT.value,
-        permissions=frozenset({"accounts.access_support_tools"}),
+        permissions=frozenset(
+            {
+                "accounts.access_support_tools",
+                VIEW_SUPPORT_ADMIN_PERMISSION,
+            }
+        ),
     ),
     Role.CONTENT_MANAGER: RoleDefinition(
         role=Role.CONTENT_MANAGER,
         group_name=Role.CONTENT_MANAGER.value,
-        permissions=frozenset({"accounts.manage_catalog_content"}),
+        permissions=frozenset(
+            {
+                "accounts.manage_catalog_content",
+                MANAGE_REFERENCE_DATA_PERMISSION,
+                MANAGE_FOOD_CATALOG_PERMISSION,
+            }
+        ),
     ),
     Role.ADMIN: RoleDefinition(
         role=Role.ADMIN,
         group_name=Role.ADMIN.value,
         permissions=frozenset(
             {
+                VIEW_ROLE_GROUP_PERMISSION,
+                CHANGE_ROLE_GROUP_PERMISSION,
                 "accounts.add_user",
                 "accounts.view_user",
                 "accounts.change_user",
@@ -143,8 +195,12 @@ ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
                 "accounts.view_userprofile",
                 "accounts.change_userprofile",
                 "accounts.delete_userprofile",
+                VIEW_ADMIN_AUDIT_LOG_PERMISSION,
                 "accounts.access_support_tools",
                 "accounts.manage_catalog_content",
+                VIEW_SUPPORT_ADMIN_PERMISSION,
+                MANAGE_REFERENCE_DATA_PERMISSION,
+                MANAGE_FOOD_CATALOG_PERMISSION,
                 ADMINISTER_ACCOUNTS_PERMISSION,
             }
         ),
@@ -191,16 +247,17 @@ def user_has_role(user: User, role: Role | str) -> bool:
 
 def _ensure_permissions(*, using: str) -> dict[str, Permission]:
     permission_by_code: dict[str, Permission] = {}
-    content_type_by_model: dict[str, ContentType] = {}
+    content_type_by_model: dict[tuple[str, str], ContentType] = {}
 
     for definition in PERMISSION_DEFINITIONS:
-        content_type = content_type_by_model.get(definition.model)
+        content_type_key = (definition.app_label, definition.model)
+        content_type = content_type_by_model.get(content_type_key)
         if content_type is None:
             content_type, _created = ContentType.objects.db_manager(using).get_or_create(
-                app_label="accounts",
+                app_label=definition.app_label,
                 model=definition.model,
             )
-            content_type_by_model[definition.model] = content_type
+            content_type_by_model[content_type_key] = content_type
 
         permission, _created = Permission.objects.db_manager(using).get_or_create(
             content_type=content_type,

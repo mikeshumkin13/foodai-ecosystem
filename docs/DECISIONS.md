@@ -252,3 +252,42 @@ Consequences / Последствия:
 - production email backend должен быть настроен отдельно, без логирования raw tokens;
 - мобильное приложение или B2B API могут потребовать отдельную token-схему в будущем через отдельное ADR;
 - OAuth не реализуется в этом этапе.
+
+## ADR-0010: Protected Django Admin And Admin Audit Foundation
+
+Date / Дата: 2026-08-07
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Django Admin используется как внутренний административный foundation для раннего backend.
+
+На этом этапе в admin регистрируются:
+
+- `accounts.User`;
+- `accounts.UserProfile`;
+- Django `Group` как управление role groups;
+- read-only `accounts.AdminAuditLog`.
+
+Email verification и password reset token-модели не регистрируются в admin. Bulk actions отключаются для зарегистрированных admin-моделей.
+
+`AdminAuditLog` зеркалирует стандартный Django `django_admin_log` через signal и хранит минимальные metadata: actor, action, model label, object id, sanitized object representation, change message и timestamps. Account object representations редактируются до `app.model:object_id`, чтобы не переносить email/profile/token-строки в audit trail без необходимости.
+
+Support и Content Manager не получают доступ к чувствительным account/audit/role models по умолчанию. Для будущих справочников и food catalog добавлены централизованные permission foundations, но доменные food catalog модели будут вводиться отдельной задачей.
+
+Rationale / Обоснование:
+
+- Django Admin нужен для раннего операционного управления пользователями и ролями без разработки отдельной back-office UI.
+- Least privilege требует, чтобы support/content роли не получали доступ к приватным дневникам, фото, health data, AI-диалогам, профилям и audit log без отдельного решения.
+- Audit trail административных действий нужен до появления production-данных.
+- Token metadata не должна появляться в admin без явной необходимости.
+- Создание настоящих food catalog моделей вне catalog-этапа увеличило бы доменную поверхность раньше времени.
+
+Consequences / Последствия:
+
+- Новые admin-модели должны иметь search/filter/readonly/timestamps, если это применимо.
+- Чувствительные модели нельзя регистрировать в admin без отдельной оценки доступа и audit-поведения.
+- Все admin permissions добавляются через `accounts.rbac`, миграции и `docs/SECURITY.md`.
+- Support/content-manager admin visibility должна покрываться тестами.
+- `AdminAuditLog` read-only; изменение или удаление audit records через обычный admin запрещено.
