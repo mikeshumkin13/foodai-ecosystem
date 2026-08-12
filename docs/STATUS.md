@@ -1,10 +1,10 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-08-07
+Last updated / Обновлено: 2026-08-12
 
 ## Текущий завершённый этап
 
-ЭТАП 7, PROMPT 7 — защищённая Django Admin завершён.
+ЭТАП 8, PROMPT 8 — health/nutrition profile завершён.
 
 ## Состояние
 
@@ -63,6 +63,16 @@ Last updated / Обновлено: 2026-08-07
 - Добавлен read-only `AdminAuditLog`, который зеркалирует стандартный `django_admin_log` и редактирует представление account-объектов в audit trail.
 - RBAC расширен permissions для admin-аудита, role groups, support admin foundation, справочников и будущего food catalog без создания преждевременных food-моделей.
 - Добавлены тесты admin permissions: видимость моделей, запрет changelist для `support`/`content_manager`, read-only audit log, отсутствие bulk actions и sanitization audit entry.
+- Создана ветка `feature/user-health-profile` от актуального `develop`.
+- Добавлен `accounts.NutritionProfile` для MVP-настроек питания: цель, рост, масса, age category, activity level, preferred units, dietary preferences и consent/version metadata.
+- Для privacy выбран `age_category`; дата рождения и точный год рождения не хранятся.
+- Allergies, intolerance и medical nutrition restrictions вынесены в отдельную sensitive-модель `accounts.NutritionSensitiveRestriction`.
+- Диагнозы не реализовывались.
+- Новая регистрация создаёт пустой `NutritionProfile` без granted consent.
+- Добавлены owner-only API endpoint-ы для nutrition profile и sensitive nutrition restrictions.
+- Business roles `support`, `content_manager` и `admin` не получают API-доступ к nutrition profile и sensitive restrictions по умолчанию.
+- `NutritionProfile` и `NutritionSensitiveRestriction` не зарегистрированы в Django Admin на этом этапе.
+- Добавлены consent checks и IDOR/API tests для nutrition profile и sensitive restrictions.
 
 ## Проверки
 
@@ -125,7 +135,12 @@ Last updated / Обновлено: 2026-08-07
 - `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
 - `docker compose --env-file .env config --quiet` — passed.
 - `docker compose --env-file .env build backend` — blocked в Codex sandbox из-за запрета записи Docker buildx в `~/.docker`; требуется ручная проверка вне sandbox.
+- `make check` — passed для PROMPT 8: Ruff без ошибок, mypy без ошибок в 43 source files, Django system check без ошибок, pytest: 73 passed, coverage 88.94%.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend` — passed, backend image собран.
 
 ## Следующий этап
 
-Остановиться после PROMPT 7. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 8. ЭТАП 9 — Nutrition database не начинать до отдельного продолжения после завершения PR/merge этого этапа.

@@ -15,6 +15,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 from rest_framework.views import APIView
 
 from accounts.auth_tokens import (
@@ -25,11 +26,19 @@ from accounts.auth_tokens import (
     revoke_password_reset_tokens,
 )
 from accounts.email_delivery import send_email_verification, send_password_reset
-from accounts.models import User, UserProfile
-from accounts.permissions import CanAccessUserProfile
+from accounts.models import NutritionProfile, NutritionSensitiveRestriction, User, UserProfile
+from accounts.permissions import (
+    CanAccessNutritionProfile,
+    CanAccessNutritionSensitiveRestriction,
+    CanAccessUserProfile,
+)
 from accounts.rbac import (
     ADMINISTER_ACCOUNTS_PERMISSION,
+    CHANGE_OWN_NUTRITION_PROFILE_PERMISSION,
+    CHANGE_OWN_NUTRITION_RESTRICTION_PERMISSION,
     CHANGE_OWN_PROFILE_PERMISSION,
+    VIEW_OWN_NUTRITION_PROFILE_PERMISSION,
+    VIEW_OWN_NUTRITION_RESTRICTION_PERMISSION,
     VIEW_OWN_PROFILE_PERMISSION,
 )
 from accounts.serializers import (
@@ -39,6 +48,8 @@ from accounts.serializers import (
     EmailResendSerializer,
     EmailVerificationSerializer,
     LoginSerializer,
+    NutritionProfileSerializer,
+    NutritionSensitiveRestrictionSerializer,
     PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
@@ -272,3 +283,65 @@ class UserProfileViewSet(
             return base_queryset.filter(user=user)
 
         return base_queryset.none()
+
+
+class NutritionProfileViewSet(
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = NutritionProfileSerializer
+    permission_classes = [CanAccessNutritionProfile]
+    lookup_field = "id"
+
+    def get_queryset(self) -> QuerySet[NutritionProfile]:
+        request_user = self.request.user
+        base_queryset = NutritionProfile.objects.select_related("user")
+
+        if not request_user or not request_user.is_authenticated:
+            return base_queryset.none()
+
+        user = cast(User, request_user)
+        if user.is_superuser:
+            return base_queryset
+
+        if user.has_perm(VIEW_OWN_NUTRITION_PROFILE_PERMISSION) or user.has_perm(
+            CHANGE_OWN_NUTRITION_PROFILE_PERMISSION
+        ):
+            return base_queryset.filter(user=user)
+
+        return base_queryset.none()
+
+
+class NutritionSensitiveRestrictionViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = NutritionSensitiveRestrictionSerializer
+    permission_classes = [CanAccessNutritionSensitiveRestriction]
+    lookup_field = "id"
+
+    def get_queryset(self) -> QuerySet[NutritionSensitiveRestriction]:
+        request_user = self.request.user
+        base_queryset = NutritionSensitiveRestriction.objects.select_related("user")
+
+        if not request_user or not request_user.is_authenticated:
+            return base_queryset.none()
+
+        user = cast(User, request_user)
+        if user.is_superuser:
+            return base_queryset
+
+        if user.has_perm(VIEW_OWN_NUTRITION_RESTRICTION_PERMISSION) or user.has_perm(
+            CHANGE_OWN_NUTRITION_RESTRICTION_PERMISSION
+        ):
+            return base_queryset.filter(user=user)
+
+        return base_queryset.none()
+
+    def perform_create(self, serializer: BaseSerializer[Any]) -> None:
+        serializer.save(user=cast(User, self.request.user))

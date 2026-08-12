@@ -14,7 +14,13 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from accounts.auth_tokens import hash_token
-from accounts.models import EmailVerificationToken, PasswordResetToken, User, UserProfile
+from accounts.models import (
+    EmailVerificationToken,
+    NutritionProfile,
+    PasswordResetToken,
+    User,
+    UserProfile,
+)
 from accounts.rbac import Role, user_has_role
 from accounts.tests.factories import make_user, make_user_profile
 
@@ -138,6 +144,9 @@ def test_register_creates_inactive_user_profile_role_and_email_token() -> None:
     assert user_has_role(user, Role.USER) is True
     assert UserProfile.objects.get(user=user).display_name == "Person"
     assert UserProfile.objects.get(user=user).preferred_language == "en"
+    nutrition_profile = NutritionProfile.objects.get(user=user)
+    assert nutrition_profile.consent_granted_at is None
+    assert nutrition_profile.age_category == NutritionProfile.AgeCategory.PREFER_NOT_TO_SAY
     token = EmailVerificationToken.objects.get(user=user)
     assert str(token.id) == params["token_id"]
     assert token.token_hash == hash_token(params["token"])

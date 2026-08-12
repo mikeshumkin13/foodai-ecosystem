@@ -26,6 +26,8 @@ FoodAI Ecosystem строится по принципам privacy-by-design и s
 - фотографии еды;
 - дневник питания;
 - health profile;
+- nutrition profile;
+- allergies, intolerances и medical nutrition restrictions;
 - AI-диалоги;
 - токены;
 - пароли;
@@ -41,7 +43,18 @@ FoodAI Ecosystem строится по принципам privacy-by-design и s
 - Пароли не хранятся в plaintext; используется стандартный Django password hashing.
 - `User` хранит только authentication/authorization минимум: email, password hash, active/staff flags и timestamps.
 - `UserProfile` отделён от `User` для пользовательских данных, но health/fitness данные не должны храниться ни в `User`, ни в generic profile без отдельного архитектурного решения.
+- MVP nutrition settings хранятся отдельно в `NutritionProfile`; allergies/intolerances/medical nutrition restrictions отделены в `NutritionSensitiveRestriction`.
 - Все будущие модели, связанные с пользователем, должны ссылаться на `settings.AUTH_USER_MODEL`.
+
+## Nutrition profile privacy
+
+- `NutritionProfile` хранит только MVP-данные: goal, height, mass, age category, activity level, preferred units и dietary preferences.
+- Точная дата рождения и год рождения не хранятся; используется privacy-friendly `age_category`.
+- Изменение nutrition profile требует consent/version foundation через `consent_accepted`, `consent_version` и `consent_granted_at`.
+- Allergies, intolerances и medical nutrition restrictions отделены в `NutritionSensitiveRestriction`.
+- `NutritionSensitiveRestriction` не хранит диагнозы и не является medical decision model.
+- `support`, `content_manager` и business `admin` не получают API-доступ к nutrition profile и sensitive restrictions по умолчанию.
+- Django Admin не регистрирует `NutritionProfile` и `NutritionSensitiveRestriction` на этом этапе.
 
 ## Authentication security
 
@@ -128,15 +141,15 @@ RBAC foundation использует Django Groups/Permissions:
 | Роль | Разрешено | Запрещено по умолчанию |
 | --- | --- | --- |
 | `anonymous` | Только явно публичные endpoint-ы, например `GET /api/v1/health/`. | Любые приватные профили, дневники, фото, health data, AI-диалоги, admin/support/content endpoints. |
-| `user` | Читать и изменять только собственный `UserProfile`; будущие дневники, фото и цели только в пределах собственных объектов. | Доступ к чужим UUID-ресурсам, чужим дневникам, чужим фото, support/admin/content-management функциям. |
-| `support` | Support tooling и support admin foundation без приватных пользовательских данных. | Health data, фото еды, дневники, AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
-| `content_manager` | Управление будущим каталогом продуктов, нутриентами, справочниками и контентом через catalog/reference permissions. | Приватные дневники пользователей, фото, health data, AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
-| `admin` | Административные permissions для управления users/profiles, role groups и просмотра read-only admin audit log согласно Django permissions. | Автоматический обход object-level policy без выданных permissions; использование как замена `superuser`; изменение audit log. |
+| `user` | Читать и изменять только собственные `UserProfile`, `NutritionProfile` и `NutritionSensitiveRestriction`; будущие дневники, фото и цели только в пределах собственных объектов. | Доступ к чужим UUID-ресурсам, чужим дневникам, чужим фото, support/admin/content-management функциям. |
+| `support` | Support tooling и support admin foundation без приватных пользовательских данных. | Health data, nutrition profile, allergies/medical restrictions, фото еды, дневники, AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
+| `content_manager` | Управление будущим каталогом продуктов, нутриентами, справочниками и контентом через catalog/reference permissions. | Приватные дневники пользователей, фото, health data, nutrition profile, allergies/medical restrictions, AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
+| `admin` | Административные permissions для управления users/profiles, role groups и просмотра read-only admin audit log согласно Django permissions. | Nutrition profile и sensitive restrictions без отдельной процедуры; автоматический обход object-level policy без выданных permissions; использование как замена `superuser`; изменение audit log. |
 | `superuser` | Полный технический доступ Django для аварийных/системных операций. | Повседневная операционная работа и роль обычного администратора продукта. |
 
 Текущие permission groups:
 
-- `user`: `accounts.view_own_userprofile`, `accounts.change_own_userprofile`.
+- `user`: `accounts.view_own_userprofile`, `accounts.change_own_userprofile`, `accounts.view_own_nutritionprofile`, `accounts.change_own_nutritionprofile`, `accounts.view_own_nutritionsensitiverestriction`, `accounts.change_own_nutritionsensitiverestriction`.
 - `support`: `accounts.access_support_tools`, `accounts.view_support_admin`.
 - `content_manager`: `accounts.manage_catalog_content`, `accounts.manage_reference_data`, `accounts.manage_food_catalog`.
 - `admin`: `accounts.administer_accounts`, account model permissions, `auth.view_group`, `auth.change_group`, `accounts.view_adminauditlog`, support/content/reference/catalog foundation permissions.

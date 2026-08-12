@@ -68,6 +68,8 @@ def _safe_object_repr(log_entry: LogEntry) -> str:
     if model_label in {
         "accounts.user",
         "accounts.userprofile",
+        "accounts.nutritionprofile",
+        "accounts.nutritionsensitiverestriction",
         "accounts.emailverificationtoken",
         "accounts.passwordresettoken",
     }:

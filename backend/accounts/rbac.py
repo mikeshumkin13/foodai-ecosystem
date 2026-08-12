@@ -40,6 +40,10 @@ class RoleDefinition:
 
 VIEW_OWN_PROFILE_PERMISSION = "accounts.view_own_userprofile"
 CHANGE_OWN_PROFILE_PERMISSION = "accounts.change_own_userprofile"
+VIEW_OWN_NUTRITION_PROFILE_PERMISSION = "accounts.view_own_nutritionprofile"
+CHANGE_OWN_NUTRITION_PROFILE_PERMISSION = "accounts.change_own_nutritionprofile"
+VIEW_OWN_NUTRITION_RESTRICTION_PERMISSION = "accounts.view_own_nutritionsensitiverestriction"
+CHANGE_OWN_NUTRITION_RESTRICTION_PERMISSION = "accounts.change_own_nutritionsensitiverestriction"
 ADMINISTER_ACCOUNTS_PERMISSION = "accounts.administer_accounts"
 VIEW_ADMIN_AUDIT_LOG_PERMISSION = "accounts.view_adminauditlog"
 VIEW_SUPPORT_ADMIN_PERMISSION = "accounts.view_support_admin"
@@ -102,6 +106,26 @@ PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
         name="Can delete user profile",
     ),
     PermissionDefinition(
+        codename="view_own_nutritionprofile",
+        model="nutritionprofile",
+        name="Can view own nutrition profile",
+    ),
+    PermissionDefinition(
+        codename="change_own_nutritionprofile",
+        model="nutritionprofile",
+        name="Can change own nutrition profile",
+    ),
+    PermissionDefinition(
+        codename="view_own_nutritionsensitiverestriction",
+        model="nutritionsensitiverestriction",
+        name="Can view own nutrition sensitive restriction",
+    ),
+    PermissionDefinition(
+        codename="change_own_nutritionsensitiverestriction",
+        model="nutritionsensitiverestriction",
+        name="Can change own nutrition sensitive restriction",
+    ),
+    PermissionDefinition(
         codename="view_adminauditlog",
         model="adminauditlog",
         name="Can view admin audit log",
@@ -156,6 +180,10 @@ ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
             {
                 VIEW_OWN_PROFILE_PERMISSION,
                 CHANGE_OWN_PROFILE_PERMISSION,
+                VIEW_OWN_NUTRITION_PROFILE_PERMISSION,
+                CHANGE_OWN_NUTRITION_PROFILE_PERMISSION,
+                VIEW_OWN_NUTRITION_RESTRICTION_PERMISSION,
+                CHANGE_OWN_NUTRITION_RESTRICTION_PERMISSION,
             }
         ),
     ),

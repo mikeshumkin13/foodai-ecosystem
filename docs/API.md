@@ -48,6 +48,12 @@ API не должен привязывать клиентов к одному ч
 - `POST /api/v1/auth/password/change/` — изменение пароля текущего пользователя.
 - `GET /api/v1/accounts/profiles/{id}/` — чтение `UserProfile`.
 - `PUT/PATCH /api/v1/accounts/profiles/{id}/` — обновление `UserProfile`.
+- `GET /api/v1/accounts/nutrition-profiles/{id}/` — чтение собственного `NutritionProfile`.
+- `PUT/PATCH /api/v1/accounts/nutrition-profiles/{id}/` — обновление собственного `NutritionProfile`; первое изменение требует `consent_accepted=true`.
+- `GET /api/v1/accounts/nutrition-restrictions/` — список собственных allergies/intolerances/medical nutrition restrictions.
+- `POST /api/v1/accounts/nutrition-restrictions/` — создание собственной sensitive nutrition restriction; требуется `consent_accepted=true`.
+- `GET /api/v1/accounts/nutrition-restrictions/{id}/` — чтение собственной sensitive nutrition restriction.
+- `PUT/PATCH/DELETE /api/v1/accounts/nutrition-restrictions/{id}/` — изменение или удаление собственной sensitive nutrition restriction.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 
@@ -68,9 +74,14 @@ Auth API использует cookie/session схему:
 - unauthenticated requests запрещены для account API;
 - обычный `user` читает и изменяет только собственный профиль;
 - обращение User A к UUID профиля User B не возвращает чужие данные;
+- обычный `user` читает и изменяет только собственный nutrition profile и собственные sensitive nutrition restrictions;
+- обращение User A к UUID nutrition profile или restriction User B не возвращает чужие данные;
+- `support`, `content_manager` и business `admin` не получают доступ к nutrition profile и sensitive nutrition restrictions по умолчанию;
 - `support` и `content_manager` не получают доступ к пользовательским профилям по умолчанию;
 - `admin` с permission `accounts.administer_accounts` может работать с профилями;
 - `superuser` использует технический Django override.
+
+Nutrition profile не реализует диагнозы. Аллергии, intolerance и medical restrictions хранятся отдельно от обычных dietary preferences.
 
 ## Breaking changes
 

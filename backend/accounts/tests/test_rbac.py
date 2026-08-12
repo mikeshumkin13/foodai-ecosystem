@@ -8,10 +8,14 @@ from rest_framework.test import APIClient
 
 from accounts.rbac import (
     ADMINISTER_ACCOUNTS_PERMISSION,
+    CHANGE_OWN_NUTRITION_PROFILE_PERMISSION,
+    CHANGE_OWN_NUTRITION_RESTRICTION_PERMISSION,
     CHANGE_OWN_PROFILE_PERMISSION,
     CHANGE_ROLE_GROUP_PERMISSION,
     ROLE_DEFINITIONS,
     VIEW_ADMIN_AUDIT_LOG_PERMISSION,
+    VIEW_OWN_NUTRITION_PROFILE_PERMISSION,
+    VIEW_OWN_NUTRITION_RESTRICTION_PERMISSION,
     VIEW_OWN_PROFILE_PERMISSION,
     VIEW_ROLE_GROUP_PERMISSION,
     Role,
@@ -50,6 +54,10 @@ def test_regular_user_receives_user_role_by_default() -> None:
     assert user_has_role(user, Role.USER) is True
     assert user.has_perm(VIEW_OWN_PROFILE_PERMISSION) is True
     assert user.has_perm(CHANGE_OWN_PROFILE_PERMISSION) is True
+    assert user.has_perm(VIEW_OWN_NUTRITION_PROFILE_PERMISSION) is True
+    assert user.has_perm(CHANGE_OWN_NUTRITION_PROFILE_PERMISSION) is True
+    assert user.has_perm(VIEW_OWN_NUTRITION_RESTRICTION_PERMISSION) is True
+    assert user.has_perm(CHANGE_OWN_NUTRITION_RESTRICTION_PERMISSION) is True
     assert user.has_perm(ADMINISTER_ACCOUNTS_PERMISSION) is False
 
 
@@ -77,6 +85,10 @@ def test_support_and_content_manager_do_not_get_private_user_permissions() -> No
         "accounts.change_userprofile",
         VIEW_OWN_PROFILE_PERMISSION,
         CHANGE_OWN_PROFILE_PERMISSION,
+        VIEW_OWN_NUTRITION_PROFILE_PERMISSION,
+        CHANGE_OWN_NUTRITION_PROFILE_PERMISSION,
+        VIEW_OWN_NUTRITION_RESTRICTION_PERMISSION,
+        CHANGE_OWN_NUTRITION_RESTRICTION_PERMISSION,
         VIEW_ADMIN_AUDIT_LOG_PERMISSION,
         VIEW_ROLE_GROUP_PERMISSION,
         CHANGE_ROLE_GROUP_PERMISSION,

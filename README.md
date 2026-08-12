@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend, а также приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication и защищённой Django Admin foundation. Food/Diary модели пока не создавались.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend, а также приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Food/Diary модели пока не создавались.
 
 ## Backend: локальная установка
 
@@ -94,6 +94,10 @@ Backend endpoints:
 - `POST /api/v1/auth/password/change/` — изменение пароля текущего пользователя.
 - `GET /api/v1/accounts/profiles/{id}/` — чтение профиля с object-level permissions.
 - `PUT/PATCH /api/v1/accounts/profiles/{id}/` — обновление профиля с object-level permissions.
+- `GET /api/v1/accounts/nutrition-profiles/{id}/` — чтение собственного nutrition profile.
+- `PUT/PATCH /api/v1/accounts/nutrition-profiles/{id}/` — обновление собственного nutrition profile с consent foundation.
+- `GET/POST /api/v1/accounts/nutrition-restrictions/` — список и создание собственных sensitive nutrition restrictions.
+- `GET/PUT/PATCH/DELETE /api/v1/accounts/nutrition-restrictions/{id}/` — работа только с собственными sensitive nutrition restrictions.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 
