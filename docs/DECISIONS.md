@@ -332,3 +332,46 @@ Consequences / Последствия:
 - API для nutrition profile должен покрываться owner-only и IDOR-тестами.
 - AI и future recommendation logic должны получать только минимально необходимый nutrition контекст.
 - Это не medical diagnosis model и не заменяет врача, лицензированного нутрициолога или психолога.
+
+## ADR-0012: Extensible Nutrition Catalog Foundation
+
+Date / Дата: 2026-08-12
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Nutrition database MVP реализуется отдельным Django app `nutrition`.
+
+Каталог состоит из:
+
+- `FoodCategory` — справочник категорий;
+- `FoodDataSource` — источник данных и source reference metadata;
+- `Nutrient` — расширяемый справочник нутриентов с unit и nutrient type;
+- `FoodItem` — canonical food item с names, synonyms, category, data source, density metadata, verified flag и source reference;
+- `FoodNutrient` — значение конкретного nutrient для food item на 100 g.
+
+`FoodItem` не хранит фиксированный набор calories/protein/fat/carbohydrate полей. Все nutrient values хранятся через `FoodNutrient.amount_per_100g`, поэтому micronutrients и future nutrients добавляются через справочник `Nutrient`, без миграции food item schema.
+
+API чтения:
+
+- `GET /api/v1/foods/search/`;
+- `GET /api/v1/foods/{id}/`.
+
+Authenticated users получают read-only доступ к nutrition catalog. Изменение catalog API требует centralized permission `accounts.manage_food_catalog`; `content_manager` и `admin` получают nutrition model permissions для Django Admin. `support` не получает write-доступ к catalog по умолчанию.
+
+Rationale / Обоснование:
+
+- Food recognition и meal diary должны опираться на единый managed catalog.
+- Каталог должен поддерживать не только КБЖУ, но и micronutrients.
+- Источник данных, verified flag и source reference нужны, чтобы отделять demo/manual/external values и не смешивать качество данных.
+- Density metadata нужно для будущей оценки объёма/массы порций.
+- `content_manager` должен управлять catalog data без доступа к приватным дневникам, фото, AI-диалогам и health profile.
+
+Consequences / Последствия:
+
+- Новые nutrients добавляются как `Nutrient` records, а не новыми колонками в `FoodItem`.
+- Импорт внешних баз питания должен маппиться в `FoodDataSource`, `FoodItem`, `Nutrient`, `FoodNutrient`.
+- Клиенты API должны читать динамический список nutrients и не предполагать фиксированный набор КБЖУ.
+- Demo fixture не должен использоваться как production nutrition guidance.
+- Любое расширение catalog write API должно сохранять permission boundary `accounts.manage_food_catalog`.

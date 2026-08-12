@@ -54,6 +54,10 @@ API не должен привязывать клиентов к одному ч
 - `POST /api/v1/accounts/nutrition-restrictions/` — создание собственной sensitive nutrition restriction; требуется `consent_accepted=true`.
 - `GET /api/v1/accounts/nutrition-restrictions/{id}/` — чтение собственной sensitive nutrition restriction.
 - `PUT/PATCH/DELETE /api/v1/accounts/nutrition-restrictions/{id}/` — изменение или удаление собственной sensitive nutrition restriction.
+- `GET /api/v1/foods/search/` — поиск продуктов в nutrition catalog по `q`; возвращает продукты, category, source, density metadata и динамический список nutrients per 100 g.
+- `GET /api/v1/foods/{id}/` — карточка продукта по UUID с `Nutrient`/`FoodNutrient` values per 100 g и единицами.
+- `POST /api/v1/foods/` — создание food catalog item; требуется catalog write permission.
+- `PUT/PATCH/DELETE /api/v1/foods/{id}/` — изменение или удаление food catalog item; требуется catalog write permission.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 
@@ -80,8 +84,15 @@ Auth API использует cookie/session схему:
 - `support` и `content_manager` не получают доступ к пользовательским профилям по умолчанию;
 - `admin` с permission `accounts.administer_accounts` может работать с профилями;
 - `superuser` использует технический Django override.
+- authenticated users могут читать nutrition catalog через search/detail;
+- обычный `user` не может создавать, изменять или удалять food catalog items;
+- `content_manager` с permission `accounts.manage_food_catalog` и nutrition model permissions может изменять food catalog;
+- `support` не может изменять food catalog;
+- business `admin` и `superuser` могут изменять food catalog согласно выданным permissions/technical override.
 
 Nutrition profile не реализует диагнозы. Аллергии, intolerance и medical restrictions хранятся отдельно от обычных dietary preferences.
+
+Nutrition catalog хранит nutrient values как `FoodNutrient.amount_per_100g`, связанный с расширяемым справочником `Nutrient`. Нельзя проектировать клиентов так, будто доступны только calories/protein/fat/carbohydrate.
 
 ## Breaking changes
 
