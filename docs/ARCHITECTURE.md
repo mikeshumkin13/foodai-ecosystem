@@ -75,6 +75,10 @@ foodai-ecosystem/
 - Возраст хранится как `age_category`, а не дата рождения или точный год рождения.
 - Аллергии, intolerance и медицинские ограничения отделены в `accounts.NutritionSensitiveRestriction` и доступны только владельцу через object-level permissions.
 - Nutrition profile API требует owner-only доступ и consent/version foundation для изменения пользовательских nutrition/health данных.
+- Приложение `nutrition` содержит MVP nutrition catalog: `FoodCategory`, `FoodDataSource`, `Nutrient`, `FoodItem`, `FoodNutrient`.
+- `FoodItem` хранит canonical food item, names/synonyms, category, source, density metadata, verified flag и source reference.
+- Нутриенты не зашиты как только КБЖУ: `FoodNutrient` связывает food item с расширяемым `Nutrient` и хранит `amount_per_100g`.
+- `content_manager` управляет каталогом через централизованные Django permissions; обычный authenticated `user` имеет read-only API-доступ.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 

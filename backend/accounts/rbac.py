@@ -51,6 +51,30 @@ MANAGE_REFERENCE_DATA_PERMISSION = "accounts.manage_reference_data"
 MANAGE_FOOD_CATALOG_PERMISSION = "accounts.manage_food_catalog"
 VIEW_ROLE_GROUP_PERMISSION = "auth.view_group"
 CHANGE_ROLE_GROUP_PERMISSION = "auth.change_group"
+NUTRITION_CATALOG_MODEL_PERMISSIONS = frozenset(
+    {
+        "nutrition.add_foodcategory",
+        "nutrition.view_foodcategory",
+        "nutrition.change_foodcategory",
+        "nutrition.delete_foodcategory",
+        "nutrition.add_fooddatasource",
+        "nutrition.view_fooddatasource",
+        "nutrition.change_fooddatasource",
+        "nutrition.delete_fooddatasource",
+        "nutrition.add_nutrient",
+        "nutrition.view_nutrient",
+        "nutrition.change_nutrient",
+        "nutrition.delete_nutrient",
+        "nutrition.add_fooditem",
+        "nutrition.view_fooditem",
+        "nutrition.change_fooditem",
+        "nutrition.delete_fooditem",
+        "nutrition.add_foodnutrient",
+        "nutrition.view_foodnutrient",
+        "nutrition.change_foodnutrient",
+        "nutrition.delete_foodnutrient",
+    }
+)
 
 PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
     PermissionDefinition(
@@ -170,6 +194,126 @@ PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
         model="rolepermission",
         name="Can administer accounts",
     ),
+    PermissionDefinition(
+        codename="add_foodcategory",
+        model="foodcategory",
+        name="Can add food category",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="view_foodcategory",
+        model="foodcategory",
+        name="Can view food category",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="change_foodcategory",
+        model="foodcategory",
+        name="Can change food category",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="delete_foodcategory",
+        model="foodcategory",
+        name="Can delete food category",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="add_fooddatasource",
+        model="fooddatasource",
+        name="Can add food data source",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="view_fooddatasource",
+        model="fooddatasource",
+        name="Can view food data source",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="change_fooddatasource",
+        model="fooddatasource",
+        name="Can change food data source",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="delete_fooddatasource",
+        model="fooddatasource",
+        name="Can delete food data source",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="add_nutrient",
+        model="nutrient",
+        name="Can add nutrient",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="view_nutrient",
+        model="nutrient",
+        name="Can view nutrient",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="change_nutrient",
+        model="nutrient",
+        name="Can change nutrient",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="delete_nutrient",
+        model="nutrient",
+        name="Can delete nutrient",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="add_fooditem",
+        model="fooditem",
+        name="Can add food item",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="view_fooditem",
+        model="fooditem",
+        name="Can view food item",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="change_fooditem",
+        model="fooditem",
+        name="Can change food item",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="delete_fooditem",
+        model="fooditem",
+        name="Can delete food item",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="add_foodnutrient",
+        model="foodnutrient",
+        name="Can add food nutrient",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="view_foodnutrient",
+        model="foodnutrient",
+        name="Can view food nutrient",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="change_foodnutrient",
+        model="foodnutrient",
+        name="Can change food nutrient",
+        app_label="nutrition",
+    ),
+    PermissionDefinition(
+        codename="delete_foodnutrient",
+        model="foodnutrient",
+        name="Can delete food nutrient",
+        app_label="nutrition",
+    ),
 )
 
 ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
@@ -205,6 +349,7 @@ ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
                 "accounts.manage_catalog_content",
                 MANAGE_REFERENCE_DATA_PERMISSION,
                 MANAGE_FOOD_CATALOG_PERMISSION,
+                *NUTRITION_CATALOG_MODEL_PERMISSIONS,
             }
         ),
     ),
@@ -229,6 +374,7 @@ ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
                 VIEW_SUPPORT_ADMIN_PERMISSION,
                 MANAGE_REFERENCE_DATA_PERMISSION,
                 MANAGE_FOOD_CATALOG_PERMISSION,
+                *NUTRITION_CATALOG_MODEL_PERMISSIONS,
                 ADMINISTER_ACCOUNTS_PERMISSION,
             }
         ),

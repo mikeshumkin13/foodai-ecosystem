@@ -1,0 +1,376 @@
+[
+  {
+    "model": "nutrition.foodcategory",
+    "pk": "11111111-1111-4111-8111-111111111111",
+    "fields": {
+      "slug": "fruits",
+      "name": "Fruits",
+      "name_ru": "Фрукты",
+      "name_en": "Fruits",
+      "description": "Demo fruit category for local development.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodcategory",
+    "pk": "11111111-1111-4111-8111-111111111112",
+    "fields": {
+      "slug": "protein-foods",
+      "name": "Protein foods",
+      "name_ru": "Белковые продукты",
+      "name_en": "Protein foods",
+      "description": "Demo protein category for local development.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodcategory",
+    "pk": "11111111-1111-4111-8111-111111111113",
+    "fields": {
+      "slug": "grains",
+      "name": "Grains",
+      "name_ru": "Крупы и злаки",
+      "name_en": "Grains",
+      "description": "Demo grains category for local development.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.fooddatasource",
+    "pk": "22222222-2222-4222-8222-222222222222",
+    "fields": {
+      "code": "foodai-demo",
+      "name": "FoodAI demo dataset",
+      "source_type": "demo",
+      "source_reference": "Development fixture, not for production nutrition guidance.",
+      "license_name": "Internal demo",
+      "license_url": "",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.nutrient",
+    "pk": "33333333-3333-4333-8333-333333333331",
+    "fields": {
+      "code": "energy_kcal",
+      "name": "Energy",
+      "name_ru": "Энергия",
+      "name_en": "Energy",
+      "unit": "kcal",
+      "nutrient_type": "energy",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.nutrient",
+    "pk": "33333333-3333-4333-8333-333333333332",
+    "fields": {
+      "code": "protein",
+      "name": "Protein",
+      "name_ru": "Белки",
+      "name_en": "Protein",
+      "unit": "g",
+      "nutrient_type": "macronutrient",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.nutrient",
+    "pk": "33333333-3333-4333-8333-333333333333",
+    "fields": {
+      "code": "fat",
+      "name": "Fat",
+      "name_ru": "Жиры",
+      "name_en": "Fat",
+      "unit": "g",
+      "nutrient_type": "macronutrient",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.nutrient",
+    "pk": "33333333-3333-4333-8333-333333333334",
+    "fields": {
+      "code": "carbohydrate",
+      "name": "Carbohydrate",
+      "name_ru": "Углеводы",
+      "name_en": "Carbohydrate",
+      "unit": "g",
+      "nutrient_type": "macronutrient",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.nutrient",
+    "pk": "33333333-3333-4333-8333-333333333335",
+    "fields": {
+      "code": "fiber",
+      "name": "Fiber",
+      "name_ru": "Клетчатка",
+      "name_en": "Fiber",
+      "unit": "g",
+      "nutrient_type": "macronutrient",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.nutrient",
+    "pk": "33333333-3333-4333-8333-333333333336",
+    "fields": {
+      "code": "vitamin_c",
+      "name": "Vitamin C",
+      "name_ru": "Витамин C",
+      "name_en": "Vitamin C",
+      "unit": "mg",
+      "nutrient_type": "micronutrient",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.fooditem",
+    "pk": "44444444-4444-4444-8444-444444444441",
+    "fields": {
+      "canonical_food": null,
+      "category": "11111111-1111-4111-8111-111111111111",
+      "data_source": "22222222-2222-4222-8222-222222222222",
+      "name": "Apple, raw",
+      "name_ru": "Яблоко сырое",
+      "name_en": "Apple, raw",
+      "synonyms": ["apple", "яблоко", "raw apple"],
+      "density_g_per_ml": "0.6410",
+      "density_metadata": {"basis": "average whole apple volume", "confidence": "demo"},
+      "is_verified": true,
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.fooditem",
+    "pk": "44444444-4444-4444-8444-444444444442",
+    "fields": {
+      "canonical_food": null,
+      "category": "11111111-1111-4111-8111-111111111112",
+      "data_source": "22222222-2222-4222-8222-222222222222",
+      "name": "Chicken breast, cooked",
+      "name_ru": "Куриная грудка приготовленная",
+      "name_en": "Chicken breast, cooked",
+      "synonyms": ["chicken breast", "куриная грудка", "cooked chicken breast"],
+      "density_g_per_ml": null,
+      "density_metadata": {"basis": "not provided", "confidence": "demo"},
+      "is_verified": true,
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.fooditem",
+    "pk": "44444444-4444-4444-8444-444444444443",
+    "fields": {
+      "canonical_food": null,
+      "category": "11111111-1111-4111-8111-111111111113",
+      "data_source": "22222222-2222-4222-8222-222222222222",
+      "name": "Rice, white, cooked",
+      "name_ru": "Белый рис приготовленный",
+      "name_en": "Rice, white, cooked",
+      "synonyms": ["rice", "white rice", "рис", "белый рис"],
+      "density_g_per_ml": "0.8500",
+      "density_metadata": {"basis": "cooked loose rice", "confidence": "demo"},
+      "is_verified": true,
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555501",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444441",
+      "nutrient": "33333333-3333-4333-8333-333333333331",
+      "amount_per_100g": "52.0000",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555502",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444441",
+      "nutrient": "33333333-3333-4333-8333-333333333332",
+      "amount_per_100g": "0.2600",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555503",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444441",
+      "nutrient": "33333333-3333-4333-8333-333333333333",
+      "amount_per_100g": "0.1700",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555504",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444441",
+      "nutrient": "33333333-3333-4333-8333-333333333334",
+      "amount_per_100g": "13.8100",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555505",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444441",
+      "nutrient": "33333333-3333-4333-8333-333333333335",
+      "amount_per_100g": "2.4000",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555506",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444441",
+      "nutrient": "33333333-3333-4333-8333-333333333336",
+      "amount_per_100g": "4.6000",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555511",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444442",
+      "nutrient": "33333333-3333-4333-8333-333333333331",
+      "amount_per_100g": "165.0000",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555512",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444442",
+      "nutrient": "33333333-3333-4333-8333-333333333332",
+      "amount_per_100g": "31.0200",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555513",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444442",
+      "nutrient": "33333333-3333-4333-8333-333333333333",
+      "amount_per_100g": "3.5700",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555514",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444442",
+      "nutrient": "33333333-3333-4333-8333-333333333334",
+      "amount_per_100g": "0.0000",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555521",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444443",
+      "nutrient": "33333333-3333-4333-8333-333333333331",
+      "amount_per_100g": "130.0000",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555522",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444443",
+      "nutrient": "33333333-3333-4333-8333-333333333332",
+      "amount_per_100g": "2.6900",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555523",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444443",
+      "nutrient": "33333333-3333-4333-8333-333333333333",
+      "amount_per_100g": "0.2800",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555524",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444443",
+      "nutrient": "33333333-3333-4333-8333-333333333334",
+      "amount_per_100g": "28.1700",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  },
+  {
+    "model": "nutrition.foodnutrient",
+    "pk": "55555555-5555-4555-8555-555555555525",
+    "fields": {
+      "food_item": "44444444-4444-4444-8444-444444444443",
+      "nutrient": "33333333-3333-4333-8333-333333333335",
+      "amount_per_100g": "0.4000",
+      "source_reference": "FoodAI demo values per 100 g.",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z"
+    }
+  }
+]

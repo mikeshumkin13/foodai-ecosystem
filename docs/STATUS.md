@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-12
 
 ## Текущий завершённый этап
 
-ЭТАП 8, PROMPT 8 — health/nutrition profile завершён.
+ЭТАП 9, PROMPT 9 — Nutrition database завершён.
 
 ## Состояние
 
@@ -73,6 +73,17 @@ Last updated / Обновлено: 2026-08-12
 - Business roles `support`, `content_manager` и `admin` не получают API-доступ к nutrition profile и sensitive restrictions по умолчанию.
 - `NutritionProfile` и `NutritionSensitiveRestriction` не зарегистрированы в Django Admin на этом этапе.
 - Добавлены consent checks и IDOR/API tests для nutrition profile и sensitive restrictions.
+- Создана ветка `feature/nutrition-catalog` от актуального `develop`.
+- Добавлено Django-приложение `nutrition`.
+- Добавлены модели `FoodCategory`, `FoodDataSource`, `Nutrient`, `FoodItem`, `FoodNutrient`.
+- `FoodItem` поддерживает canonical food item, names, synonyms, source, values source reference, category, density metadata и verified flag.
+- Нутриенты реализованы расширяемо через `Nutrient`/`FoodNutrient`; micronutrients можно добавлять без изменения food item модели.
+- Добавлены API endpoint-ы `GET /api/v1/foods/search/` и `GET /api/v1/foods/{id}/`.
+- Обычный authenticated `user` получает read-only доступ к nutrition catalog.
+- `content_manager` может изменять food catalog через централизованные permissions; `support` не может изменять каталог.
+- Добавлен Django Admin foundation для nutrition catalog models с search, filters, readonly timestamps и отключёнными bulk actions.
+- Добавлен demo fixture `demo_nutrition_catalog`.
+- Добавлены API/admin/RBAC/fixture tests для nutrition catalog.
 
 ## Проверки
 
@@ -140,7 +151,12 @@ Last updated / Обновлено: 2026-08-12
 - `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
 - `docker compose --env-file .env config --quiet` — passed.
 - `docker compose --env-file .env build backend` — passed, backend image собран.
+- `make check` — passed для PROMPT 9: Ruff без ошибок, mypy без ошибок в 55 source files, Django system check без ошибок, pytest: 88 passed, coverage 89.81%.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend` — passed, backend image собран.
 
 ## Следующий этап
 
-Остановиться после PROMPT 8. ЭТАП 9 — Nutrition database не начинать до отдельного продолжения после завершения PR/merge этого этапа.
+Остановиться после PROMPT 9. Следующую задачу начинать только после явной команды пользователя.

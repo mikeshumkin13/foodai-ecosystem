@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend, а также приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Food/Diary модели пока не создавались.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis и backend, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile, а также приложение `nutrition` с расширяемым каталогом продуктов и нутриентов. Diary модели пока не создавались.
 
 ## Backend: локальная установка
 
@@ -98,8 +98,18 @@ Backend endpoints:
 - `PUT/PATCH /api/v1/accounts/nutrition-profiles/{id}/` — обновление собственного nutrition profile с consent foundation.
 - `GET/POST /api/v1/accounts/nutrition-restrictions/` — список и создание собственных sensitive nutrition restrictions.
 - `GET/PUT/PATCH/DELETE /api/v1/accounts/nutrition-restrictions/{id}/` — работа только с собственными sensitive nutrition restrictions.
+- `GET /api/v1/foods/search/` — поиск продуктов в nutrition catalog.
+- `GET /api/v1/foods/{id}/` — карточка продукта с nutrients per 100 g и единицами измерения.
+- `POST /api/v1/foods/` — создание food catalog item для `content_manager`/`admin`.
+- `PUT/PATCH/DELETE /api/v1/foods/{id}/` — изменение food catalog item для `content_manager`/`admin`.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
+
+Демо-данные nutrition catalog для локальной разработки:
+
+```bash
+python backend/manage.py loaddata demo_nutrition_catalog --settings=config.settings.local
+```
 
 ## Локальная инфраструктура через Docker Compose
 

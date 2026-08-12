@@ -56,6 +56,15 @@ FoodAI Ecosystem строится по принципам privacy-by-design и s
 - `support`, `content_manager` и business `admin` не получают API-доступ к nutrition profile и sensitive restrictions по умолчанию.
 - Django Admin не регистрирует `NutritionProfile` и `NutritionSensitiveRestriction` на этом этапе.
 
+## Nutrition catalog access
+
+- Nutrition catalog считается managed reference/content data, а не приватными пользовательскими данными.
+- Read API доступен authenticated users.
+- Изменение catalog API требует `accounts.manage_food_catalog`; эта permission выдаётся `content_manager` и `admin`.
+- Django Admin для `nutrition` моделей доступен staff users только при наличии соответствующих model permissions.
+- `support` не получает catalog write permissions по умолчанию.
+- Каталог хранит values per 100 g через расширяемые `Nutrient`/`FoodNutrient`, включая future micronutrients.
+
 ## Authentication security
 
 Web authentication использует Django session cookies:
@@ -108,7 +117,7 @@ Brute-force/rate limiting:
 ## Admin security
 
 - Django Admin доступен только active staff users через стандартную Django admin authentication.
-- В admin зарегистрированы только текущие операционные модели: `accounts.User`, `accounts.UserProfile`, Django `Group` для role groups и read-only `accounts.AdminAuditLog`.
+- В admin зарегистрированы текущие операционные модели: `accounts.User`, `accounts.UserProfile`, Django `Group` для role groups, read-only `accounts.AdminAuditLog` и managed reference/content models приложения `nutrition`.
 - `EmailVerificationToken` и `PasswordResetToken` не зарегистрированы в admin, чтобы не расширять поверхность доступа к token metadata.
 - `User` list view показывает email как login identifier, flags, roles и timestamps; password hash не выводится в списках.
 - `UserProfile` list view показывает UUID пользователя и language/timestamps; display name не выводится в списке.
@@ -116,6 +125,7 @@ Brute-force/rate limiting:
 - `AdminAuditLog` доступен только на чтение, зеркалирует стандартный `django_admin_log` и хранит минимальные metadata: actor, action, model label, object id, sanitized object representation, change message и timestamps.
 - Account object representations в audit log редактируются до `app.model:object_id`, чтобы не переносить email/profile/token-строки без необходимости.
 - `support` и `content_manager` могут войти в admin только при явном `is_staff=True`, но не видят чувствительные account/audit/role models без model permissions.
+- `content_manager` видит и изменяет `nutrition` catalog models в admin через nutrition model permissions.
 
 ## Роли и доступ
 
@@ -141,18 +151,18 @@ RBAC foundation использует Django Groups/Permissions:
 | Роль | Разрешено | Запрещено по умолчанию |
 | --- | --- | --- |
 | `anonymous` | Только явно публичные endpoint-ы, например `GET /api/v1/health/`. | Любые приватные профили, дневники, фото, health data, AI-диалоги, admin/support/content endpoints. |
-| `user` | Читать и изменять только собственные `UserProfile`, `NutritionProfile` и `NutritionSensitiveRestriction`; будущие дневники, фото и цели только в пределах собственных объектов. | Доступ к чужим UUID-ресурсам, чужим дневникам, чужим фото, support/admin/content-management функциям. |
+| `user` | Читать и изменять только собственные `UserProfile`, `NutritionProfile` и `NutritionSensitiveRestriction`; читать nutrition catalog; будущие дневники, фото и цели только в пределах собственных объектов. | Доступ к чужим UUID-ресурсам, чужим дневникам, чужим фото, изменение nutrition catalog, support/admin/content-management функциям. |
 | `support` | Support tooling и support admin foundation без приватных пользовательских данных. | Health data, nutrition profile, allergies/medical restrictions, фото еды, дневники, AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
-| `content_manager` | Управление будущим каталогом продуктов, нутриентами, справочниками и контентом через catalog/reference permissions. | Приватные дневники пользователей, фото, health data, nutrition profile, allergies/medical restrictions, AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
-| `admin` | Административные permissions для управления users/profiles, role groups и просмотра read-only admin audit log согласно Django permissions. | Nutrition profile и sensitive restrictions без отдельной процедуры; автоматический обход object-level policy без выданных permissions; использование как замена `superuser`; изменение audit log. |
+| `content_manager` | Управление каталогом продуктов, nutrients, справочниками и контентом через catalog/reference permissions. | Приватные дневники пользователей, фото, health data, nutrition profile, allergies/medical restrictions, AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
+| `admin` | Административные permissions для управления users/profiles, role groups, nutrition catalog и просмотра read-only admin audit log согласно Django permissions. | Nutrition profile и sensitive restrictions без отдельной процедуры; автоматический обход object-level policy без выданных permissions; использование как замена `superuser`; изменение audit log. |
 | `superuser` | Полный технический доступ Django для аварийных/системных операций. | Повседневная операционная работа и роль обычного администратора продукта. |
 
 Текущие permission groups:
 
 - `user`: `accounts.view_own_userprofile`, `accounts.change_own_userprofile`, `accounts.view_own_nutritionprofile`, `accounts.change_own_nutritionprofile`, `accounts.view_own_nutritionsensitiverestriction`, `accounts.change_own_nutritionsensitiverestriction`.
 - `support`: `accounts.access_support_tools`, `accounts.view_support_admin`.
-- `content_manager`: `accounts.manage_catalog_content`, `accounts.manage_reference_data`, `accounts.manage_food_catalog`.
-- `admin`: `accounts.administer_accounts`, account model permissions, `auth.view_group`, `auth.change_group`, `accounts.view_adminauditlog`, support/content/reference/catalog foundation permissions.
+- `content_manager`: `accounts.manage_catalog_content`, `accounts.manage_reference_data`, `accounts.manage_food_catalog` и `nutrition` model permissions для `FoodCategory`, `FoodDataSource`, `Nutrient`, `FoodItem`, `FoodNutrient`.
+- `admin`: `accounts.administer_accounts`, account model permissions, `auth.view_group`, `auth.change_group`, `accounts.view_adminauditlog`, support/content/reference/catalog foundation permissions и `nutrition` model permissions.
 
 IDOR baseline: User A не должен читать или менять ресурс User B даже при знании UUID. Для `UserProfile` это покрыто API-тестом.
 
