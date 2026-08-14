@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
@@ -12,7 +13,12 @@ from diary.models import Meal, MealItem
 from food_scans.matching import match_food_label
 from food_scans.models import FoodScan, FoodScanDetectedItem
 from food_scans.vision import VisionAnalyzer, analyze_food_scan
-from integrations.vision.client import VisionClientError, VisionDetectedItem
+from integrations.vision.client import (
+    VisionClientError,
+    VisionDetectedItem,
+    VisionTimeoutError,
+    VisionUnavailableError,
+)
 from nutrition.models import FoodItem
 
 DEFAULT_ESTIMATED_MASS_G = Decimal("100.00")
@@ -26,22 +32,46 @@ class FoodScanWorkflowError(ValueError):
         super().__init__(code)
 
 
+class RetryableFoodScanAnalysisError(RuntimeError):
+    def __init__(self, failure_code: str) -> None:
+        self.failure_code = failure_code
+        super().__init__(failure_code)
+
+
 def start_scan_analysis(
     food_scan: FoodScan,
     *,
     vision_client: VisionAnalyzer | None = None,
 ) -> FoodScan:
+    return process_scan_analysis(food_scan, vision_client=vision_client)
+
+
+def process_scan_analysis(
+    food_scan: FoodScan,
+    *,
+    vision_client: VisionAnalyzer | None = None,
+    analysis_run_id: uuid.UUID | None = None,
+    retry_transient_errors: bool = False,
+) -> FoodScan:
     if food_scan.status == FoodScan.Status.CONFIRMED:
         return food_scan
 
-    _mark_scan_processing(food_scan)
+    if not _mark_scan_processing(food_scan, analysis_run_id=analysis_run_id):
+        return food_scan
+
     try:
         analysis_result = analyze_food_scan(food_scan, vision_client=vision_client)
+    except (VisionTimeoutError, VisionUnavailableError) as exc:
+        if retry_transient_errors:
+            raise RetryableFoodScanAnalysisError(exc.code) from exc
+        return _mark_scan_failed(food_scan, failure_code=exc.code, analysis_run_id=analysis_run_id)
     except VisionClientError as exc:
-        return _mark_scan_failed(food_scan, failure_code=exc.code)
+        return _mark_scan_failed(food_scan, failure_code=exc.code, analysis_run_id=analysis_run_id)
 
     with transaction.atomic():
         locked_scan = FoodScan.objects.select_for_update().get(id=food_scan.id)
+        if not _analysis_run_matches(locked_scan, analysis_run_id):
+            return locked_scan
         if locked_scan.status == FoodScan.Status.CONFIRMED:
             return locked_scan
 
@@ -202,24 +232,52 @@ def confirm_food_scan(
     )
 
 
-def _mark_scan_processing(food_scan: FoodScan) -> None:
-    FoodScan.objects.filter(id=food_scan.id).update(
+def _mark_scan_processing(
+    food_scan: FoodScan,
+    *,
+    analysis_run_id: uuid.UUID | None,
+) -> bool:
+    queryset = FoodScan.objects.filter(id=food_scan.id).exclude(status=FoodScan.Status.CONFIRMED)
+    if analysis_run_id is not None:
+        queryset = queryset.filter(analysis_run_id=analysis_run_id)
+
+    updated_count = queryset.update(
         status=FoodScan.Status.PROCESSING,
         failure_code="",
         updated_at=timezone.now(),
     )
+    if updated_count == 0:
+        food_scan.refresh_from_db()
+        return False
+
     food_scan.status = FoodScan.Status.PROCESSING
     food_scan.failure_code = ""
+    return True
 
 
-def _mark_scan_failed(food_scan: FoodScan, *, failure_code: str) -> FoodScan:
-    FoodScan.objects.filter(id=food_scan.id).update(
+def _mark_scan_failed(
+    food_scan: FoodScan,
+    *,
+    failure_code: str,
+    analysis_run_id: uuid.UUID | None = None,
+) -> FoodScan:
+    queryset = FoodScan.objects.filter(id=food_scan.id).exclude(status=FoodScan.Status.CONFIRMED)
+    if analysis_run_id is not None:
+        queryset = queryset.filter(analysis_run_id=analysis_run_id)
+
+    queryset.update(
         status=FoodScan.Status.FAILED,
         failure_code=failure_code,
         updated_at=timezone.now(),
     )
     food_scan.refresh_from_db()
     return food_scan
+
+
+def _analysis_run_matches(food_scan: FoodScan, analysis_run_id: uuid.UUID | None) -> bool:
+    if analysis_run_id is None:
+        return True
+    return food_scan.analysis_run_id == analysis_run_id
 
 
 def _build_detected_item(

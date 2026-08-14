@@ -30,7 +30,7 @@ def food_scan_storage_settings(
     settings.FOOD_SCAN_MAX_IMAGE_PIXELS = 20_000_000
     settings.FOOD_SCAN_PRIVATE_STORAGE_BACKEND = "local"
     settings.FOOD_SCAN_PRIVATE_MEDIA_ROOT = str(tmp_path / "private")
-    monkeypatch.setattr("food_scans.views.start_scan_analysis", lambda food_scan: food_scan)
+    monkeypatch.setattr("food_scans.views.enqueue_food_scan_analysis", lambda food_scan: food_scan)
 
 
 def _food_scan_detail_url(food_scan_id: object) -> str:
@@ -74,16 +74,18 @@ def test_user_can_upload_valid_jpeg_and_exif_is_stripped(api_client: APIClient) 
 
     assert response.status_code == status.HTTP_201_CREATED
     payload = response.json()
-    assert payload["user_id"] == str(user.id)
-    assert payload["image_format"] == FoodScan.ImageFormat.JPEG
-    assert payload["content_type"] == "image/jpeg"
-    assert payload["width"] == 12
-    assert payload["height"] == 10
-    assert payload["exif_stripped"] is True
+    assert set(payload) == {"scan_id", "status"}
+    assert payload["status"] == FoodScan.Status.UPLOADED
     assert "object_key" not in payload
     assert "url" not in payload
 
-    food_scan = FoodScan.objects.get(id=payload["id"])
+    food_scan = FoodScan.objects.get(id=payload["scan_id"])
+    assert food_scan.user == user
+    assert food_scan.image_format == FoodScan.ImageFormat.JPEG
+    assert food_scan.content_type == "image/jpeg"
+    assert food_scan.width == 12
+    assert food_scan.height == 10
+    assert food_scan.exif_stripped is True
     assert food_scan.object_key.startswith("food-scans/")
     assert food_scan.object_key.endswith(".jpg")
     assert ".." not in food_scan.object_key
@@ -115,28 +117,30 @@ def test_user_can_upload_valid_png_even_when_filename_and_content_type_lie(
 
     assert response.status_code == status.HTTP_201_CREATED
     payload = response.json()
-    assert payload["image_format"] == FoodScan.ImageFormat.PNG
-    assert payload["content_type"] == "image/png"
+    assert payload["status"] == FoodScan.Status.UPLOADED
 
-    food_scan = FoodScan.objects.get(id=payload["id"])
+    food_scan = FoodScan.objects.get(id=payload["scan_id"])
+    assert food_scan.image_format == FoodScan.ImageFormat.PNG
+    assert food_scan.content_type == "image/png"
     assert food_scan.object_key.endswith(".png")
 
 
-def test_upload_initiates_scan_analysis(
+def test_upload_enqueues_background_scan_analysis(
     api_client: APIClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     user = make_user()
     api_client.force_authenticate(user=user)
-    analyzed_scan_ids: list[str] = []
+    enqueued_scan_ids: list[str] = []
 
-    def fake_start_scan_analysis(food_scan: FoodScan) -> FoodScan:
-        analyzed_scan_ids.append(str(food_scan.id))
-        food_scan.status = FoodScan.Status.NEEDS_CONFIRMATION
-        food_scan.save(update_fields=["status", "updated_at"])
+    def fake_enqueue_food_scan_analysis(food_scan: FoodScan) -> FoodScan:
+        enqueued_scan_ids.append(str(food_scan.id))
         return food_scan
 
-    monkeypatch.setattr("food_scans.views.start_scan_analysis", fake_start_scan_analysis)
+    monkeypatch.setattr(
+        "food_scans.views.enqueue_food_scan_analysis",
+        fake_enqueue_food_scan_analysis,
+    )
 
     response = api_client.post(
         reverse("food-scan-list"),
@@ -152,8 +156,9 @@ def test_upload_initiates_scan_analysis(
 
     assert response.status_code == status.HTTP_201_CREATED
     payload = response.json()
-    assert payload["status"] == FoodScan.Status.NEEDS_CONFIRMATION
-    assert analyzed_scan_ids == [payload["id"]]
+    assert payload["status"] == FoodScan.Status.UPLOADED
+    assert enqueued_scan_ids == [payload["scan_id"]]
+    assert FoodScan.objects.get(id=payload["scan_id"]).detected_items.count() == 0
 
 
 def test_fake_jpeg_is_rejected(api_client: APIClient) -> None:
@@ -231,7 +236,7 @@ def test_user_cannot_access_another_users_food_scan(api_client: APIClient) -> No
         },
         format="multipart",
     )
-    food_scan_id = create_response.json()["id"]
+    food_scan_id = create_response.json()["scan_id"]
 
     api_client.force_authenticate(user=user_b)
     detail_response = api_client.get(_food_scan_detail_url(food_scan_id))

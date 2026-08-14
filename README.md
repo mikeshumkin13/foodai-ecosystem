@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов и нутриентов, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage и FastAPI `services/vision` с mock-анализом.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов и нутриентов, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery и FastAPI `services/vision` с mock-анализом.
 
 ## Backend: локальная установка
 
@@ -86,6 +86,12 @@ Vision service локально без Docker:
 python -m uvicorn vision_service.main:app --app-dir services/vision --host 0.0.0.0 --port 8001
 ```
 
+Celery worker локально без Docker, если Redis доступен через `REDIS_URL`:
+
+```bash
+celery -A config worker --loglevel=INFO --concurrency=1
+```
+
 Backend endpoints:
 
 - `GET /admin/` — Django Admin для внутренних ролей, пользователей и read-only audit foundation.
@@ -115,9 +121,12 @@ Backend endpoints:
 - `PATCH /api/v1/meals/{id}/` — частичное изменение собственного приёма пищи; переданные `items` заменяют состав приёма пищи.
 - `DELETE /api/v1/meals/{id}/` — удаление собственного приёма пищи.
 - `GET /api/v1/diary/day/?date=YYYY-MM-DD` — дневная агрегация calories/protein/fat/carbs и micronutrients по собственному дневнику.
-- `POST /api/v1/food-scans/` — загрузка фотографии блюда в private storage; принимает `multipart/form-data` поле `photo`.
+- `POST /api/v1/food-scans/` — загрузка фотографии блюда в private storage; принимает `multipart/form-data` поле `photo`, быстро возвращает `scan_id` и `status`, а Vision processing выполняется в Celery worker.
 - `GET /api/v1/food-scans/` — список собственных food scans без постоянных публичных URL.
 - `GET /api/v1/food-scans/{id}/` — metadata собственного food scan по UUID без `object_key` и публичного URL.
+- `GET /api/v1/food-scans/{id}/results/` — polling результатов scan после background processing.
+- `POST /api/v1/food-scans/{id}/retry/` — повторно поставить scan в обработку, если он не confirmed и не processing.
+- `POST /api/v1/food-scans/{id}/confirm/` — подтвердить results и создать `Meal`/`MealItem`; endpoint идемпотентен.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 
@@ -134,7 +143,7 @@ python backend/manage.py loaddata demo_nutrition_catalog --settings=config.setti
 
 ## Локальная инфраструктура через Docker Compose
 
-Одна команда для локального запуска backend, Vision service, PostgreSQL и Redis:
+Одна команда для локального запуска backend, Celery worker, Vision service, PostgreSQL и Redis:
 
 ```bash
 make dev-up
@@ -157,6 +166,7 @@ make dev-down
 - `postgres` — PostgreSQL с volume `postgres_data` и healthcheck.
 - `redis` — Redis с volume `redis_data` и healthcheck.
 - `backend` — Django backend, который ждёт PostgreSQL/Redis, предсказуемо выполняет `migrate --noinput`, затем стартует `runserver`.
+- `celery_worker` — Celery worker для background Vision processing; ждёт PostgreSQL, Redis, Vision и healthy backend, не запускает migrations параллельно с backend.
 - `vision` — FastAPI Vision service foundation с `GET /health` и mock `POST /v1/analyze`.
 
 Health endpoint после запуска:
@@ -170,3 +180,5 @@ curl http://localhost:8000/api/v1/health/
 Food scan uploads в local development сохраняются в приватный filesystem root `FOOD_SCAN_PRIVATE_MEDIA_ROOT`. API не возвращает постоянный публичный URL; будущий S3-compatible backend должен подключаться через private storage boundary.
 
 В Docker Compose backend обращается к Vision по `VISION_SERVICE_URL=http://vision:8001`. Vision port не публикуется на host по умолчанию; для прямого локального теста запускайте сервис командой `uvicorn` выше.
+
+Celery использует Redis как broker/result backend. Upload endpoint не ждёт Vision: клиент получает `scan_id`, затем опрашивает `GET /api/v1/food-scans/{id}/results/` до статуса `needs_confirmation`, `failed` или `confirmed`.
