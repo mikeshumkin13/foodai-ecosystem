@@ -716,3 +716,102 @@ Consequences / Последствия:
   ML inference.
 - Любая замена модели, изменение количества returned items или переход к bounding boxes требует
   обновления `docs/DECISIONS.md`, contract tests и UX подтверждения.
+
+## ADR-0019: Portion Estimation V1 As Explicit Estimator
+
+Date / Дата: 2026-08-14
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Portion estimation v1 реализуется как честный estimator, а не как точное измерение массы по одному
+RGB-фото.
+
+Оценка выполняется внутри backend `food_scans.portion_estimation` при создании proposal
+`FoodScanDetectedItem`. Vision contract расширяется опциональными полями:
+
+- `segment_area_px`;
+- `portion_reference.reference_type`;
+- `portion_reference.diameter_cm`;
+- `portion_reference.area_px`.
+
+Текущая Vision model v1 не возвращает segmentation mask или reference detection, поэтому эти поля
+обычно отсутствуют. При их отсутствии backend использует низкоконфидентный fallback:
+`food_type_typical_volume_density_table_v1`.
+
+Если доступны segment area и известный физический reference, используется метод:
+`segment_area_plate_reference_geometry_v1`.
+
+Формулы MVP:
+
+- площадь reference в `cm²`: `pi * (diameter_cm / 2)^2`;
+- площадь сегмента в `cm²`: `reference_area_cm² * segment_area_px / reference_area_px`;
+- объём в `ml`: `segment_area_cm² * assumed_depth_cm`;
+- масса в `g`: `estimated_volume_ml * density_g_per_ml`.
+
+Density resolution:
+
+1. `FoodItem.density_g_per_ml`, если заполнено;
+2. `FoodItem.density_metadata["density_g_per_ml"]`, если есть;
+3. MVP density table по типу продукта/category/label.
+
+Food type assumptions включают только грубые MVP-классы: grains, protein foods, fruits,
+vegetables, bread/flat foods, liquids и generic mixed food. Для каждого типа задаются
+`density_g_per_ml`, `typical_volume_ml` и `assumed_depth_cm`.
+
+`FoodScanDetectedItem` хранит отдельно:
+
+- активную массу для snapshot/confirmation: `estimated_mass_g`;
+- исходную portion estimate mass: `portion_estimated_mass_g`;
+- estimated volume: `portion_estimated_volume_ml`;
+- uncertainty interval: `portion_min_mass_g`, `portion_max_mass_g`;
+- portion confidence: `portion_confidence`;
+- method: `portion_estimation_method`;
+- metadata assumptions: `portion_estimation_metadata`;
+- ручную пользовательскую коррекцию массы: `manual_mass_g`.
+
+Когда пользователь исправляет `mass_g`, backend сохраняет новую активную массу в
+`estimated_mass_g`, а ручную массу отдельно в `manual_mass_g`. Исходная оценка порции остаётся
+неизменной, чтобы в будущем можно было сравнивать estimate и user correction для улучшения модели.
+
+API scan results возвращает активную `mass_g`, optional `manual_mass_g` и nested
+`portion_estimate`:
+
+- `estimated_volume`;
+- `estimated_mass`;
+- `confidence`;
+- `min_estimate`;
+- `max_estimate`;
+- `method`.
+
+Known limitations / Ограничения:
+
+- Один RGB-снимок без depth sensor, calibration и физического reference не даёт точной массы.
+- Geometry v1 использует грубую assumed depth по типу продукта и не учитывает высоту горки,
+  скрытые ингредиенты, многослойные блюда, перспективу и частичное перекрытие объектов.
+- Без segment/reference используется typical volume fallback с низкой confidence.
+- Min/max interval является инженерной оценкой неопределённости, а не статистически
+  валидированным доверительным интервалом.
+- Оценка порции не должна использоваться как медицинское или диетологическое назначение.
+- Пользователь всегда должен иметь возможность исправить массу вручную до подтверждения дневника.
+
+Rationale / Обоснование:
+
+- MVP должен двигаться к end-to-end value, но не должен обещать точность, которой нет.
+- Хранение initial estimate и manual correction отдельно создаёт foundation для будущего
+  model-improvement dataset без логирования фотографий или раскрытия приватных данных.
+- Backend владеет Nutrition Catalog и snapshots, поэтому оценка массы и nutrient recalculation
+  остаются рядом с `FoodScanDetectedItem` и confirmation boundary.
+- Опциональные geometry поля в Vision contract позволяют позже подключить segmentation/reference
+  detection без breaking API change.
+
+Consequences / Последствия:
+
+- `FoodScanDetectedItem.estimated_mass_g` остаётся active mass для текущего proposal, а не только
+  raw ML output; клиенты должны читать `portion_estimate`, чтобы показать исходную оценку.
+- Confirmation продолжает копировать active mass и nutrient snapshot в `MealItem`; ручная коррекция
+  массы помечает item как `manually_corrected`.
+- Любое изменение формул, density table, food type assumptions или формата geometry data требует
+  обновления ADR/API docs и formula tests.
+- Перед production нужны validation dataset, calibration UX и отдельная оценка ошибок по food type.

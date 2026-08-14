@@ -188,7 +188,8 @@ def test_food_scan_analysis_task_processes_current_run(
     assert food_scan.analysis_attempt_count == 1
     detected_item = food_scan.detected_items.get()
     assert detected_item.matched_food == rice
-    assert detected_item.calories_kcal == Decimal("130.0000")
+    assert detected_item.estimated_mass_g == Decimal("144.00")
+    assert detected_item.calories_kcal == Decimal("187.2000")
 
 
 def test_food_scan_analysis_task_skips_stale_run(

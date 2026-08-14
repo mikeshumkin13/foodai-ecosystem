@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов и нутриентов, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery и FastAPI `services/vision` с real food recognition model v1.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов и нутриентов, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery, estimator оценки порции v1 и FastAPI `services/vision` с real food recognition model v1.
 
 ## Backend: локальная установка
 
@@ -124,8 +124,9 @@ Backend endpoints:
 - `POST /api/v1/food-scans/` — загрузка фотографии блюда в private storage; принимает `multipart/form-data` поле `photo`, быстро возвращает `scan_id` и `status`, а Vision processing выполняется в Celery worker.
 - `GET /api/v1/food-scans/` — список собственных food scans без постоянных публичных URL.
 - `GET /api/v1/food-scans/{id}/` — metadata собственного food scan по UUID без `object_key` и публичного URL.
-- `GET /api/v1/food-scans/{id}/results/` — polling результатов scan после background processing.
+- `GET /api/v1/food-scans/{id}/results/` — polling результатов scan после background processing: detected items, активная `mass_g`, `manual_mass_g`, `portion_estimate` и nutrient snapshots.
 - `POST /api/v1/food-scans/{id}/retry/` — повторно поставить scan в обработку, если он не confirmed и не processing.
+- `PATCH /api/v1/food-scans/{id}/items/{item_id}/` — исправить продукт и/или массу; ручная масса сохраняется отдельно от initial portion estimate.
 - `POST /api/v1/food-scans/{id}/confirm/` — подтвердить results и создать `Meal`/`MealItem`; endpoint идемпотентен.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.

@@ -98,6 +98,8 @@ foodai-ecosystem/
 - `FoodScan` хранит внутренние поля `analysis_run_id`, `analysis_task_id` и `analysis_attempt_count` для idempotency, controlled retry и защиты от stale tasks.
 - Статусы `FoodScan`: `uploaded`, `processing`, `needs_confirmation`, `confirmed`, `failed`.
 - `FoodScanDetectedItem` хранит Vision label/confidence, matched `FoodItem`, массу, source, correction flags и proposal nutrient snapshots.
+- Portion estimation v1 работает как estimator, а не точное измерение: `FoodScanDetectedItem` хранит активную массу, исходную оценку объёма/массы, min/max interval, method, confidence и отдельную `manual_mass_g` при пользовательской коррекции.
+- Оценка порции использует `FoodItem.density_g_per_ml`, density metadata или MVP density table по типу продукта; при наличии segment area и known plate/reference применяется простая геометрия площади и assumed depth.
 - Matching Vision label к nutrition catalog выполняется детерминированно через `food_scans.matching` по names/synonyms; fuzzy/ML-ranking не добавлен в MVP foundation.
 - Scan results не создают дневник автоматически; только явное подтверждение пользователя создаёт `Meal` и `MealItem`.
 - При confirmation `MealItem` получает копию proposal snapshot из `FoodScanDetectedItem`, чтобы изменения `FoodItem`/`FoodNutrient` после анализа не меняли подтверждённые расчёты.
@@ -130,6 +132,7 @@ Vision не владеет пользователями, дневниками, �
 - Endpoint `POST /v1/analyze` принимает internal object reference на уже подготовленное backend изображение, читает private local object, проверяет checksum и запускает food recognition model через pluggable inference adapter.
 - Vision model v1: Hugging Face `nateraw/food`, pinned revision `ddbd0f9ed493f03fc6a45527e5e52904161d3e09`, Apache-2.0 model license, `model.safetensors` weights.
 - Текущий v1 является dish-level classifier, а не object detector: он возвращает top label и confidence без bounding boxes, portion size или multi-object segmentation.
+- Vision contract поддерживает optional future geometry fields `segment_area_px` и `portion_reference`, но текущая модель их обычно не заполняет; backend portion estimator использует их только если они доступны.
 - Low-confidence results не создают diary records автоматически; backend всегда переводит scan в `needs_confirmation` до явного пользовательского подтверждения.
 - Vision service запускается отдельным контейнером Docker Compose и не публикует порт на host по умолчанию; backend обращается к нему внутри compose network по `VISION_SERVICE_URL`.
 - Benchmark script: `services/vision/scripts/benchmark_food_model.py`.

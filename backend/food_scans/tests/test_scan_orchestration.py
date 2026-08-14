@@ -17,6 +17,7 @@ from integrations.vision.client import (
     VisionAnalyzeResult,
     VisionDetectedItem,
     VisionObjectReference,
+    VisionPortionReference,
     VisionUnavailableError,
 )
 from nutrition.models import FoodItem, FoodNutrient, Nutrient
@@ -70,9 +71,46 @@ def test_scan_analysis_matches_catalog_and_does_not_create_meal() -> None:
     assert detected_item.label == "rice"
     assert detected_item.confidence == Decimal("0.9200")
     assert detected_item.matched_food == rice
-    assert detected_item.estimated_mass_g == Decimal("100.00")
-    assert detected_item.calories_kcal == Decimal("130.0000")
-    assert detected_item.nutrient_snapshot["energy_kcal"]["amount"] == "130.0000"
+    assert detected_item.estimated_mass_g == Decimal("144.00")
+    assert detected_item.portion_estimated_mass_g == Decimal("144.00")
+    assert detected_item.portion_estimation_method == "food_type_typical_volume_density_table_v1"
+    assert detected_item.manual_mass_g is None
+    assert detected_item.calories_kcal == Decimal("187.2000")
+    assert detected_item.nutrient_snapshot["energy_kcal"]["amount"] == "187.2000"
+
+
+def test_scan_analysis_estimates_portion_from_plate_reference() -> None:
+    _food_with_nutrients(
+        name="Rice, cooked",
+        synonyms=["rice"],
+        energy="130.0000",
+        density_g_per_ml=Decimal("0.7500"),
+    )
+    food_scan = _make_food_scan()
+    vision_client = _FakeVisionClient(
+        VisionDetectedItem(
+            label="rice",
+            confidence=0.92,
+            segment_area_px=10000,
+            portion_reference=VisionPortionReference(
+                reference_type="plate",
+                diameter_cm=26.0,
+                area_px=40000,
+            ),
+        )
+    )
+
+    analyzed_scan = start_scan_analysis(food_scan, vision_client=vision_client)
+
+    detected_item = analyzed_scan.detected_items.get()
+    assert detected_item.estimated_mass_g == Decimal("219.01")
+    assert detected_item.portion_estimated_volume_ml == Decimal("292.01")
+    assert detected_item.portion_estimated_mass_g == Decimal("219.01")
+    assert detected_item.portion_min_mass_g == Decimal("142.36")
+    assert detected_item.portion_max_mass_g == Decimal("317.56")
+    assert detected_item.portion_confidence == Decimal("0.5952")
+    assert detected_item.portion_estimation_method == "segment_area_plate_reference_geometry_v1"
+    assert detected_item.calories_kcal == Decimal("284.7130")
 
 
 def test_low_confidence_scan_result_still_requires_user_confirmation() -> None:
@@ -150,10 +188,13 @@ def test_user_can_review_correct_delete_add_and_confirm_scan(
     assert update_response.status_code == status.HTTP_200_OK
     assert update_response.json()["food_id"] == str(chicken.id)
     assert update_response.json()["mass_g"] == "125.50"
+    assert update_response.json()["manual_mass_g"] == "125.50"
     assert update_response.json()["manually_corrected"] is True
     assert delete_response.status_code == status.HTTP_204_NO_CONTENT
     assert add_response.status_code == status.HTTP_201_CREATED
     assert add_response.json()["source"] == "manual"
+    assert add_response.json()["manual_mass_g"] == "200.00"
+    assert add_response.json()["portion_estimate"] is None
     assert confirm_response.status_code == status.HTTP_201_CREATED
 
     payload = confirm_response.json()
@@ -203,6 +244,61 @@ def test_confirm_uses_scan_item_snapshot_even_if_catalog_changes_before_confirm(
     assert item_payload["food_name_snapshot"] == "Rice, cooked"
     assert item_payload["calories"] == "195.0000"
     assert item_payload["nutrient_snapshot"]["energy_kcal"]["amount_per_100g"] == "130.0000"
+
+
+def test_manual_mass_correction_preserves_initial_portion_estimate(
+    api_client: APIClient,
+) -> None:
+    user = make_user()
+    rice = _food_with_nutrients(
+        name="Rice, cooked",
+        synonyms=["rice"],
+        energy="130.0000",
+        density_g_per_ml=Decimal("0.7500"),
+    )
+    food_scan = _make_food_scan(user=user)
+    start_scan_analysis(
+        food_scan,
+        vision_client=_FakeVisionClient(
+            VisionDetectedItem(
+                label="rice",
+                confidence=0.92,
+                segment_area_px=10000,
+                portion_reference=VisionPortionReference(
+                    reference_type="plate",
+                    diameter_cm=26.0,
+                    area_px=40000,
+                ),
+            )
+        ),
+    )
+    detected_item = food_scan.detected_items.get()
+    api_client.force_authenticate(user=user)
+
+    response = api_client.patch(
+        _item_url(food_scan.id, detected_item.id),
+        {"food_id": str(rice.id), "mass_g": "125.50"},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    payload = response.json()
+    assert payload["mass_g"] == "125.50"
+    assert payload["manual_mass_g"] == "125.50"
+    assert payload["portion_estimate"] == {
+        "estimated_volume": "292.01",
+        "estimated_mass": "219.01",
+        "confidence": "0.5952",
+        "min_estimate": "142.36",
+        "max_estimate": "317.56",
+        "method": "segment_area_plate_reference_geometry_v1",
+    }
+
+    detected_item.refresh_from_db()
+    assert detected_item.estimated_mass_g == Decimal("125.50")
+    assert detected_item.manual_mass_g == Decimal("125.50")
+    assert detected_item.portion_estimated_mass_g == Decimal("219.01")
+    assert detected_item.calories_kcal == Decimal("163.1500")
 
 
 def test_confirm_requires_all_detected_items_to_have_food_match(api_client: APIClient) -> None:
@@ -301,6 +397,7 @@ def _food_with_nutrients(
     protein: str = "2.7000",
     fat: str = "0.3000",
     carbs: str = "28.0000",
+    density_g_per_ml: Decimal | None = None,
 ) -> FoodItem:
     suffix = uuid.uuid4().hex[:8]
     category = make_food_category(slug=f"category-{suffix}", name=f"{name} category")
@@ -312,6 +409,7 @@ def _food_with_nutrients(
         name_ru="",
         name_en=name,
         synonyms=synonyms,
+        density_g_per_ml=density_g_per_ml,
         source_reference=f"{name} demo values per 100 g",
     )
     _make_food_nutrient(food_item, code="energy_kcal", amount=energy)

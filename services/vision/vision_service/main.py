@@ -20,7 +20,7 @@ def health() -> HealthResponse:
     return HealthResponse(status="ok")
 
 
-@app.post("/v1/analyze", response_model=AnalyzeResponse)
+@app.post("/v1/analyze", response_model=AnalyzeResponse, response_model_exclude_none=True)
 def analyze(
     payload: AnalyzeRequest,
     model: Annotated[FoodRecognitionModel, Depends(get_food_recognition_model)],

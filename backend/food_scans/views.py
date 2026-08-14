@@ -200,6 +200,7 @@ class FoodScanViewSet(
         matched_food = serializer.validated_data.get("matched_food") or detected_item.matched_food
         if matched_food is None:
             raise ValidationError({"food_id": ["food_match_required"]})
+        mass_was_provided = "mass_g" in serializer.validated_data
         mass_g = serializer.validated_data.get("mass_g", detected_item.estimated_mass_g)
 
         try:
@@ -208,6 +209,7 @@ class FoodScanViewSet(
                 detected_item=detected_item,
                 matched_food=matched_food,
                 mass_g=mass_g,
+                manual_mass_g=mass_g if mass_was_provided else None,
             )
         except FoodScanWorkflowError as exc:
             raise _workflow_validation_error(exc) from exc

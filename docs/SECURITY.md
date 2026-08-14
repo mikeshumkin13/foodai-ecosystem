@@ -142,12 +142,14 @@ Brute-force/rate limiting:
 
 ## Scan orchestration security
 
-- `FoodScanDetectedItem` считается производной чувствительной информацией пользователя: label, confidence, matched food, масса и nutrient snapshots не должны попадать в публичные URL, support/content-manager доступ или логи по умолчанию.
+- `FoodScanDetectedItem` считается производной чувствительной информацией пользователя: label, confidence, matched food, portion estimate, ручная коррекция массы и nutrient snapshots не должны попадать в публичные URL, support/content-manager доступ или логи по умолчанию.
 - Scan orchestration использует тот же owner-only queryset и `food_scans.view_own_foodscan` / `food_scans.change_own_foodscan` permissions, что и secure upload.
 - Знание UUID чужого `FoodScan` или `FoodScanDetectedItem` не должно раскрывать results, correction actions или confirmation flow.
 - Vision result никогда не записывается в дневник автоматически. Только явное подтверждение владельца scan создаёт `Meal` и `MealItem`.
 - Confirmation копирует сохранённый proposal nutrient snapshot в `MealItem`, поэтому подтверждённая история не зависит от будущих изменений global nutrition catalog.
 - Vision failures сохраняются как стабильный `failure_code` без private object key, имени файла пользователя, фото bytes или health/nutrition profile.
+- Portion estimation v1 не является точным измерением массы по RGB-фото; API должен показывать estimate/confidence/min/max/method и сохранять user-corrected `manual_mass_g` отдельно от initial estimate.
+- Portion estimate metadata хранит только инженерные assumptions и не должна включать фото, object key, health profile или приватный дневник.
 
 ## Background processing security
 
