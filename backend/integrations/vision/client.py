@@ -33,9 +33,18 @@ class VisionObjectReference:
 
 
 @dataclass(frozen=True)
+class VisionPortionReference:
+    reference_type: str
+    diameter_cm: float | None = None
+    area_px: float | None = None
+
+
+@dataclass(frozen=True)
 class VisionDetectedItem:
     label: str
     confidence: float
+    segment_area_px: float | None = None
+    portion_reference: VisionPortionReference | None = None
 
 
 @dataclass(frozen=True)
@@ -141,4 +150,37 @@ def _parse_detected_item(item: Any) -> VisionDetectedItem:
     if normalized_confidence < 0 or normalized_confidence > 1:
         raise VisionInvalidResponseError
 
-    return VisionDetectedItem(label=label, confidence=normalized_confidence)
+    return VisionDetectedItem(
+        label=label,
+        confidence=normalized_confidence,
+        segment_area_px=_parse_optional_positive_float(item.get("segment_area_px")),
+        portion_reference=_parse_optional_portion_reference(item.get("portion_reference")),
+    )
+
+
+def _parse_optional_portion_reference(value: Any) -> VisionPortionReference | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise VisionInvalidResponseError
+
+    reference_type = value.get("reference_type")
+    if not isinstance(reference_type, str) or not reference_type.strip():
+        raise VisionInvalidResponseError
+
+    return VisionPortionReference(
+        reference_type=reference_type.strip(),
+        diameter_cm=_parse_optional_positive_float(value.get("diameter_cm")),
+        area_px=_parse_optional_positive_float(value.get("area_px")),
+    )
+
+
+def _parse_optional_positive_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise VisionInvalidResponseError
+    normalized_value = float(value)
+    if normalized_value <= 0:
+        raise VisionInvalidResponseError
+    return normalized_value

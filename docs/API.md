@@ -67,15 +67,15 @@ API не должен привязывать клиентов к одному ч
 - `POST /api/v1/food-scans/` — загрузка фотографии блюда текущего пользователя. Принимает `multipart/form-data` поле `photo`; backend проверяет фактический формат, strip EXIF/metadata, сохраняет объект в private storage, ставит Vision-анализ в Celery и быстро возвращает `{"scan_id": "...", "status": "uploaded"}`. Результат не создаёт дневник автоматически.
 - `GET /api/v1/food-scans/` — список собственных food scans; ответ содержит только metadata без private `object_key` и без постоянного публичного URL.
 - `GET /api/v1/food-scans/{id}/` — metadata собственного food scan по UUID.
-- `GET /api/v1/food-scans/{id}/results/` — результаты собственного scan: status, failure code, confirmed meal id и active detected items с label, confidence, matched food, массой и proposal nutrient snapshots. Пока scan находится в `uploaded`, `processing` или `failed`, `detected_items` возвращается пустым списком, чтобы не показывать stale proposal results от предыдущего запуска.
+- `GET /api/v1/food-scans/{id}/results/` — результаты собственного scan: status, failure code, confirmed meal id и active detected items с label, Vision confidence, matched food, активной массой `mass_g`, optional `manual_mass_g`, nested `portion_estimate` и proposal nutrient snapshots. Пока scan находится в `uploaded`, `processing` или `failed`, `detected_items` возвращается пустым списком, чтобы не показывать stale proposal results от предыдущего запуска.
 - `POST /api/v1/food-scans/{id}/retry/` — повторно ставит собственный scan в Celery-обработку и возвращает `{"scan_id": "...", "status": "uploaded"}` или текущий `processing`; confirmed scan не переобрабатывается.
-- `PATCH /api/v1/food-scans/{id}/items/{item_id}/` — исправить detected item: `food_id`, `mass_g` или оба поля. Пересчитывает и сохраняет proposal snapshot, выставляет `manually_corrected=true`.
+- `PATCH /api/v1/food-scans/{id}/items/{item_id}/` — исправить detected item: `food_id`, `mass_g` или оба поля. Пересчитывает и сохраняет proposal snapshot, выставляет `manually_corrected=true`; если передан `mass_g`, он сохраняется отдельно как `manual_mass_g`, а исходный `portion_estimate` остаётся доступен для сравнения.
 - `DELETE /api/v1/food-scans/{id}/items/{item_id}/` — удалить ошибочный detected item из active results через soft-delete; удалённый item не попадёт в confirmation.
 - `POST /api/v1/food-scans/{id}/items/` — добавить отсутствующий detected item вручную. Тело: `food_id`, `mass_g`, optional `label`.
 - `POST /api/v1/food-scans/{id}/confirm/` — подтвердить scan и создать `Meal`/`MealItem` только из active matched items. Тело: `meal_type`, optional `logged_at`, optional `name`. Endpoint идемпотентно возвращает существующий meal для уже confirmed scan.
 - Internal Vision API:
   - `GET /health` — health check Vision service. Ответ: `{"status": "ok"}`.
-  - `POST /v1/analyze` — internal endpoint Vision service. Принимает `object_reference` на приватный backend-controlled объект: `scan_id`, `storage_backend`, `object_key`, `content_type`, `checksum_sha256`. Vision v1 читает подготовленное изображение из private local storage, проверяет checksum и возвращает результат real food classifier как `{"items": [{"label": "...", "confidence": 0.0-1.0}]}`. Текущая модель возвращает один dish-level top prediction без bounding boxes и portion estimate.
+  - `POST /v1/analyze` — internal endpoint Vision service. Принимает `object_reference` на приватный backend-controlled объект: `scan_id`, `storage_backend`, `object_key`, `content_type`, `checksum_sha256`. Vision v1 читает подготовленное изображение из private local storage, проверяет checksum и возвращает результат real food classifier как `{"items": [{"label": "...", "confidence": 0.0-1.0}]}`. Contract также допускает optional future geometry fields `segment_area_px` и `portion_reference`, но текущая модель обычно возвращает один dish-level top prediction без bounding boxes и portion estimate.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 
@@ -131,6 +131,8 @@ Vision API является внутренним контрактом между
 Food scan orchestration создаёт только proposal detected items до явного confirmation. Клиенты должны после upload опрашивать `GET /api/v1/food-scans/{id}/results/`, показывать пользователю результат и позволять исправить продукт/массу, удалить ошибочный item или добавить отсутствующий item до вызова `confirm`.
 
 Низкий `confidence` от Vision не должен приводить к автоматическому созданию дневника. В текущей архитектуре любой Vision result, включая low-confidence, остаётся в статусе `needs_confirmation` до явного подтверждения пользователя.
+
+Portion estimation v1 является оценкой, а не точным измерением. `portion_estimate` в detected item содержит `estimated_volume`, `estimated_mass`, `confidence`, `min_estimate`, `max_estimate` и `method`. `mass_g` — активная масса proposal, по которой рассчитан nutrient snapshot. Если пользователь исправил массу вручную, `manual_mass_g` содержит это значение отдельно от исходной оценки.
 
 ## Breaking changes
 

@@ -30,9 +30,17 @@ class AnalyzeRequest(BaseModel):
     object_reference: InternalObjectReference
 
 
+class PortionReference(BaseModel):
+    reference_type: str = Field(min_length=1, max_length=32)
+    diameter_cm: float | None = Field(default=None, gt=0, le=100)
+    area_px: float | None = Field(default=None, gt=0)
+
+
 class DetectedItem(BaseModel):
     label: str = Field(min_length=1, max_length=128)
     confidence: float = Field(ge=0, le=1)
+    segment_area_px: float | None = Field(default=None, gt=0)
+    portion_reference: PortionReference | None = None
 
 
 class AnalyzeResponse(BaseModel):

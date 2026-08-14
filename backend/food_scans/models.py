@@ -102,6 +102,50 @@ class FoodScanDetectedItem(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(Decimal("0.01"))],
     )
+    portion_estimated_volume_ml = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    portion_estimated_mass_g = models.DecimalField(
+        max_digits=9,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    portion_min_mass_g = models.DecimalField(
+        max_digits=9,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    portion_max_mass_g = models.DecimalField(
+        max_digits=9,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    portion_confidence = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0")), MaxValueValidator(Decimal("1"))],
+    )
+    portion_estimation_method = models.CharField(max_length=80, blank=True)
+    portion_estimation_metadata = models.JSONField(default=dict, blank=True)
+    manual_mass_g = models.DecimalField(
+        max_digits=9,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
     food_name_snapshot = models.CharField(max_length=160, blank=True)
     food_source_reference_snapshot = models.CharField(max_length=255, blank=True)
     calories_kcal = models.DecimalField(

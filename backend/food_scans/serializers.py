@@ -17,6 +17,7 @@ from nutrition.models import FoodItem
 class FoodScanDetectedItemReadSerializer(serializers.ModelSerializer[FoodScanDetectedItem]):
     food_id = serializers.UUIDField(source="matched_food_id", read_only=True)
     food = serializers.SerializerMethodField()
+    portion_estimate = serializers.SerializerMethodField()
     mass_g = serializers.DecimalField(
         source="estimated_mass_g",
         max_digits=9,
@@ -57,6 +58,8 @@ class FoodScanDetectedItemReadSerializer(serializers.ModelSerializer[FoodScanDet
             "food_id",
             "food",
             "mass_g",
+            "manual_mass_g",
+            "portion_estimate",
             "calories",
             "protein",
             "fat",
@@ -79,6 +82,26 @@ class FoodScanDetectedItemReadSerializer(serializers.ModelSerializer[FoodScanDet
             "name": obj.matched_food.name,
             "name_ru": obj.matched_food.name_ru,
             "name_en": obj.matched_food.name_en,
+        }
+
+    def get_portion_estimate(self, obj: FoodScanDetectedItem) -> dict[str, str] | None:
+        if not obj.portion_estimation_method:
+            return None
+        if (
+            obj.portion_estimated_volume_ml is None
+            or obj.portion_estimated_mass_g is None
+            or obj.portion_min_mass_g is None
+            or obj.portion_max_mass_g is None
+            or obj.portion_confidence is None
+        ):
+            return None
+        return {
+            "estimated_volume": _format_decimal(obj.portion_estimated_volume_ml, places=2),
+            "estimated_mass": _format_decimal(obj.portion_estimated_mass_g, places=2),
+            "confidence": _format_decimal(obj.portion_confidence, places=4),
+            "min_estimate": _format_decimal(obj.portion_min_mass_g, places=2),
+            "max_estimate": _format_decimal(obj.portion_max_mass_g, places=2),
+            "method": obj.portion_estimation_method,
         }
 
 
@@ -213,3 +236,7 @@ class FoodScanConfirmSerializer(serializers.Serializer[dict[str, Any]]):
     meal_type = serializers.ChoiceField(choices=Meal.MealType.choices, default=Meal.MealType.CUSTOM)
     logged_at = serializers.DateTimeField(default=timezone.now)
     name = serializers.CharField(max_length=120, allow_blank=True, required=False, default="")
+
+
+def _format_decimal(value: Decimal, *, places: int) -> str:
+    return f"{value:.{places}f}"

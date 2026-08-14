@@ -116,6 +116,37 @@ def test_backend_client_raises_timeout_without_retrying() -> None:
     assert calls == 1
 
 
+def test_backend_client_parses_optional_portion_geometry() -> None:
+    client = _client_with_response(
+        httpx.Response(
+            200,
+            json={
+                "items": [
+                    {
+                        "label": "rice",
+                        "confidence": 0.92,
+                        "segment_area_px": 12000,
+                        "portion_reference": {
+                            "reference_type": "plate",
+                            "diameter_cm": 26.0,
+                            "area_px": 40000,
+                        },
+                    }
+                ]
+            },
+        )
+    )
+
+    result = client.analyze_object(_reference())
+
+    detected_item = result.items[0]
+    assert detected_item.segment_area_px == 12000
+    assert detected_item.portion_reference is not None
+    assert detected_item.portion_reference.reference_type == "plate"
+    assert detected_item.portion_reference.diameter_cm == 26.0
+    assert detected_item.portion_reference.area_px == 40000
+
+
 def test_backend_client_raises_unavailable_for_transport_error_without_retrying() -> None:
     calls = 0
 
@@ -142,6 +173,22 @@ def test_backend_client_raises_unavailable_for_transport_error_without_retrying(
         httpx.Response(200, json={"items": [{"label": "", "confidence": 0.92}]}),
         httpx.Response(200, json={"items": [{"label": "rice", "confidence": 1.2}]}),
         httpx.Response(200, json={"items": [{"label": "rice", "confidence": "0.92"}]}),
+        httpx.Response(
+            200,
+            json={"items": [{"label": "rice", "confidence": 0.92, "segment_area_px": -1}]},
+        ),
+        httpx.Response(
+            200,
+            json={
+                "items": [
+                    {
+                        "label": "rice",
+                        "confidence": 0.92,
+                        "portion_reference": {"reference_type": "plate", "diameter_cm": 0},
+                    }
+                ]
+            },
+        ),
         httpx.Response(200, json={"result": []}),
         httpx.Response(200, content=b"not-json"),
         httpx.Response(422, json={"detail": []}),

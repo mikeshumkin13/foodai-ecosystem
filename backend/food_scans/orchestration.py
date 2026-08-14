@@ -12,6 +12,7 @@ from django.utils import timezone
 from diary.models import Meal, MealItem
 from food_scans.matching import match_food_label
 from food_scans.models import FoodScan, FoodScanDetectedItem
+from food_scans.portion_estimation import PortionEstimate, estimate_food_portion
 from food_scans.vision import VisionAnalyzer, analyze_food_scan
 from integrations.vision.client import (
     VisionClientError,
@@ -21,8 +22,8 @@ from integrations.vision.client import (
 )
 from nutrition.models import FoodItem
 
-DEFAULT_ESTIMATED_MASS_G = Decimal("100.00")
 NUTRIENT_QUANT = Decimal("0.0001")
+MASS_QUANT = Decimal("0.01")
 
 
 class FoodScanWorkflowError(ValueError):
@@ -100,6 +101,7 @@ def update_scan_detected_item(
     detected_item: FoodScanDetectedItem,
     matched_food: FoodItem,
     mass_g: Decimal,
+    manual_mass_g: Decimal | None = None,
 ) -> FoodScanDetectedItem:
     _ensure_scan_can_be_edited(food_scan)
     _ensure_item_belongs_to_scan(food_scan=food_scan, detected_item=detected_item)
@@ -109,25 +111,28 @@ def update_scan_detected_item(
     snapshot_fields = _snapshot_fields(food=matched_food, mass_g=mass_g)
     detected_item.matched_food = matched_food
     detected_item.estimated_mass_g = mass_g
+    if manual_mass_g is not None:
+        detected_item.manual_mass_g = manual_mass_g
     detected_item.manually_corrected = True
     for field_name, value in snapshot_fields.items():
         setattr(detected_item, field_name, value)
-    detected_item.save(
-        update_fields=[
-            "matched_food",
-            "estimated_mass_g",
-            "food_name_snapshot",
-            "food_source_reference_snapshot",
-            "calories_kcal",
-            "protein_g",
-            "fat_g",
-            "carbs_g",
-            "micronutrient_snapshot",
-            "nutrient_snapshot",
-            "manually_corrected",
-            "updated_at",
-        ],
-    )
+    update_fields = [
+        "matched_food",
+        "estimated_mass_g",
+        "food_name_snapshot",
+        "food_source_reference_snapshot",
+        "calories_kcal",
+        "protein_g",
+        "fat_g",
+        "carbs_g",
+        "micronutrient_snapshot",
+        "nutrient_snapshot",
+        "manually_corrected",
+        "updated_at",
+    ]
+    if manual_mass_g is not None:
+        update_fields.append("manual_mass_g")
+    detected_item.save(update_fields=update_fields)
     return detected_item
 
 
@@ -147,6 +152,7 @@ def add_manual_detected_item(
         label=resolved_label,
         confidence=None,
         estimated_mass_g=mass_g,
+        manual_mass_g=mass_g,
         source=FoodScanDetectedItem.Source.MANUAL,
         position=_next_detected_item_position(food_scan),
         is_removed=False,
@@ -287,8 +293,15 @@ def _build_detected_item(
     position: int,
 ) -> FoodScanDetectedItem:
     matched_food = match_food_label(detected_item.label)
+    portion_estimate = estimate_food_portion(
+        food=matched_food,
+        label=detected_item.label,
+        recognition_confidence=_confidence_decimal(detected_item.confidence),
+        segment_area_px=_optional_decimal(detected_item.segment_area_px),
+        portion_reference=detected_item.portion_reference,
+    )
     snapshot_fields = (
-        _snapshot_fields(food=matched_food, mass_g=DEFAULT_ESTIMATED_MASS_G)
+        _snapshot_fields(food=matched_food, mass_g=portion_estimate.estimated_mass_g)
         if matched_food is not None
         else _empty_snapshot_fields()
     )
@@ -297,11 +310,12 @@ def _build_detected_item(
         matched_food=matched_food,
         label=detected_item.label,
         confidence=_confidence_decimal(detected_item.confidence),
-        estimated_mass_g=DEFAULT_ESTIMATED_MASS_G,
+        estimated_mass_g=portion_estimate.estimated_mass_g,
         source=FoodScanDetectedItem.Source.VISION,
         position=position,
         is_removed=False,
         manually_corrected=False,
+        **_portion_estimate_fields(portion_estimate),
         **snapshot_fields,
     )
 
@@ -363,6 +377,24 @@ def _empty_snapshot_fields() -> dict[str, Any]:
 
 def _confidence_decimal(confidence: float) -> Decimal:
     return Decimal(str(confidence)).quantize(NUTRIENT_QUANT, rounding=ROUND_HALF_UP)
+
+
+def _optional_decimal(value: float | None) -> Decimal | None:
+    if value is None:
+        return None
+    return Decimal(str(value)).quantize(MASS_QUANT, rounding=ROUND_HALF_UP)
+
+
+def _portion_estimate_fields(portion_estimate: PortionEstimate) -> dict[str, Any]:
+    return {
+        "portion_estimated_volume_ml": portion_estimate.estimated_volume_ml,
+        "portion_estimated_mass_g": portion_estimate.estimated_mass_g,
+        "portion_min_mass_g": portion_estimate.min_estimate_g,
+        "portion_max_mass_g": portion_estimate.max_estimate_g,
+        "portion_confidence": portion_estimate.confidence,
+        "portion_estimation_method": portion_estimate.method,
+        "portion_estimation_metadata": portion_estimate.metadata,
+    }
 
 
 def _meal_item_source(detected_item: FoodScanDetectedItem) -> str:
