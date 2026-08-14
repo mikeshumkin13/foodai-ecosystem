@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping
+from pathlib import Path
 from urllib.parse import urlparse
 from uuid import UUID
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
+from pytest import MonkeyPatch
 
 from integrations.vision.client import (
     VisionAnalyzeResult,
@@ -16,16 +20,23 @@ from integrations.vision.client import (
     VisionTimeoutError,
     VisionUnavailableError,
 )
+from vision_service.inference import FoodRecognition, get_food_recognition_model
 from vision_service.main import app as vision_app
 
 
-def _reference() -> VisionObjectReference:
+class _StubFoodRecognitionModel:
+    def predict(self, image: Image.Image) -> tuple[FoodRecognition, ...]:
+        assert image.mode == "RGB"
+        return (FoodRecognition(label="fried rice", confidence=0.73),)
+
+
+def _reference(*, checksum_sha256: str = "a" * 64) -> VisionObjectReference:
     return VisionObjectReference(
         scan_id=UUID("00000000-0000-4000-8000-000000000001"),
         storage_backend="local",
         object_key="food-scans/00/00000000-0000-4000-8000-000000000001.jpg",
         content_type="image/jpeg",
-        checksum_sha256="a" * 64,
+        checksum_sha256=checksum_sha256,
     )
 
 
@@ -43,7 +54,14 @@ class _VisionAppBridge:
         return httpx.Response(response.status_code, json=response.json())
 
 
-def test_backend_client_contract_matches_fastapi_vision_service() -> None:
+def test_backend_client_contract_matches_fastapi_vision_service(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    checksum_sha256 = _write_synthetic_private_image(tmp_path=tmp_path, monkeypatch=monkeypatch)
+    vision_app.dependency_overrides[get_food_recognition_model] = (
+        lambda: _StubFoodRecognitionModel()
+    )
     bridge = _VisionAppBridge()
     client = VisionClient(
         base_url="http://vision.test",
@@ -51,11 +69,14 @@ def test_backend_client_contract_matches_fastapi_vision_service() -> None:
         http_client=bridge,
     )
 
-    result = client.analyze_object(_reference())
+    try:
+        result = client.analyze_object(_reference(checksum_sha256=checksum_sha256))
+    finally:
+        vision_app.dependency_overrides.clear()
 
     assert isinstance(result, VisionAnalyzeResult)
-    assert result.items[0].label == "rice"
-    assert result.items[0].confidence == 0.92
+    assert result.items[0].label == "fried rice"
+    assert result.items[0].confidence == 0.73
     assert bridge.last_timeout == 2.5
     assert bridge.last_payload == {
         "object_reference": {
@@ -63,7 +84,7 @@ def test_backend_client_contract_matches_fastapi_vision_service() -> None:
             "storage_backend": "local",
             "object_key": "food-scans/00/00000000-0000-4000-8000-000000000001.jpg",
             "content_type": "image/jpeg",
-            "checksum_sha256": "a" * 64,
+            "checksum_sha256": checksum_sha256,
         }
     }
 
@@ -149,3 +170,11 @@ def _client_with_response(response: httpx.Response) -> VisionClient:
         timeout_seconds=1,
         http_client=httpx.Client(transport=httpx.MockTransport(handler)),
     )
+
+
+def _write_synthetic_private_image(*, tmp_path: Path, monkeypatch: MonkeyPatch) -> str:
+    image_path = tmp_path / "food-scans" / "00" / "00000000-0000-4000-8000-000000000001.jpg"
+    image_path.parent.mkdir(parents=True)
+    Image.new("RGB", (224, 224), color=(210, 48, 48)).save(image_path, format="JPEG")
+    monkeypatch.setenv("VISION_LOCAL_PRIVATE_MEDIA_ROOT", str(tmp_path))
+    return hashlib.sha256(image_path.read_bytes()).hexdigest()

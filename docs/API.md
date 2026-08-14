@@ -75,7 +75,7 @@ API не должен привязывать клиентов к одному ч
 - `POST /api/v1/food-scans/{id}/confirm/` — подтвердить scan и создать `Meal`/`MealItem` только из active matched items. Тело: `meal_type`, optional `logged_at`, optional `name`. Endpoint идемпотентно возвращает существующий meal для уже confirmed scan.
 - Internal Vision API:
   - `GET /health` — health check Vision service. Ответ: `{"status": "ok"}`.
-  - `POST /v1/analyze` — internal endpoint Vision service. Принимает `object_reference` на приватный backend-controlled объект: `scan_id`, `storage_backend`, `object_key`, `content_type`, `checksum_sha256`. MVP возвращает mock result `{"items": [{"label": "rice", "confidence": 0.92}]}`.
+  - `POST /v1/analyze` — internal endpoint Vision service. Принимает `object_reference` на приватный backend-controlled объект: `scan_id`, `storage_backend`, `object_key`, `content_type`, `checksum_sha256`. Vision v1 читает подготовленное изображение из private local storage, проверяет checksum и возвращает результат real food classifier как `{"items": [{"label": "...", "confidence": 0.0-1.0}]}`. Текущая модель возвращает один dish-level top prediction без bounding boxes и portion estimate.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 
@@ -129,6 +129,8 @@ Food scan uploads принимают только whitelist фактически
 Vision API является внутренним контрактом между backend и `services/vision`; публичные клиенты не должны вызывать его напрямую. Backend вызывает Vision через `integrations.vision.client`, а не из Django views. Ошибки внешнего сервиса нормализуются как `vision_unavailable`, `vision_timeout` и `vision_invalid_response` на уровне client abstraction.
 
 Food scan orchestration создаёт только proposal detected items до явного confirmation. Клиенты должны после upload опрашивать `GET /api/v1/food-scans/{id}/results/`, показывать пользователю результат и позволять исправить продукт/массу, удалить ошибочный item или добавить отсутствующий item до вызова `confirm`.
+
+Низкий `confidence` от Vision не должен приводить к автоматическому созданию дневника. В текущей архитектуре любой Vision result, включая low-confidence, остаётся в статусе `needs_confirmation` до явного подтверждения пользователя.
 
 ## Breaking changes
 

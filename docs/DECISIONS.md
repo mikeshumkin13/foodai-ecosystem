@@ -648,3 +648,71 @@ Consequences / Последствия:
   отдельного решения перед production.
 - Любые новые background tasks должны сохранять правило: в task payload только минимальные IDs, без
   чувствительного содержимого.
+
+## ADR-0018: Vision Food Recognition Model V1
+
+Date / Дата: 2026-08-14
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Первой реальной моделью распознавания еды в `services/vision` выбирается Hugging Face model:
+
+- model: `nateraw/food`;
+- pinned revision / версия snapshot: `ddbd0f9ed493f03fc6a45527e5e52904161d3e09`;
+- source / источник: Hugging Face model hub, `https://huggingface.co/nateraw/food`;
+- base model: `google/vit-base-patch16-224-in21k`;
+- task: dish-level image classification по Food-101 labels;
+- license / лицензия модели: Apache-2.0 согласно model card;
+- runtime libraries: `transformers`, CPU-only `torch==2.6.0`, `Pillow`;
+- benchmark entrypoint: `services/vision/scripts/benchmark_food_model.py`.
+
+Vision `POST /v1/analyze` больше не возвращает hardcoded mock. Сервис читает backend-controlled
+prepared image из private local storage reference, проверяет SHA-256 checksum и передаёт изображение
+в pluggable inference adapter `FoodRecognitionModel`. По умолчанию возвращается один top prediction
+с `label` и `confidence`, потому что текущий backend трактует `items` как detected/proposal items, а
+не как альтернативные class candidates.
+
+Low confidence не приводит к автоматическому созданию diary records. В текущей архитектуре любой
+результат Vision, включая low-confidence, переводит `FoodScan` только в `needs_confirmation`.
+Пользователь должен подтвердить, исправить или удалить detected items перед созданием `MealItem`.
+
+Known limitations / Ограничения:
+
+- Это classifier, а не object detector: модель не возвращает bounding boxes и не умеет надёжно
+  выделять несколько блюд/ингредиентов на одном фото.
+- Модель не оценивает массу, объём или порцию.
+- Классы ограничены Food-101; локальные блюда, смешанные тарелки, напитки, упаковки и редкие продукты
+  могут распознаваться неверно.
+- Accuracy из model card является self-reported evaluation на Food-101 и не является обещанием
+  production-точности FoodAI.
+- Hugging Face dataset card `ethz/food101` указывает `license: unknown`; перед production/legal
+  launch нужна отдельная юридическая проверка допустимости использования модели и training data
+  provenance.
+- Выбранный revision содержит `model.safetensors`; Vision adapter форсирует `use_safetensors=True`
+  и не должен загружать pickle weights. Supply-chain и artifact integrity review всё равно нужны
+  перед production.
+
+Rationale / Обоснование:
+
+- У модели есть понятная permissive model license Apache-2.0, в отличие от вариантов с AGPL или
+  неясной model license.
+- Модель уже специализирована на food image classification и совместима со стандартным
+  `transformers` inference.
+- Snapshot revision фиксирует воспроизводимость разработки и Docker build; выбран revision с
+  `model.safetensors`, чтобы не использовать pickle-based `torch.load` для weights.
+- Dish-level classifier достаточен как v1 для подтверждаемого пользователем MVP, потому что результат
+  не попадает в дневник автоматически.
+- Adapter boundary позволяет позже заменить classifier на detector/segmentation model без переноса
+  HTTP-вызовов в Django views и без изменения ownership модели данных backend.
+
+Consequences / Последствия:
+
+- Docker build Vision service скачивает дополнительные ML-зависимости и становится тяжелее.
+- Первый request к Vision может быть медленнее из-за lazy model loading; production позже должен
+  решить warmup/cache strategy.
+- Backend matching остаётся deterministic catalog matching по labels/synonyms и не становится частью
+  ML inference.
+- Любая замена модели, изменение количества returned items или переход к bounding boxes требует
+  обновления `docs/DECISIONS.md`, contract tests и UX подтверждения.
