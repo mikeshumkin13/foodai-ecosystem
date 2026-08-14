@@ -20,12 +20,17 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture(autouse=True)
-def food_scan_storage_settings(settings: Any, tmp_path: Path) -> None:
+def food_scan_storage_settings(
+    settings: Any,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     settings.FOOD_SCAN_ALLOWED_FORMATS = ("JPEG", "PNG")
     settings.FOOD_SCAN_MAX_UPLOAD_BYTES = 5 * 1024 * 1024
     settings.FOOD_SCAN_MAX_IMAGE_PIXELS = 20_000_000
     settings.FOOD_SCAN_PRIVATE_STORAGE_BACKEND = "local"
     settings.FOOD_SCAN_PRIVATE_MEDIA_ROOT = str(tmp_path / "private")
+    monkeypatch.setattr("food_scans.views.start_scan_analysis", lambda food_scan: food_scan)
 
 
 def _food_scan_detail_url(food_scan_id: object) -> str:
@@ -115,6 +120,40 @@ def test_user_can_upload_valid_png_even_when_filename_and_content_type_lie(
 
     food_scan = FoodScan.objects.get(id=payload["id"])
     assert food_scan.object_key.endswith(".png")
+
+
+def test_upload_initiates_scan_analysis(
+    api_client: APIClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = make_user()
+    api_client.force_authenticate(user=user)
+    analyzed_scan_ids: list[str] = []
+
+    def fake_start_scan_analysis(food_scan: FoodScan) -> FoodScan:
+        analyzed_scan_ids.append(str(food_scan.id))
+        food_scan.status = FoodScan.Status.NEEDS_CONFIRMATION
+        food_scan.save(update_fields=["status", "updated_at"])
+        return food_scan
+
+    monkeypatch.setattr("food_scans.views.start_scan_analysis", fake_start_scan_analysis)
+
+    response = api_client.post(
+        reverse("food-scan-list"),
+        {
+            "photo": _image_upload(
+                image_format="JPEG",
+                filename="meal.jpg",
+                content_type="image/jpeg",
+            )
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    payload = response.json()
+    assert payload["status"] == FoodScan.Status.NEEDS_CONFIRMATION
+    assert analyzed_scan_ids == [payload["id"]]
 
 
 def test_fake_jpeg_is_rejected(api_client: APIClient) -> None:

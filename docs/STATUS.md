@@ -1,10 +1,10 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-08-12
+Last updated / Обновлено: 2026-08-14
 
 ## Текущий завершённый этап
 
-ЭТАП 12, PROMPT 12 — FastAPI Vision service foundation завершён.
+ЭТАП 13, PROMPT 13 — первый рабочий end-to-end scan orchestration завершён.
 
 ## Состояние
 
@@ -111,6 +111,17 @@ Last updated / Обновлено: 2026-08-12
 - Добавлен доменный adapter `food_scans.vision` для построения минимальной Vision reference из `FoodScan`.
 - Docker Compose теперь запускает отдельный `vision` container с healthcheck; Vision port не публикуется на host по умолчанию.
 - Добавлены contract tests для FastAPI Vision API, backend client, safe object reference validation и `FoodScan` adapter.
+- Создана ветка `feature/scan-orchestration` от актуального `develop`.
+- Реализован первый end-to-end scan flow: `FoodScan` → Vision → Nutrition matching → пользовательское подтверждение → `Meal`/`MealItem`.
+- Статусы `FoodScan` приведены к Stage 13 flow: `uploaded`, `processing`, `needs_confirmation`, `confirmed`, `failed`.
+- Добавлена модель `FoodScanDetectedItem` для proposal results с Vision label/confidence, matched food, массой, source/correction flags и nutrient snapshots.
+- Upload endpoint теперь инициирует Vision-анализ через `food_scans.orchestration`, не размещая HTTP-вызовы к Vision в Django views.
+- Vision failures сохраняются как `FoodScan.status=failed` и стабильный `failure_code` без раскрытия private object key или фото.
+- Добавлен deterministic MVP matching Vision label к nutrition catalog по names/synonyms.
+- Добавлены API actions для scan results, исправления продукта/массы, удаления ошибочного detected item, добавления отсутствующего item и confirmation.
+- Scan result не записывается в дневник автоматически; `Meal`/`MealItem` создаются только после явного confirmation.
+- Confirmation копирует сохранённый proposal nutrient snapshot в `MealItem`, чтобы расчёты оставались воспроизводимыми при будущих изменениях catalog.
+- Добавлены tests для orchestration service, Vision failure handling, review/correct/delete/add/confirm API flow, snapshot stability и IDOR по чужому UUID.
 
 ## Проверки
 
@@ -202,7 +213,12 @@ Last updated / Обновлено: 2026-08-12
 - `docker compose -p foodai_vision_check --env-file .env ps vision` — passed, Vision container healthy.
 - `docker compose -p foodai_vision_check --env-file .env exec -T vision python -c ".../health..."` — passed, ответ `{"status":"ok"}`.
 - `docker compose -p foodai_vision_check --env-file .env down` — passed, isolated Vision stack остановлен.
+- `make check` — passed для PROMPT 13: Ruff без ошибок, mypy без ошибок в 93 source files, Django system check без ошибок, pytest: 131 passed, coverage 89.19%.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок и без warnings.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend vision` — passed после запуска вне Codex sandbox, backend и vision images собраны.
 
 ## Следующий этап
 
-Остановиться после PROMPT 12. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 13. Следующую задачу начинать только после явной команды пользователя.

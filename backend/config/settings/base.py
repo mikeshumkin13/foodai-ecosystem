@@ -193,4 +193,8 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Backend API for FoodAI Ecosystem.",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "ENUM_NAME_OVERRIDES": {
+        "MealItemSourceEnum": "diary.models.MealItem.Source",
+        "FoodScanDetectedItemSourceEnum": "food_scans.models.FoodScanDetectedItem.Source",
+    },
 }
