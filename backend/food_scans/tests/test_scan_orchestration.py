@@ -75,6 +75,20 @@ def test_scan_analysis_matches_catalog_and_does_not_create_meal() -> None:
     assert detected_item.nutrient_snapshot["energy_kcal"]["amount"] == "130.0000"
 
 
+def test_low_confidence_scan_result_still_requires_user_confirmation() -> None:
+    rice = _food_with_nutrients(name="Rice, cooked", synonyms=["rice"], energy="130.0000")
+    food_scan = _make_food_scan()
+    vision_client = _FakeVisionClient(VisionDetectedItem(label="rice", confidence=0.21))
+
+    analyzed_scan = start_scan_analysis(food_scan, vision_client=vision_client)
+
+    assert analyzed_scan.status == FoodScan.Status.NEEDS_CONFIRMATION
+    assert Meal.objects.count() == 0
+    detected_item = analyzed_scan.detected_items.get()
+    assert detected_item.confidence == Decimal("0.2100")
+    assert detected_item.matched_food == rice
+
+
 def test_scan_analysis_marks_scan_failed_when_vision_is_unavailable() -> None:
     food_scan = _make_food_scan()
 

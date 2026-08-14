@@ -39,14 +39,14 @@ foodai-ecosystem/
 ## Целевой стек
 
 - Backend: Python, Django, Django REST Framework, PostgreSQL, Redis, Celery.
-- Vision: Python, FastAPI, OpenCV; CV/ML-библиотеки добавляются только по необходимости.
+- Vision: Python, FastAPI, Pillow, Transformers, PyTorch CPU; OpenCV добавляется только при реальной необходимости.
 - Frontend: Next.js, TypeScript, responsive PWA.
 - Infrastructure: Docker, Docker Compose, GitHub Actions.
 - Storage: приватное S3-compatible object storage; локально допустим MinIO.
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов и нутриентов, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery и FastAPI `services/vision` с mock-анализом.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов и нутриентов, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery и FastAPI `services/vision` с real food recognition model v1.
 
 ## Backend: локальная установка
 
@@ -133,7 +133,13 @@ Backend endpoints:
 Internal Vision endpoints:
 
 - `GET /health` — health check Vision service.
-- `POST /v1/analyze` — internal mock-анализ подготовленного food scan object reference. Возвращает `{"items": [{"label": "rice", "confidence": 0.92}]}`.
+- `POST /v1/analyze` — internal food recognition v1 для подготовленного private food scan object reference. Возвращает `{"items": [{"label": "...", "confidence": 0.0-1.0}]}`; текущая модель является dish-level classifier без bounding boxes и оценки порции.
+
+Benchmark Vision model v1:
+
+```bash
+python services/vision/scripts/benchmark_food_model.py --synthetic
+```
 
 Демо-данные nutrition catalog для локальной разработки:
 
@@ -167,7 +173,7 @@ make dev-down
 - `redis` — Redis с volume `redis_data` и healthcheck.
 - `backend` — Django backend, который ждёт PostgreSQL/Redis, предсказуемо выполняет `migrate --noinput`, затем стартует `runserver`.
 - `celery_worker` — Celery worker для background Vision processing; ждёт PostgreSQL, Redis, Vision и healthy backend, не запускает migrations параллельно с backend.
-- `vision` — FastAPI Vision service foundation с `GET /health` и mock `POST /v1/analyze`.
+- `vision` — FastAPI Vision service с `GET /health` и real food recognition v1 в `POST /v1/analyze`.
 
 Health endpoint после запуска:
 

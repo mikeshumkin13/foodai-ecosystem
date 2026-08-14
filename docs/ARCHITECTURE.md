@@ -127,10 +127,12 @@ Vision не владеет пользователями, дневниками, �
 
 - FastAPI service расположен в `services/vision`.
 - Endpoint `GET /health` возвращает `{"status": "ok"}`.
-- Endpoint `POST /v1/analyze` принимает internal object reference на уже подготовленное backend изображение и возвращает mock detection result.
-- Текущий mock response: `{"items": [{"label": "rice", "confidence": 0.92}]}`.
+- Endpoint `POST /v1/analyze` принимает internal object reference на уже подготовленное backend изображение, читает private local object, проверяет checksum и запускает food recognition model через pluggable inference adapter.
+- Vision model v1: Hugging Face `nateraw/food`, pinned revision `ddbd0f9ed493f03fc6a45527e5e52904161d3e09`, Apache-2.0 model license, `model.safetensors` weights.
+- Текущий v1 является dish-level classifier, а не object detector: он возвращает top label и confidence без bounding boxes, portion size или multi-object segmentation.
+- Low-confidence results не создают diary records автоматически; backend всегда переводит scan в `needs_confirmation` до явного пользовательского подтверждения.
 - Vision service запускается отдельным контейнером Docker Compose и не публикует порт на host по умолчанию; backend обращается к нему внутри compose network по `VISION_SERVICE_URL`.
-- Тяжёлая ML/CV модель на этом этапе не подключается.
+- Benchmark script: `services/vision/scripts/benchmark_food_model.py`.
 
 ## Frontend
 

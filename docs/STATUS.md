@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-14
 
 ## Текущий завершённый этап
 
-ЭТАП 14, PROMPT 14 — Celery background processing для food scan analysis завершён.
+ЭТАП 15, PROMPT 15 — Vision model v1 завершён.
 
 ## Состояние
 
@@ -132,6 +132,16 @@ Last updated / Обновлено: 2026-08-14
 - Controlled retry включён для `vision_unavailable` и `vision_timeout`, с ограничением `FOOD_SCAN_ANALYSIS_MAX_RETRIES` и backoff `FOOD_SCAN_ANALYSIS_RETRY_BACKOFF_SECONDS`.
 - Task payload содержит только `food_scan_id` и `analysis_run_id`; фото, private object key, health profile, diary data и nutrient snapshots не передаются в Celery payload.
 - Confirmation остаётся единственным местом создания `Meal`/`MealItem` и остаётся идемпотентным для already confirmed scan.
+- Создана ветка `feature/vision-food-recognition-v1` от актуального `develop`.
+- Vision service заменил hardcoded mock на первую реальную модель распознавания еды.
+- Выбрана Hugging Face model `nateraw/food`, pinned revision `ddbd0f9ed493f03fc6a45527e5e52904161d3e09`, license Apache-2.0 согласно model card.
+- Модель запускается через pluggable adapter `FoodRecognitionModel`, чтобы позже можно было заменить classifier на detector/segmentation model без размазывания inference-кода по FastAPI/Django слоям.
+- Vision читает только backend-controlled prepared image reference из private local storage, проверяет SHA-256 checksum и фактический формат изображения.
+- Для weights используется `model.safetensors` с `use_safetensors=True`; старый pickle-based weights path не используется.
+- Vision v1 возвращает `label` и `confidence`; accuracy не обещается, ограничения модели явно зафиксированы в `docs/DECISIONS.md`.
+- Low-confidence results не создают дневник автоматически: `FoodScan` остаётся в `needs_confirmation` до пользовательского подтверждения, исправления или удаления detected items.
+- Добавлен benchmark script `services/vision/scripts/benchmark_food_model.py` для измерения latency, detected items и confidence.
+- Добавлены synthetic fixtures в тестах без хранения пользовательских или сторонних фотографий в репозитории.
 
 ## Проверки
 
@@ -239,7 +249,14 @@ Last updated / Обновлено: 2026-08-14
 - `docker compose -p foodai_background_check --env-file .env exec -T backend python -c ".../api/v1/health/..."` — passed, ответ `{"status":"ok"}`.
 - `curl -fsS http://127.0.0.1:8000/api/v1/health/` из Codex sandbox — connection refused при healthy backend container; health подтверждён изнутри container.
 - `docker compose -p foodai_background_check --env-file .env down` — passed, isolated stack остановлен без удаления volumes.
+- `python services/vision/scripts/benchmark_food_model.py --synthetic` внутри Docker Vision container — passed; первый synthetic run включал cold model download/init и вернул `breakfast burrito` с confidence `0.039004` за `826394.695 ms`, второй synthetic run вернул `macarons` с confidence `0.073317` за `1221.740 ms`. Низкая confidence ожидаема для synthetic non-food fixtures и требует user confirmation.
+- `make check` — passed для PROMPT 15: Ruff без ошибок, mypy без ошибок в 102 source files, Django system check без ошибок, pytest: 150 passed, coverage 89.07%; есть одно стороннее `StarletteDeprecationWarning` из FastAPI TestClient.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage15.yml` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — первый прогон дошёл до export Vision image и упал на локальной Docker snapshot ошибке `parent snapshot ... does not exist`; немедленный повтор прошёл успешно.
+- `docker compose --env-file .env build backend vision celery_worker` — passed при повторном запуске, backend, vision и celery_worker images собраны.
 
 ## Следующий этап
 
-Остановиться после PROMPT 14. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 15. Следующую задачу начинать только после явной команды пользователя.

@@ -137,6 +137,8 @@ Brute-force/rate limiting:
 - Docker Compose не публикует Vision port на host по умолчанию; backend обращается к `vision` внутри compose network.
 - Backend client использует короткий timeout и не делает automatic retries, чтобы не создавать retry storm при деградации Vision.
 - Ошибки Vision нормализуются без включения object key, фото или пользовательских health/nutrition данных в логи/ответы.
+- Vision model v1 (`nateraw/food`) выполняет dish-level classification внутри Vision service и возвращает только label/confidence. Низкий confidence не может создать `MealItem` автоматически: backend сохраняет только proposal results и требует явного подтверждения пользователя.
+- Перед production требуется отдельная legal/supply-chain проверка выбранной модели, weights artifact и training data provenance; Food-101 dataset metadata указывает unknown license.
 
 ## Scan orchestration security
 
