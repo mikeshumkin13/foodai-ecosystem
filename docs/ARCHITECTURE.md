@@ -92,6 +92,12 @@ foodai-ecosystem/
 - Private storage подключён через boundary `PrivateObjectStorage`; MVP использует локальный private filesystem storage, production может заменить реализацию на S3-compatible private object storage без изменения API.
 - Backend общается с Vision service только через `integrations.vision.client` и доменный adapter `food_scans.vision`; HTTP-вызовы не размещаются в Django views.
 - Vision client использует один HTTP-запрос без retries, timeout через `VISION_SERVICE_TIMEOUT_SECONDS` и отдельные ошибки для unavailable, timeout и invalid response.
+- Первый end-to-end scan flow реализован в `food_scans.orchestration`: upload переводит scan в `processing`, вызывает Vision, сохраняет proposal detected items и переводит scan в `needs_confirmation`.
+- Статусы `FoodScan`: `uploaded`, `processing`, `needs_confirmation`, `confirmed`, `failed`.
+- `FoodScanDetectedItem` хранит Vision label/confidence, matched `FoodItem`, массу, source, correction flags и proposal nutrient snapshots.
+- Matching Vision label к nutrition catalog выполняется детерминированно через `food_scans.matching` по names/synonyms; fuzzy/ML-ranking не добавлен в MVP foundation.
+- Scan results не создают дневник автоматически; только явное подтверждение пользователя создаёт `Meal` и `MealItem`.
+- При confirmation `MealItem` получает копию proposal snapshot из `FoodScanDetectedItem`, чтобы изменения `FoodItem`/`FoodNutrient` после анализа не меняли подтверждённые расчёты.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 

@@ -64,9 +64,14 @@ API не должен привязывать клиентов к одному ч
 - `PATCH /api/v1/meals/{id}/` — изменение собственного приёма пищи; если передан `items`, состав заменяется новым набором snapshot items.
 - `DELETE /api/v1/meals/{id}/` — удаление собственного приёма пищи.
 - `GET /api/v1/diary/day/?date=YYYY-MM-DD` — дневная агрегация собственного дневника: totals по calories/protein/fat/carbs, `micronutrient_totals` и список meals за дату.
-- `POST /api/v1/food-scans/` — загрузка фотографии блюда текущего пользователя. Принимает `multipart/form-data` поле `photo`; backend проверяет фактический формат, strip EXIF/metadata и сохраняет объект в private storage.
+- `POST /api/v1/food-scans/` — загрузка фотографии блюда текущего пользователя. Принимает `multipart/form-data` поле `photo`; backend проверяет фактический формат, strip EXIF/metadata, сохраняет объект в private storage и инициирует Vision-анализ. Ответ содержит scan metadata и, если анализ завершён, proposal `detected_items`. Результат не создаёт дневник автоматически.
 - `GET /api/v1/food-scans/` — список собственных food scans; ответ содержит только metadata без private `object_key` и без постоянного публичного URL.
 - `GET /api/v1/food-scans/{id}/` — metadata собственного food scan по UUID.
+- `GET /api/v1/food-scans/{id}/results/` — результаты собственного scan: status, failure code, confirmed meal id и active detected items с label, confidence, matched food, массой и proposal nutrient snapshots.
+- `PATCH /api/v1/food-scans/{id}/items/{item_id}/` — исправить detected item: `food_id`, `mass_g` или оба поля. Пересчитывает и сохраняет proposal snapshot, выставляет `manually_corrected=true`.
+- `DELETE /api/v1/food-scans/{id}/items/{item_id}/` — удалить ошибочный detected item из active results через soft-delete; удалённый item не попадёт в confirmation.
+- `POST /api/v1/food-scans/{id}/items/` — добавить отсутствующий detected item вручную. Тело: `food_id`, `mass_g`, optional `label`.
+- `POST /api/v1/food-scans/{id}/confirm/` — подтвердить scan и создать `Meal`/`MealItem` только из active matched items. Тело: `meal_type`, optional `logged_at`, optional `name`. Endpoint идемпотентно возвращает существующий meal для уже confirmed scan.
 - Internal Vision API:
   - `GET /health` — health check Vision service. Ответ: `{"status": "ok"}`.
   - `POST /v1/analyze` — internal endpoint Vision service. Принимает `object_reference` на приватный backend-controlled объект: `scan_id`, `storage_backend`, `object_key`, `content_type`, `checksum_sha256`. MVP возвращает mock result `{"items": [{"label": "rice", "confidence": 0.92}]}`.
@@ -107,6 +112,8 @@ Auth API использует cookie/session схему:
 - `superuser` использует технический Django override для diary API.
 - обычный `user` загружает и читает metadata только собственных food scans;
 - обращение User A к UUID food scan User B не возвращает чужие metadata;
+- обычный `user` читает scan results, исправляет detected items и подтверждает только собственные food scans;
+- обращение User A к UUID чужого food scan или item action не раскрывает чужие detected items и не создаёт meal;
 - `support`, `content_manager` и business `admin` не получают API-доступ к фотографиям еды по умолчанию;
 - food scan API не возвращает private storage key и не выдаёт постоянный публичный URL.
 
@@ -119,6 +126,8 @@ Meal history хранит nutrient snapshots внутри `MealItem`. Клиен
 Food scan uploads принимают только whitelist фактических форматов `JPEG` и `PNG`. Клиенты не должны полагаться на extension или user-provided content type.
 
 Vision API является внутренним контрактом между backend и `services/vision`; публичные клиенты не должны вызывать его напрямую. Backend вызывает Vision через `integrations.vision.client`, а не из Django views. Ошибки внешнего сервиса нормализуются как `vision_unavailable`, `vision_timeout` и `vision_invalid_response` на уровне client abstraction.
+
+Food scan orchestration создаёт только proposal detected items до явного confirmation. Клиенты должны показывать пользователю результат и позволять исправить продукт/массу, удалить ошибочный item или добавить отсутствующий item до вызова `confirm`.
 
 ## Breaking changes
 

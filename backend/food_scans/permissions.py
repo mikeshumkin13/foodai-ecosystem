@@ -22,9 +22,9 @@ class CanAccessFoodScan(BasePermission):
             return True
 
         action = getattr(view, "action", "")
-        if action in {"list", "retrieve"}:
+        if action in {"list", "retrieve", "results"}:
             return user.has_perm(VIEW_OWN_FOOD_SCAN_PERMISSION)
-        if action == "create":
+        if action in {"create", "items", "item", "confirm"}:
             return user.has_perm(CHANGE_OWN_FOOD_SCAN_PERMISSION)
         return False
 
@@ -43,6 +43,8 @@ class CanAccessFoodScan(BasePermission):
             return False
 
         action = getattr(view, "action", "")
-        if action in {"list", "retrieve"}:
+        if action in {"list", "retrieve", "results"}:
             return user.has_perm(VIEW_OWN_FOOD_SCAN_PERMISSION)
+        if action in {"items", "item", "confirm"}:
+            return user.has_perm(CHANGE_OWN_FOOD_SCAN_PERMISSION)
         return False

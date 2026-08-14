@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -11,8 +12,9 @@ class FoodScan(models.Model):
     class Status(models.TextChoices):
         UPLOADED = "uploaded", "Uploaded"
         PROCESSING = "processing", "Processing"
+        NEEDS_CONFIRMATION = "needs_confirmation", "Needs confirmation"
+        CONFIRMED = "confirmed", "Confirmed"
         FAILED = "failed", "Failed"
-        COMPLETED = "completed", "Completed"
 
     class ImageFormat(models.TextChoices):
         JPEG = "JPEG", "JPEG"
@@ -39,6 +41,14 @@ class FoodScan(models.Model):
     height = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     checksum_sha256 = models.CharField(max_length=64)
     exif_stripped = models.BooleanField(default=True)
+    failure_code = models.CharField(max_length=64, blank=True)
+    confirmed_meal = models.OneToOneField(
+        "diary.Meal",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="source_food_scan",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -55,3 +65,84 @@ class FoodScan(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user_id} {self.status} {self.created_at.isoformat()}"
+
+
+class FoodScanDetectedItem(models.Model):
+    class Source(models.TextChoices):
+        VISION = "vision", "Vision"
+        MANUAL = "manual", "Manual"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    food_scan = models.ForeignKey(
+        FoodScan,
+        on_delete=models.CASCADE,
+        related_name="detected_items",
+    )
+    matched_food = models.ForeignKey(
+        "nutrition.FoodItem",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="scan_detected_items",
+    )
+    label = models.CharField(max_length=160)
+    confidence = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0")), MaxValueValidator(Decimal("1"))],
+    )
+    estimated_mass_g = models.DecimalField(
+        max_digits=9,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    food_name_snapshot = models.CharField(max_length=160, blank=True)
+    food_source_reference_snapshot = models.CharField(max_length=255, blank=True)
+    calories_kcal = models.DecimalField(
+        max_digits=12,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    protein_g = models.DecimalField(
+        max_digits=12,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    fat_g = models.DecimalField(
+        max_digits=12,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    carbs_g = models.DecimalField(
+        max_digits=12,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    micronutrient_snapshot = models.JSONField(default=dict, blank=True)
+    nutrient_snapshot = models.JSONField(default=dict, blank=True)
+    source = models.CharField(
+        max_length=32,
+        choices=Source.choices,
+        default=Source.VISION,
+    )
+    position = models.PositiveIntegerField(default=0)
+    is_removed = models.BooleanField(default=False)
+    manually_corrected = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["position", "created_at", "id"]
+        indexes = [
+            models.Index(fields=["food_scan", "is_removed"], name="scan_item_scan_removed_idx"),
+            models.Index(fields=["matched_food"], name="scan_item_food_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.food_scan_id} {self.label} {self.estimated_mass_g}g"

@@ -12,6 +12,7 @@
 - Добавить базовый каталог продуктов и нутриентов.
 - Scaffold Vision service с FastAPI.
 - Определить контракт backend/Vision.
+- Реализовать первый end-to-end scan orchestration с обязательным подтверждением пользователя перед записью в дневник.
 - Scaffold Next.js PWA.
 - Добавить основу локализации `ru`/`en`.
 - Покрыть MVP unit/API тестами.
@@ -48,4 +49,3 @@
 - Умные весы и wearable-интеграции.
 - B2B API.
 - Улучшение CV/ML-моделей на validation datasets.
-

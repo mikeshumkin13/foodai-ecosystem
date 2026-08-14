@@ -515,3 +515,72 @@ Consequences / Последствия:
 - Добавление signed URL, service-to-service auth или прямой передачи image bytes требует отдельной оценки security и обновления контракта.
 - Future ML model подключается внутри `services/vision` без передачи долгосрочных пользовательских данных в Vision.
 - Contract tests должны обновляться вместе с изменением request/response schema.
+
+## ADR-0016: User-Confirmed Food Scan Orchestration
+
+Date / Дата: 2026-08-14
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Первый end-to-end scan flow реализуется внутри backend-монолита в `food_scans.orchestration`.
+
+MVP status flow:
+
+- `uploaded`;
+- `processing`;
+- `needs_confirmation`;
+- `confirmed`;
+- `failed`.
+
+После загрузки фотографии backend синхронно инициирует один Vision-анализ через существующий
+`food_scans.vision` / `integrations.vision.client` boundary. Celery orchestration будет добавлена
+отдельно, когда появится реальная очередь обработки и требования к latency.
+
+Vision result сохраняется как набор `FoodScanDetectedItem` proposal-записей:
+
+- исходный `label` и `confidence`;
+- matched `nutrition.FoodItem`, если deterministic catalog matching нашёл продукт;
+- пользовательская или MVP-оценочная масса;
+- snapshot calories/protein/fat/carbs, всех nutrients и micronutrients для этой массы;
+- источник `vision` или `manual`;
+- флаг `manually_corrected`;
+- soft-delete флаг `is_removed`.
+
+Matching на этом этапе детерминированный и простой: exact match по `name`, `name_ru`, `name_en`,
+`synonyms`, затем contains fallback. ML-ranking, fuzzy search и portion estimation не добавляются
+без отдельного решения.
+
+Результат scan не попадает в дневник автоматически. Пользователь должен явно подтвердить результат,
+предварительно имея возможность исправить продукт, массу, удалить ошибочный item или добавить
+отсутствующий item. Только `POST /api/v1/food-scans/{id}/confirm/` создаёт `Meal` и `MealItem`.
+
+При подтверждении `MealItem` получает копию proposal snapshot из `FoodScanDetectedItem`, а не
+пересчитывается из текущего состояния глобального catalog. Это делает расчёты воспроизводимыми даже
+если `FoodItem`/`FoodNutrient` изменились между анализом и подтверждением.
+
+Ошибки Vision нормализуются в `FoodScan.status=failed` и `failure_code`
+(`vision_unavailable`, `vision_timeout`, `vision_invalid_response`) без раскрытия private object key
+или содержимого фотографии.
+
+Rationale / Обоснование:
+
+- Основной пользовательский сценарий требует сквозной связи фото → Vision → catalog → diary.
+- AI/Vision не должен самостоятельно записывать данные в дневник без подтверждения пользователя.
+- Proposal snapshot нужен, чтобы пользователь подтверждал конкретные расчёты, а не подвижное
+  состояние catalog.
+- Синхронная MVP-оркестрация проще для первого end-to-end flow и не создаёт преждевременную
+  Celery-сложность.
+- Owner-only access и существующие food scan permissions сохраняют IDOR boundary для фото и
+  производных detected items.
+
+Consequences / Последствия:
+
+- Future async processing должен сохранить те же статусы и confirmation boundary.
+- Изменение matching algorithm или добавление portion estimation должно обновить contract tests и
+  документацию.
+- Proposal detected items считаются производными чувствительными данными пользователя и не должны
+  попадать в публичные URL, логи или support/content-manager доступ по умолчанию.
+- Confirm endpoint должен оставаться идемпотентным для уже подтверждённого scan и не создавать
+  дубликаты meals.
