@@ -15,17 +15,18 @@ from rest_framework.response import Response
 from accounts.models import User
 from accounts.rbac import CHANGE_OWN_FOOD_SCAN_PERMISSION, VIEW_OWN_FOOD_SCAN_PERMISSION
 from diary.serializers import MealReadSerializer
+from food_scans.jobs import FoodScanJobError, enqueue_food_scan_analysis
 from food_scans.models import FoodScan, FoodScanDetectedItem
 from food_scans.orchestration import (
     FoodScanWorkflowError,
     add_manual_detected_item,
     confirm_food_scan,
     remove_scan_detected_item,
-    start_scan_analysis,
     update_scan_detected_item,
 )
 from food_scans.permissions import CanAccessFoodScan
 from food_scans.serializers import (
+    FoodScanBackgroundStatusSerializer,
     FoodScanConfirmSerializer,
     FoodScanDetectedItemAddSerializer,
     FoodScanDetectedItemReadSerializer,
@@ -74,6 +75,7 @@ class FoodScanViewSet(
     ) -> (
         type[FoodScanReadSerializer]
         | type[FoodScanUploadSerializer]
+        | type[FoodScanBackgroundStatusSerializer]
         | type[FoodScanResultSerializer]
         | type[FoodScanDetectedItemAddSerializer]
         | type[FoodScanDetectedItemUpdateSerializer]
@@ -89,18 +91,20 @@ class FoodScanViewSet(
             return FoodScanDetectedItemUpdateSerializer
         if self.action == "confirm":
             return FoodScanConfirmSerializer
+        if self.action == "retry":
+            return FoodScanBackgroundStatusSerializer
         return FoodScanReadSerializer
 
     @extend_schema(
         request=FoodScanUploadSerializer,
-        responses={status.HTTP_201_CREATED: FoodScanResultSerializer},
+        responses={status.HTTP_201_CREATED: FoodScanBackgroundStatusSerializer},
     )
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         upload_serializer = self.get_serializer(data=request.data)
         upload_serializer.is_valid(raise_exception=True)
         food_scan = upload_serializer.save()
-        food_scan = start_scan_analysis(food_scan)
-        read_serializer = FoodScanResultSerializer(
+        food_scan = enqueue_food_scan_analysis(food_scan=food_scan)
+        read_serializer = FoodScanBackgroundStatusSerializer(
             food_scan,
             context=self.get_serializer_context(),
         )
@@ -112,6 +116,24 @@ class FoodScanViewSet(
         food_scan = self.get_object()
         serializer = FoodScanResultSerializer(food_scan, context=self.get_serializer_context())
         return Response(serializer.data)
+
+    @extend_schema(
+        request=None,
+        responses={status.HTTP_202_ACCEPTED: FoodScanBackgroundStatusSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="retry")
+    def retry(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        food_scan = self.get_object()
+        try:
+            food_scan = enqueue_food_scan_analysis(food_scan=food_scan, force=True)
+        except FoodScanJobError as exc:
+            raise ValidationError({"detail": [exc.code]}) from exc
+
+        serializer = FoodScanBackgroundStatusSerializer(
+            food_scan,
+            context=self.get_serializer_context(),
+        )
+        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
     @extend_schema(
         request=FoodScanDetectedItemAddSerializer,

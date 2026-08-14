@@ -68,6 +68,52 @@ services:
       retries: 12
       start_period: 20s
 
+  celery_worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.local
+      DJANGO_RUN_MIGRATIONS: "false"
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      REDIS_URL: ${REDIS_URL:?Set REDIS_URL in .env}
+      VISION_SERVICE_URL: ${VISION_SERVICE_URL:?Set VISION_SERVICE_URL in .env}
+      VISION_SERVICE_TIMEOUT_SECONDS: ${VISION_SERVICE_TIMEOUT_SECONDS:?Set VISION_SERVICE_TIMEOUT_SECONDS in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      vision:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    command:
+      [
+        "celery",
+        "-A",
+        "config",
+        "worker",
+        "--loglevel=${CELERY_LOG_LEVEL:-INFO}",
+        "--concurrency=${CELERY_WORKER_CONCURRENCY:-1}",
+        "--hostname=foodai-worker@%h",
+      ]
+    volumes:
+      - .:/app
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "celery -A config inspect ping --destination foodai-worker@$$HOSTNAME >/dev/null 2>&1",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+
   vision:
     build:
       context: .

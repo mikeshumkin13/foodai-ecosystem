@@ -147,6 +147,14 @@ Brute-force/rate limiting:
 - Confirmation копирует сохранённый proposal nutrient snapshot в `MealItem`, поэтому подтверждённая история не зависит от будущих изменений global nutrition catalog.
 - Vision failures сохраняются как стабильный `failure_code` без private object key, имени файла пользователя, фото bytes или health/nutrition profile.
 
+## Background processing security
+
+- Food scan background tasks используют Celery + Redis и получают только `food_scan_id` и `analysis_run_id`.
+- Фото bytes, private `object_key`, nutrient snapshots, health profile и пользовательский дневник не передаются в Celery task payload и не логируются.
+- `analysis_run_id` защищает от stale task overwrite: результат старого запуска не должен перезаписывать более новый пользовательский retry.
+- Controlled retry включён только для transient Vision failures `vision_unavailable` и `vision_timeout`; `vision_invalid_response` завершает scan как failed без retry storm.
+- Повторный запуск пользователем запрещён для confirmed scan и не создаёт дубликаты `MealItem`, потому что запись в дневник остаётся только в идемпотентном confirmation endpoint.
+
 ## Dev infrastructure security
 
 - Docker Compose не содержит секретов напрямую, а читает значения из `.env`.
@@ -154,6 +162,7 @@ Brute-force/rate limiting:
 - PostgreSQL и Redis в локальной инфраструктуре не публикуют порты на host без отдельной необходимости.
 - Backend публикует только HTTP-порт разработки.
 - Redis включён с паролем даже в локальной инфраструктуре.
+- Celery worker использует Redis внутри Docker Compose network, не публикует отдельные host-порты и не выполняет migrations параллельно с backend.
 
 ## Admin security
 

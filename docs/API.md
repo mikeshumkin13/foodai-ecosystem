@@ -64,10 +64,11 @@ API не должен привязывать клиентов к одному ч
 - `PATCH /api/v1/meals/{id}/` — изменение собственного приёма пищи; если передан `items`, состав заменяется новым набором snapshot items.
 - `DELETE /api/v1/meals/{id}/` — удаление собственного приёма пищи.
 - `GET /api/v1/diary/day/?date=YYYY-MM-DD` — дневная агрегация собственного дневника: totals по calories/protein/fat/carbs, `micronutrient_totals` и список meals за дату.
-- `POST /api/v1/food-scans/` — загрузка фотографии блюда текущего пользователя. Принимает `multipart/form-data` поле `photo`; backend проверяет фактический формат, strip EXIF/metadata, сохраняет объект в private storage и инициирует Vision-анализ. Ответ содержит scan metadata и, если анализ завершён, proposal `detected_items`. Результат не создаёт дневник автоматически.
+- `POST /api/v1/food-scans/` — загрузка фотографии блюда текущего пользователя. Принимает `multipart/form-data` поле `photo`; backend проверяет фактический формат, strip EXIF/metadata, сохраняет объект в private storage, ставит Vision-анализ в Celery и быстро возвращает `{"scan_id": "...", "status": "uploaded"}`. Результат не создаёт дневник автоматически.
 - `GET /api/v1/food-scans/` — список собственных food scans; ответ содержит только metadata без private `object_key` и без постоянного публичного URL.
 - `GET /api/v1/food-scans/{id}/` — metadata собственного food scan по UUID.
-- `GET /api/v1/food-scans/{id}/results/` — результаты собственного scan: status, failure code, confirmed meal id и active detected items с label, confidence, matched food, массой и proposal nutrient snapshots.
+- `GET /api/v1/food-scans/{id}/results/` — результаты собственного scan: status, failure code, confirmed meal id и active detected items с label, confidence, matched food, массой и proposal nutrient snapshots. Пока scan находится в `uploaded`, `processing` или `failed`, `detected_items` возвращается пустым списком, чтобы не показывать stale proposal results от предыдущего запуска.
+- `POST /api/v1/food-scans/{id}/retry/` — повторно ставит собственный scan в Celery-обработку и возвращает `{"scan_id": "...", "status": "uploaded"}` или текущий `processing`; confirmed scan не переобрабатывается.
 - `PATCH /api/v1/food-scans/{id}/items/{item_id}/` — исправить detected item: `food_id`, `mass_g` или оба поля. Пересчитывает и сохраняет proposal snapshot, выставляет `manually_corrected=true`.
 - `DELETE /api/v1/food-scans/{id}/items/{item_id}/` — удалить ошибочный detected item из active results через soft-delete; удалённый item не попадёт в confirmation.
 - `POST /api/v1/food-scans/{id}/items/` — добавить отсутствующий detected item вручную. Тело: `food_id`, `mass_g`, optional `label`.
@@ -127,7 +128,7 @@ Food scan uploads принимают только whitelist фактически
 
 Vision API является внутренним контрактом между backend и `services/vision`; публичные клиенты не должны вызывать его напрямую. Backend вызывает Vision через `integrations.vision.client`, а не из Django views. Ошибки внешнего сервиса нормализуются как `vision_unavailable`, `vision_timeout` и `vision_invalid_response` на уровне client abstraction.
 
-Food scan orchestration создаёт только proposal detected items до явного confirmation. Клиенты должны показывать пользователю результат и позволять исправить продукт/массу, удалить ошибочный item или добавить отсутствующий item до вызова `confirm`.
+Food scan orchestration создаёт только proposal detected items до явного confirmation. Клиенты должны после upload опрашивать `GET /api/v1/food-scans/{id}/results/`, показывать пользователю результат и позволять исправить продукт/массу, удалить ошибочный item или добавить отсутствующий item до вызова `confirm`.
 
 ## Breaking changes
 

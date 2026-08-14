@@ -538,6 +538,10 @@ MVP status flow:
 `food_scans.vision` / `integrations.vision.client` boundary. Celery orchestration будет добавлена
 отдельно, когда появится реальная очередь обработки и требования к latency.
 
+Update / Обновление 2026-08-14: синхронный запуск Vision из request flow заменён на Celery
+background processing в ADR-0017. Confirmation boundary, proposal snapshots и idempotent
+confirmation остаются без изменений.
+
 Vision result сохраняется как набор `FoodScanDetectedItem` proposal-записей:
 
 - исходный `label` и `confidence`;
@@ -584,3 +588,63 @@ Consequences / Последствия:
   попадать в публичные URL, логи или support/content-manager доступ по умолчанию.
 - Confirm endpoint должен оставаться идемпотентным для уже подтверждённого scan и не создавать
   дубликаты meals.
+
+## ADR-0017: Celery Background Processing For Food Scan Analysis
+
+Date / Дата: 2026-08-14
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Food scan Vision processing переносится из синхронного request flow в Celery background task внутри
+существующего backend-монолита.
+
+Используем:
+
+- Celery app `config.celery`;
+- Redis как broker и result backend;
+- Docker Compose service `celery_worker`;
+- task `food_scans.process_food_scan_analysis`;
+- внутренние поля `FoodScan.analysis_run_id`, `analysis_task_id`, `analysis_attempt_count`.
+
+`POST /api/v1/food-scans/` после secure upload быстро возвращает только `scan_id` и текущий `status`.
+Клиент получает статус и proposal results через polling `GET /api/v1/food-scans/{id}/results/`.
+
+Controlled retry выполняется только для transient Vision failures:
+
+- `vision_unavailable`;
+- `vision_timeout`.
+
+`vision_invalid_response` и unexpected task failures переводят scan в `failed` без бесконтрольных
+повторов. Количество retry ограничено `FOOD_SCAN_ANALYSIS_MAX_RETRIES`, backoff задаётся через
+`FOOD_SCAN_ANALYSIS_RETRY_BACKOFF_SECONDS`, task time limit задаётся через Celery settings.
+
+Idempotency:
+
+- task payload содержит только `food_scan_id` и `analysis_run_id`;
+- stale task не записывает results, если пользователь уже запустил более новый analysis run;
+- confirmed scan не переобрабатывается;
+- processing scan не ставится в очередь повторно;
+- подтверждение scan остаётся единственным местом создания `Meal`/`MealItem` и уже идемпотентно
+  возвращает существующий meal для confirmed scan.
+
+Rationale / Обоснование:
+
+- Vision processing может быть медленным и не должен держать HTTP request открытым.
+- Redis уже является частью backend infrastructure, поэтому Celery добавляет очередь без нового
+  микросервиса.
+- Run id нужен, чтобы user retry не конфликтовал со старой задачей или delayed retry.
+- Bounded retry снижает вероятность retry storm при деградации Vision.
+- Task payload не должен содержать фото, private object key, health profile, дневник или nutrient
+  snapshots.
+
+Consequences / Последствия:
+
+- Локальный `make dev-up` запускает дополнительный worker container.
+- Production deployment должен запускать минимум один Celery worker рядом с backend и Redis.
+- API clients должны после upload polling-ом ждать `needs_confirmation` или `failed`.
+- Future queue routing, task observability, dead-letter policy и signed object access требуют
+  отдельного решения перед production.
+- Любые новые background tasks должны сохранять правило: в task payload только минимальные IDs, без
+  чувствительного содержимого.

@@ -107,6 +107,15 @@ class FoodScanReadSerializer(serializers.ModelSerializer[FoodScan]):
         read_only_fields = fields
 
 
+class FoodScanBackgroundStatusSerializer(serializers.ModelSerializer[FoodScan]):
+    scan_id = serializers.UUIDField(source="id", read_only=True)
+
+    class Meta:
+        model = FoodScan
+        fields = ("scan_id", "status")
+        read_only_fields = fields
+
+
 class FoodScanResultSerializer(FoodScanReadSerializer):
     detected_items = serializers.SerializerMethodField()
 
@@ -132,6 +141,9 @@ class FoodScanResultSerializer(FoodScanReadSerializer):
         read_only_fields = fields
 
     def get_detected_items(self, obj: FoodScan) -> list[dict[str, Any]]:
+        if obj.status not in {FoodScan.Status.NEEDS_CONFIRMATION, FoodScan.Status.CONFIRMED}:
+            return []
+
         detected_items = (
             obj.detected_items.select_related("matched_food")
             .filter(is_removed=False)

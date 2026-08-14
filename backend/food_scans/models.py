@@ -42,6 +42,9 @@ class FoodScan(models.Model):
     checksum_sha256 = models.CharField(max_length=64)
     exif_stripped = models.BooleanField(default=True)
     failure_code = models.CharField(max_length=64, blank=True)
+    analysis_run_id = models.UUIDField(null=True, blank=True)
+    analysis_task_id = models.CharField(max_length=255, blank=True)
+    analysis_attempt_count = models.PositiveIntegerField(default=0)
     confirmed_meal = models.OneToOneField(
         "diary.Meal",
         on_delete=models.SET_NULL,
@@ -57,6 +60,7 @@ class FoodScan(models.Model):
         indexes = [
             models.Index(fields=["user", "created_at"], name="food_scan_user_created_idx"),
             models.Index(fields=["status"], name="food_scan_status_idx"),
+            models.Index(fields=["analysis_run_id"], name="food_scan_analysis_run_idx"),
         ]
         permissions = [
             ("view_own_foodscan", "Can view own food scan"),

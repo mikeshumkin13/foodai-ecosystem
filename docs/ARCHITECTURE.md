@@ -92,7 +92,10 @@ foodai-ecosystem/
 - Private storage подключён через boundary `PrivateObjectStorage`; MVP использует локальный private filesystem storage, production может заменить реализацию на S3-compatible private object storage без изменения API.
 - Backend общается с Vision service только через `integrations.vision.client` и доменный adapter `food_scans.vision`; HTTP-вызовы не размещаются в Django views.
 - Vision client использует один HTTP-запрос без retries, timeout через `VISION_SERVICE_TIMEOUT_SECONDS` и отдельные ошибки для unavailable, timeout и invalid response.
-- Первый end-to-end scan flow реализован в `food_scans.orchestration`: upload переводит scan в `processing`, вызывает Vision, сохраняет proposal detected items и переводит scan в `needs_confirmation`.
+- Background processing подключён через Celery app `config.celery` и Redis broker/result backend.
+- Upload food scan больше не ждёт Vision в request flow: backend создаёт `FoodScan`, ставит `food_scans.process_food_scan_analysis` в очередь и быстро возвращает `scan_id`/`status`.
+- Celery task вызывает Vision через существующий `food_scans.orchestration` / `food_scans.vision` boundary, сохраняет proposal detected items и переводит scan в `needs_confirmation`.
+- `FoodScan` хранит внутренние поля `analysis_run_id`, `analysis_task_id` и `analysis_attempt_count` для idempotency, controlled retry и защиты от stale tasks.
 - Статусы `FoodScan`: `uploaded`, `processing`, `needs_confirmation`, `confirmed`, `failed`.
 - `FoodScanDetectedItem` хранит Vision label/confidence, matched `FoodItem`, массу, source, correction flags и proposal nutrient snapshots.
 - Matching Vision label к nutrition catalog выполняется детерминированно через `food_scans.matching` по names/synonyms; fuzzy/ML-ranking не добавлен в MVP foundation.
@@ -164,6 +167,7 @@ Production-окружение должно использовать deny-by-defa
 - данные PostgreSQL и Redis хранятся в named volumes `postgres_data` и `redis_data`;
 - backend container ждёт готовности PostgreSQL и Redis через healthchecks и management command `wait_for_dependencies`;
 - vision container имеет собственный healthcheck `GET /health`;
+- `celery_worker` ждёт PostgreSQL, Redis, Vision и healthy backend, использует тот же backend image и не запускает migrations параллельно с backend;
 - migrations выполняются при старте backend через `migrate --noinput`, если `DJANGO_RUN_MIGRATIONS=true`;
 - один понятный запуск для разработки: `make dev-up`.
 

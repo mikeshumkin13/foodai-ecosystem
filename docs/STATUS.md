@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-14
 
 ## Текущий завершённый этап
 
-ЭТАП 13, PROMPT 13 — первый рабочий end-to-end scan orchestration завершён.
+ЭТАП 14, PROMPT 14 — Celery background processing для food scan analysis завершён.
 
 ## Состояние
 
@@ -122,6 +122,16 @@ Last updated / Обновлено: 2026-08-14
 - Scan result не записывается в дневник автоматически; `Meal`/`MealItem` создаются только после явного confirmation.
 - Confirmation копирует сохранённый proposal nutrient snapshot в `MealItem`, чтобы расчёты оставались воспроизводимыми при будущих изменениях catalog.
 - Добавлены tests для orchestration service, Vision failure handling, review/correct/delete/add/confirm API flow, snapshot stability и IDOR по чужому UUID.
+- Создана ветка `feature/background-jobs` от актуального `develop`.
+- Подключён Celery app `config.celery` с Redis broker/result backend.
+- Добавлен Docker Compose service `celery_worker`, который ждёт PostgreSQL, Redis, Vision и healthy backend, но не запускает migrations параллельно с backend.
+- `POST /api/v1/food-scans/` больше не ждёт Vision в HTTP request flow: upload быстро возвращает `scan_id` и `status`.
+- Vision processing выполняется в Celery task `food_scans.process_food_scan_analysis`.
+- Добавлен `POST /api/v1/food-scans/{id}/retry/` для пользовательского повторного запуска scan без переобработки confirmed scan и без duplicate enqueue для processing scan.
+- `FoodScan` получил внутренние поля `analysis_run_id`, `analysis_task_id` и `analysis_attempt_count` для idempotency, controlled retry и защиты от stale tasks.
+- Controlled retry включён для `vision_unavailable` и `vision_timeout`, с ограничением `FOOD_SCAN_ANALYSIS_MAX_RETRIES` и backoff `FOOD_SCAN_ANALYSIS_RETRY_BACKOFF_SECONDS`.
+- Task payload содержит только `food_scan_id` и `analysis_run_id`; фото, private object key, health profile, diary data и nutrient snapshots не передаются в Celery payload.
+- Confirmation остаётся единственным местом создания `Meal`/`MealItem` и остаётся идемпотентным для already confirmed scan.
 
 ## Проверки
 
@@ -218,7 +228,18 @@ Last updated / Обновлено: 2026-08-14
 - `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок и без warnings.
 - `docker compose --env-file .env config --quiet` — passed.
 - `docker compose --env-file .env build backend vision` — passed после запуска вне Codex sandbox, backend и vision images собраны.
+- `make check` — passed для PROMPT 14: Ruff без ошибок, mypy без ошибок в 97 source files, Django system check без ошибок, pytest: 141 passed, coverage 89.18%; есть одно стороннее `StarletteDeprecationWarning` из FastAPI TestClient.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — passed, backend, vision и celery_worker images собраны.
+- `docker compose -p foodai_background_check --env-file .env up -d postgres redis vision backend celery_worker` — passed на fresh isolated volumes.
+- `docker compose -p foodai_background_check --env-file .env ps` — PostgreSQL, Redis, backend, Vision и Celery worker healthy; PostgreSQL/Redis/Vision/worker не публикуют host ports.
+- `docker compose -p foodai_background_check --env-file .env exec -T celery_worker celery -A config inspect ping ...` — passed, Celery worker ответил `pong`.
+- `docker compose -p foodai_background_check --env-file .env exec -T backend python -c ".../api/v1/health/..."` — passed, ответ `{"status":"ok"}`.
+- `curl -fsS http://127.0.0.1:8000/api/v1/health/` из Codex sandbox — connection refused при healthy backend container; health подтверждён изнутри container.
+- `docker compose -p foodai_background_check --env-file .env down` — passed, isolated stack остановлен без удаления volumes.
 
 ## Следующий этап
 
-Остановиться после PROMPT 13. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 14. Следующую задачу начинать только после явной команды пользователя.
