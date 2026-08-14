@@ -150,6 +150,7 @@ Last updated / Обновлено: 2026-08-14
 - Ручная коррекция пользователя сохраняется отдельно в `manual_mass_g`; active `estimated_mass_g` и nutrient snapshots пересчитываются, но initial estimate не затирается.
 - Scan results API возвращает nested `portion_estimate` с `estimated_volume`, `estimated_mass`, `confidence`, `min_estimate`, `max_estimate`, `method`.
 - Ограничения метода, формулы, confidence semantics и будущие требования к validation dataset зафиксированы в `docs/DECISIONS.md`, `docs/API.md` и `docs/ARCHITECTURE.md`.
+- Добавлен GitHub Actions workflow `CI` для PR quality gate: install backend/vision dependencies, Ruff, mypy, Django system check, pytest, migration check и OpenAPI validation.
 
 ## Проверки
 
@@ -270,6 +271,7 @@ Last updated / Обновлено: 2026-08-14
 - `docker compose --env-file .env config --quiet` — passed.
 - `docker compose --env-file .env build backend vision celery_worker` — passed, backend, vision и celery_worker images собраны.
 - `git diff --check` — passed.
+- `.github/workflows/ci.yml` добавлен после обнаружения отсутствующих GitHub check-runs/workflow-runs для PR; PR merge без CI не выполнялся.
 
 ## Следующий этап
 
