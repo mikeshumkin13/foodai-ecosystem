@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов и нутриентов, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery, estimator оценки порции v1 и FastAPI `services/vision` с real food recognition model v1.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов, нутриентов и calculation engine для КБЖУ/micronutrients, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery, estimator оценки порции v1 и FastAPI `services/vision` с real food recognition model v1.
 
 ## Backend: локальная установка
 

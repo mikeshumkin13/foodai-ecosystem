@@ -1,10 +1,10 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-08-14
+Last updated / Обновлено: 2026-08-17
 
 ## Текущий завершённый этап
 
-ЭТАП 16, PROMPT 16 — Portion estimation v1 завершён.
+ЭТАП 17, PROMPT 17 — Nutrition calculation engine завершён.
 
 ## Состояние
 
@@ -151,6 +151,12 @@ Last updated / Обновлено: 2026-08-14
 - Scan results API возвращает nested `portion_estimate` с `estimated_volume`, `estimated_mass`, `confidence`, `min_estimate`, `max_estimate`, `method`.
 - Ограничения метода, формулы, confidence semantics и будущие требования к validation dataset зафиксированы в `docs/DECISIONS.md`, `docs/API.md` и `docs/ARCHITECTURE.md`.
 - Добавлен GitHub Actions workflow `CI` для PR quality gate: install backend/vision dependencies, Ruff, mypy, Django system check, pytest, migration check и OpenAPI validation.
+- Создана ветка `feature/nutrition-calculation` от актуального `develop`.
+- Добавлен domain service `nutrition.calculation` для единого расчёта КБЖУ и micronutrients по canonical `FoodItem` и массе в граммах.
+- Внутренняя система единиц зафиксирована явно: grams (`g`) для массы, значения каталога на `100 g`, energy в `kcal`, macronutrients в `g`, micronutrients в catalog-native units.
+- `diary.snapshots` оставлен совместимым фасадом, но расчёт выполняется через `nutrition.calculation`.
+- `Meal` creation/update и scan proposal/manual correction используют общий calculation engine, а не расчёты в API view.
+- Добавлены unit tests для 0 g, 50 g, 100 g, 250 g, missing nutrient, invalid negative mass и stable snapshot payload.
 
 ## Проверки
 
@@ -272,7 +278,14 @@ Last updated / Обновлено: 2026-08-14
 - `docker compose --env-file .env build backend vision celery_worker` — passed, backend, vision и celery_worker images собраны.
 - `git diff --check` — passed.
 - `.github/workflows/ci.yml` добавлен после обнаружения отсутствующих GitHub check-runs/workflow-runs для PR; PR merge без CI не выполнялся.
+- `pytest --no-cov backend/nutrition/tests/test_calculation.py backend/diary/tests/test_food_diary_api.py backend/food_scans/tests/test_scan_orchestration.py` — passed для PROMPT 17, 31 tests passed.
+- `make check` — passed для PROMPT 17: Ruff без ошибок, mypy без ошибок в 106 source files, Django system check без ошибок, pytest: 167 passed, coverage 89.40%; есть одно стороннее `StarletteDeprecationWarning` из FastAPI TestClient.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage17.yml` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — passed после запуска Docker Desktop, backend, vision и celery_worker images собраны.
+- `git diff --check` — passed.
 
 ## Следующий этап
 
-Остановиться после PROMPT 16. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 17. Следующую задачу начинать только после явной команды пользователя.

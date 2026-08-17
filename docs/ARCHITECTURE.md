@@ -78,6 +78,8 @@ foodai-ecosystem/
 - Приложение `nutrition` содержит MVP nutrition catalog: `FoodCategory`, `FoodDataSource`, `Nutrient`, `FoodItem`, `FoodNutrient`.
 - `FoodItem` хранит canonical food item, names/synonyms, category, source, density metadata, verified flag и source reference.
 - Нутриенты не зашиты как только КБЖУ: `FoodNutrient` связывает food item с расширяемым `Nutrient` и хранит `amount_per_100g`.
+- Nutrition calculation engine расположен в `nutrition.calculation`; он принимает canonical `FoodItem` и массу в граммах, использует Decimal-арифметику и возвращает kcal, protein, fat, carbohydrates и доступные micronutrients.
+- Единая внутренняя система единиц backend для nutrition calculation: масса в grams (`g`), значения каталога на `100 g`, energy в `kcal`, macronutrients в `g`, micronutrients в catalog-native units.
 - `content_manager` управляет каталогом через централизованные Django permissions; обычный authenticated `user` имеет read-only API-доступ.
 - Приложение `diary` содержит пользовательский дневник питания: `Meal` и `MealItem`.
 - `Meal` всегда принадлежит конкретному `accounts.User` и использует UUID primary key.
@@ -102,7 +104,7 @@ foodai-ecosystem/
 - Оценка порции использует `FoodItem.density_g_per_ml`, density metadata или MVP density table по типу продукта; при наличии segment area и known plate/reference применяется простая геометрия площади и assumed depth.
 - Matching Vision label к nutrition catalog выполняется детерминированно через `food_scans.matching` по names/synonyms; fuzzy/ML-ranking не добавлен в MVP foundation.
 - Scan results не создают дневник автоматически; только явное подтверждение пользователя создаёт `Meal` и `MealItem`.
-- При confirmation `MealItem` получает копию proposal snapshot из `FoodScanDetectedItem`, чтобы изменения `FoodItem`/`FoodNutrient` после анализа не меняли подтверждённые расчёты.
+- При proposal creation и manual correction scan использует `nutrition.calculation` для пересчёта nutrient snapshot; при confirmation `MealItem` получает копию proposal snapshot из `FoodScanDetectedItem`, чтобы изменения `FoodItem`/`FoodNutrient` после анализа не меняли подтверждённые расчёты.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 
