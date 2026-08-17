@@ -122,6 +122,8 @@ Nutrition profile не реализует диагнозы. Аллергии, in
 
 Nutrition catalog хранит nutrient values как `FoodNutrient.amount_per_100g`, связанный с расширяемым справочником `Nutrient`. Нельзя проектировать клиентов так, будто доступны только calories/protein/fat/carbohydrate.
 
+Расчёт nutrition snapshots выполняется backend domain service `nutrition.calculation`, а не API view. Внутренние единицы: масса в grams (`g`), значения каталога на `100 g`, energy в `kcal`, macronutrients в `g`, micronutrients в собственных catalog units.
+
 Meal history хранит nutrient snapshots внутри `MealItem`. Клиенты не должны пересчитывать прошлые дневниковые записи из текущего состояния global nutrition catalog.
 
 Food scan uploads принимают только whitelist фактических форматов `JPEG` и `PNG`. Клиенты не должны полагаться на extension или user-provided content type.

@@ -815,3 +815,66 @@ Consequences / Последствия:
 - Любое изменение формул, density table, food type assumptions или формата geometry data требует
   обновления ADR/API docs и formula tests.
 - Перед production нужны validation dataset, calibration UX и отдельная оценка ошибок по food type.
+
+## ADR-0020: Nutrition Calculation Engine And Internal Units
+
+Date / Дата: 2026-08-17
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Nutrition calculation для MVP выносится в backend domain service `nutrition.calculation`.
+
+Сервис принимает canonical `nutrition.FoodItem` и массу `mass_g` в граммах. Он возвращает:
+
+- `kcal`;
+- `protein_g`;
+- `fat_g`;
+- `carbohydrates_g`;
+- все доступные `nutrients`;
+- доступные `micronutrients`.
+
+Единая внутренняя система единиц backend:
+
+- масса: grams (`g`);
+- значения food catalog: amount per `100 g`;
+- energy: kilocalories (`kcal`) через nutrient code `energy_kcal`;
+- protein/fat/carbohydrate: grams (`g`) через nutrient codes `protein`, `fat`, `carbohydrate`;
+- micronutrients: catalog-native units из `Nutrient.unit`, например `mg`, `mcg`, `g`.
+
+Расчёты выполняются через `Decimal` и quantize до `0.0001` для nutrient amounts. Отрицательная масса
+недопустима и приводит к `mass_g_must_be_non_negative`. Масса `0 g` допустима для domain service и
+возвращает нулевые значения, хотя публичные meal/write serializers могут сохранять более строгий
+минимум для пользовательских записей.
+
+`diary.snapshots.build_food_snapshot` остаётся совместимым фасадом, но делегирует расчёт в
+`nutrition.calculation`. `diary` и `food_scans` не должны дублировать формулы расчёта nutrients.
+
+Scan flow:
+
+- proposal `FoodScanDetectedItem` создаёт nutrient snapshot через `nutrition.calculation`;
+- manual mass correction пересчитывает proposal snapshot через тот же engine;
+- confirmation копирует уже сохранённый proposal snapshot в `MealItem`, сохраняя историческую
+  воспроизводимость.
+
+Rationale / Обоснование:
+
+- Nutrition catalog владеет `FoodItem`, `Nutrient` и `FoodNutrient`, поэтому расчёт по per-100g
+  значениям должен жить рядом с каталогом, а не в API views или scan orchestration.
+- Один engine снижает риск расхождения между ручным diary flow, Vision scan flow и будущими imports.
+- Decimal нужен для стабильных финансово-похожих вычислений нутриентов, где float rounding создаёт
+  непредсказуемые API snapshots.
+- Единые internal units нужны до появления frontend, HealthKit/Health Connect и B2B API, чтобы не
+  смешивать grams, ounces, servings и provider-specific micronutrient units.
+
+Consequences / Последствия:
+
+- Новые flows, которые создают `MealItem` или proposal nutrient snapshot, должны использовать
+  `nutrition.calculation`.
+- Если появятся serving units, imperial units или provider-specific nutrient mappings, они должны
+  конвертироваться в internal grams/per-100g до вызова calculation engine.
+- Изменение rounding, nutrient code mapping или internal units требует обновления ADR/API docs и
+  unit tests формул.
+- Historical `MealItem` snapshots остаются source of truth для дневника; клиенты не должны
+  пересчитывать историю из текущего catalog state.

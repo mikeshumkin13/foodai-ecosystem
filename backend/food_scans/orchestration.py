@@ -20,6 +20,7 @@ from integrations.vision.client import (
     VisionTimeoutError,
     VisionUnavailableError,
 )
+from nutrition.calculation import build_food_nutrition_snapshot
 from nutrition.models import FoodItem
 
 NUTRIENT_QUANT = Decimal("0.0001")
@@ -347,9 +348,7 @@ def _build_meal_item_from_detected_item(
 
 
 def _snapshot_fields(*, food: FoodItem, mass_g: Decimal) -> dict[str, Any]:
-    from diary.snapshots import build_food_snapshot
-
-    snapshot = build_food_snapshot(food, mass_g)
+    snapshot = build_food_nutrition_snapshot(food=food, mass_g=mass_g)
     return {
         "food_name_snapshot": snapshot["food_name_snapshot"],
         "food_source_reference_snapshot": snapshot["food_source_reference_snapshot"],

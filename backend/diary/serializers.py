@@ -7,7 +7,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from diary.models import Meal, MealItem
-from diary.snapshots import build_food_snapshot
+from nutrition.calculation import build_food_nutrition_snapshot
 from nutrition.models import FoodItem
 
 
@@ -185,7 +185,7 @@ def _create_meal_items(meal: Meal, items_data: list[dict[str, Any]]) -> None:
 def _build_meal_item(meal: Meal, item_data: dict[str, Any]) -> MealItem:
     food = item_data["food"]
     mass_g = item_data["mass_g"]
-    snapshot = build_food_snapshot(food, mass_g)
+    snapshot = build_food_nutrition_snapshot(food=food, mass_g=mass_g)
 
     return MealItem(
         meal=meal,
