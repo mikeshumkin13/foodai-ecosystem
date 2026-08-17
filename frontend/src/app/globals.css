@@ -375,6 +375,39 @@ button:disabled {
   gap: 18px;
 }
 
+.scan-workflow {
+  display: grid;
+  gap: 18px;
+}
+
+.scan-steps {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scan-steps li {
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.scan-steps__item--active {
+  border-color: rgb(78 143 120 / 45%);
+  background: #edf5f1;
+  color: var(--color-primary);
+}
+
 .upload-form,
 .scan-result-preview,
 .profile-grid .panel,
@@ -390,6 +423,35 @@ button:disabled {
   display: grid;
   gap: 16px;
   align-content: start;
+}
+
+.segmented-control {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #f1f6f3;
+  padding: 5px;
+}
+
+.segmented-control__button {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-muted);
+  font-weight: 800;
+}
+
+.segmented-control__button--active {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: 0 8px 18px rgb(24 33 31 / 7%);
 }
 
 .upload-dropzone {
@@ -451,6 +513,328 @@ button:disabled {
   background: #eef3f2;
   padding: 10px 12px;
   color: var(--color-primary);
+}
+
+.scan-processing-state {
+  width: min(520px, 100%);
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.scan-processing-state strong {
+  font-size: 18px;
+}
+
+.scan-processing-state span {
+  color: var(--color-muted);
+}
+
+.scan-processing-state code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  border-radius: 8px;
+  background: #eef3f2;
+  padding: 10px 12px;
+  color: var(--color-primary);
+}
+
+.scan-processing-state--failed strong {
+  color: var(--color-coral);
+}
+
+.scan-review-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 0.44fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.scan-items-list {
+  display: grid;
+  gap: 14px;
+}
+
+.scan-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.scan-section-heading h2,
+.scan-review-summary h2,
+.add-food-form h3,
+.meal-card h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.scan-section-heading p,
+.scan-review-summary p {
+  max-width: 520px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.scan-item-card,
+.scan-review-summary,
+.meal-card {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.scan-item-card {
+  padding: 18px;
+  display: grid;
+  gap: 16px;
+}
+
+.scan-item-card__header,
+.scan-review-summary__header,
+.meal-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.scan-item-card__header,
+.meal-card__header {
+  align-items: start;
+}
+
+.scan-review-summary__header {
+  align-items: center;
+}
+
+.scan-review-summary__header svg {
+  flex: 0 0 auto;
+  color: var(--color-accent);
+}
+
+.scan-item-card__label,
+.meal-card__header p {
+  margin: 0 0 5px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.scan-item-card h2 {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1.2;
+}
+
+.confidence-badge {
+  min-width: 82px;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  color: var(--color-primary);
+}
+
+.confidence-badge span {
+  border-radius: 8px;
+  background: #edf5f1;
+  padding: 6px 9px;
+  font-weight: 900;
+}
+
+.confidence-badge small {
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.portion-box {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.portion-box > div {
+  min-height: 76px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fbfcfb;
+  padding: 12px;
+}
+
+.portion-box span,
+.nutrition-row small {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.portion-box strong {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.nutrition-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.nutrition-row > span {
+  min-height: 68px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  border-radius: 8px;
+  background: #f4f8f5;
+  padding: 10px;
+}
+
+.nutrition-row strong {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.nutrition-row--summary > span {
+  background: #edf5f1;
+}
+
+.correction-grid,
+.add-food-form,
+.confirm-box {
+  display: grid;
+  gap: 12px;
+}
+
+.correction-grid__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.food-search-results {
+  display: grid;
+  gap: 6px;
+}
+
+.food-search-results button {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fbfcfb;
+  color: var(--color-primary);
+  padding: 9px 11px;
+  text-align: left;
+}
+
+.food-search-results button:hover {
+  border-color: rgb(78 143 120 / 50%);
+}
+
+.food-search-results small {
+  color: var(--color-muted);
+}
+
+.scan-item-card__remove {
+  justify-self: start;
+}
+
+.scan-review-summary {
+  position: sticky;
+  top: 22px;
+  padding: 18px;
+  display: grid;
+  gap: 16px;
+}
+
+.add-food-form {
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  padding: 16px 0;
+}
+
+.add-food-form h3 {
+  font-size: 16px;
+}
+
+.confirm-box {
+  align-content: start;
+}
+
+.meal-list {
+  display: grid;
+  gap: 14px;
+}
+
+.meal-card {
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.meal-card__header span {
+  border-radius: 8px;
+  background: #edf5f1;
+  color: var(--color-primary);
+  padding: 6px 9px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.meal-card__items {
+  display: grid;
+  gap: 8px;
+}
+
+.meal-card__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fbfcfb;
+  padding: 12px;
+}
+
+.meal-card__item strong,
+.meal-card__item small {
+  display: block;
+}
+
+.meal-card__item small {
+  margin-top: 4px;
+  color: var(--color-muted);
+}
+
+.meal-card__nutrients {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 6px;
+}
+
+.meal-card__nutrients span {
+  border-radius: 8px;
+  background: #eef3f2;
+  color: var(--color-primary);
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .profile-grid {
@@ -569,6 +953,8 @@ button:disabled {
   .metrics-grid,
   .content-grid,
   .scan-panel,
+  .scan-steps,
+  .scan-review-layout,
   .profile-grid,
   .form-grid {
     grid-template-columns: 1fr;
@@ -577,6 +963,14 @@ button:disabled {
   .toolbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .scan-section-heading {
+    display: grid;
+  }
+
+  .scan-review-summary {
+    position: static;
   }
 
   .mobile-nav {
@@ -627,6 +1021,27 @@ button:disabled {
 
   .metric-card {
     min-height: 112px;
+  }
+
+  .portion-box,
+  .nutrition-row,
+  .correction-grid__row,
+  .meal-card__item {
+    grid-template-columns: 1fr;
+  }
+
+  .confidence-badge {
+    justify-items: start;
+  }
+
+  .scan-item-card__header,
+  .scan-review-summary__header,
+  .meal-card__header {
+    display: grid;
+  }
+
+  .meal-card__nutrients {
+    justify-content: start;
   }
 
   .auth-page__intro,

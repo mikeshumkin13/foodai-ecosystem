@@ -35,3 +35,18 @@ Web-клиент использует backend session-cookie схему:
 - CSRF отправляется в заголовке `X-CSRFToken`.
 
 API-вызовы должны идти через `src/lib/api`, а презентационные UI components не должны содержать бизнес-логику API.
+
+## Food Scan UI
+
+`/scan` реализует MVP flow:
+
+- выбор файла или mobile camera input;
+- upload через `POST /api/v1/food-scans/`;
+- polling `GET /api/v1/food-scans/{id}/results/`;
+- карточки detected food с confidence, `≈` estimated grams, диапазоном uncertainty и КБЖУ;
+- исправление массы и продукта;
+- удаление ошибочного item и добавление отсутствующего продукта;
+- confirmation через `POST /api/v1/food-scans/{id}/confirm/`;
+- переход в `/diary?date=YYYY-MM-DD`.
+
+`/diary` загружает дневную агрегацию через `GET /api/v1/diary/day/?date=` и показывает созданные после confirmation записи.
