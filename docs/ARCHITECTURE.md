@@ -169,6 +169,10 @@ Vision не владеет пользователями, дневниками, �
 - Browser-facing access token не выдаётся и не хранится в `localStorage`.
 - Базовые UI components в `frontend/src/components/ui` не содержат бизнес-логику API; API-вызовы находятся в feature/components и `src/lib/api`.
 - Пользовательские строки вынесены в localization-ready словарь `frontend/src/lib/i18n/messages.ts` с `ru` и `en`.
+- `/scan` реализует клиентский Food Scan flow поверх backend API: upload/camera file input, polling статуса, review detected items, отображение confidence, estimate mass, min/max uncertainty, КБЖУ, correction controls, add/remove detected item и explicit confirmation.
+- UI не показывает массу как точное измерение: estimated grams отображаются как `≈`, рядом показывается диапазон portion estimate, а ручная коррекция массы остаётся отдельным действием пользователя.
+- `/diary` подтягивает `GET /api/v1/diary/day/?date=` и показывает дневные totals и meal cards; после confirmation scan frontend открывает дневник за дату созданного meal.
+- Component tests для scan review components выполняются через Vitest и `react-dom/server`, без добавления browser token storage или прямых API-вызовов вне centralized API client.
 - Frontend quality gate: custom project linter, TypeScript typecheck, Vitest unit tests и `next build`.
 
 ## Infrastructure

@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-17
 
 ## Текущий завершённый этап
 
-ЭТАП 18, PROMPT 18 — Next.js frontend foundation завершён.
+ЭТАП 19, PROMPT 19 — Scan UI завершён.
 
 ## Состояние
 
@@ -170,6 +170,14 @@ Last updated / Обновлено: 2026-08-17
 - Добавлены loading states, empty states, базовые формы login/register и MVP scan upload panel.
 - Добавлен frontend quality gate: project frontend linter, TypeScript typecheck, Vitest unit tests и Next.js production build.
 - GitHub Actions CI расширен отдельным frontend job.
+- Создана ветка `feature/frontend-food-scan` от актуального `develop`.
+- `/scan` реализует пользовательский flow: scan → upload/camera → processing → detected food → estimated grams → КБЖУ → correction → confirm → diary.
+- Каждый detected item показывается отдельной карточкой с названием, confidence, estimated grams, editable grams, kcal, protein, fat и carbohydrates.
+- Portion uncertainty отображается явно как `≈` estimated mass и min/max диапазон; UI не позиционирует оценку модели как точное измерение.
+- Пользователь может исправить массу, заменить продукт через nutrition catalog search, удалить ошибочный detected item и добавить отсутствующий продукт.
+- Confirmation вызывает backend `food-scans/{id}/confirm/` и после создания meal открывает `/diary?date=YYYY-MM-DD`.
+- `/diary` теперь загружает дневную агрегацию через API и показывает totals и meal cards, включая записи, созданные после подтверждения scan.
+- Добавлены component tests для scan detected item card и scan review summary.
 
 ## Проверки
 
@@ -306,7 +314,13 @@ Last updated / Обновлено: 2026-08-17
 - `docker compose --env-file .env config --quiet` — passed.
 - `docker compose --env-file .env build backend vision celery_worker` — passed, backend, vision и celery_worker images собраны.
 - `git diff --check` — passed.
+- `frontend/pnpm check` — passed для PROMPT 19: frontend linter прошёл 44 files, TypeScript typecheck passed, Vitest: 4 test files / 5 tests passed, Next.js production build passed.
+- `make check` — passed для PROMPT 19: backend/vision Ruff без ошибок, mypy без ошибок в 106 source files, Django system check без ошибок, pytest: 167 passed, coverage 89.40%; frontend linter passed, TypeScript typecheck passed, Vitest: 4 test files / 5 tests passed, Next.js production build passed. Есть одно стороннее `StarletteDeprecationWarning` из FastAPI TestClient.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage19.yml` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — passed, backend, vision и celery_worker images собраны.
 
 ## Следующий этап
 
-Остановиться после PROMPT 18. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 19. Следующую задачу начинать только после явной команды пользователя.
