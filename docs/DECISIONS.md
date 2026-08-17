@@ -878,3 +878,53 @@ Consequences / Последствия:
   unit tests формул.
 - Historical `MealItem` snapshots остаются source of truth для дневника; клиенты не должны
   пересчитывать историю из текущего catalog state.
+
+## ADR-0021: Next.js Frontend Foundation With Session Cookie API Client
+
+Date / Дата: 2026-08-17
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Frontend foundation реализуется в `frontend` как Next.js App Router + TypeScript приложение.
+
+MVP frontend строится как responsive PWA-ready web client:
+
+- маршруты `/login`, `/register`, `/dashboard`, `/diary`, `/scan`, `/profile`;
+- manifest/icon/service worker registration для production PWA foundation;
+- responsive shell с desktop sidebar и mobile bottom navigation;
+- централизованный API client в `frontend/src/lib/api`;
+- централизованная обработка API ошибок;
+- локализационный словарь `ru`/`en` в `frontend/src/lib/i18n/messages.ts`;
+- базовые UI components без бизнес-логики API;
+- loading и empty states на MVP-экранах.
+
+Auth/API схема frontend следует ADR-0009:
+
+- web-клиент не хранит access token в `localStorage` или `sessionStorage`;
+- API requests выполняются с `credentials: "include"`;
+- unsafe requests получают CSRF через `GET /api/v1/auth/csrf/`;
+- CSRF отправляется в `X-CSRFToken`.
+
+Frontend quality gate использует:
+
+- project frontend linter для security/architecture rules;
+- TypeScript `tsc --noEmit`;
+- Vitest unit tests;
+- `next build`.
+
+Rationale / Обоснование:
+
+- Backend уже выбрал session-cookie authentication, поэтому frontend должен быть спроектирован вокруг cookie/CSRF, а не browser token storage.
+- Централизованный API client снижает риск расхождения CSRF, credentials и error handling между страницами.
+- PWA-ready foundation нужен до scan/camera UX, но полноценные offline flows и push notifications не добавляются преждевременно.
+- UI components без API-логики упрощают тестирование и дальнейшую реализацию scan/diary flows.
+- Локализация ru/en учитывается до появления большого объёма пользовательских строк.
+
+Consequences / Последствия:
+
+- Новые frontend API calls должны добавляться через `frontend/src/lib/api`, а не прямой `fetch` в UI components.
+- Нельзя добавлять access token storage в `localStorage`/`sessionStorage` без нового security ADR.
+- Scan UI и diary UI должны переиспользовать существующий shell, loading/empty states и centralized error handling.
+- При добавлении полноценного camera/offline UX нужно отдельно проверить browser permissions, privacy copy, fallback states и PWA caching policy.

@@ -91,6 +91,9 @@ Auth API использует cookie/session схему:
 - bearer access/refresh token для web-клиента не выдаётся;
 - password reset request и email resend возвращают generic response, чтобы не раскрывать наличие аккаунта.
 
+Frontend foundation реализует этот контракт через `frontend/src/lib/api/client.ts`.
+UI-клиенты не должны вызывать `fetch` к backend напрямую вне централизованного API client и не должны хранить access token в browser storage.
+
 Правила доступа:
 
 - unauthenticated requests запрещены для account API;

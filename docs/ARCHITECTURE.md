@@ -157,6 +157,20 @@ Vision не владеет пользователями, дневниками, �
 
 Пользовательские строки фронтенда должны быть готовы к локализации на русский (`ru`) и английский (`en`).
 
+Текущее foundation-состояние:
+
+- Frontend расположен в `frontend`.
+- Используется Next.js App Router + TypeScript.
+- Реализованы базовые маршруты `/login`, `/register`, `/dashboard`, `/diary`, `/scan`, `/profile`.
+- UI shell responsive: sidebar на desktop и нижняя навигация на mobile.
+- Приложение PWA-ready: добавлены manifest, icon и service worker registration для production build.
+- Централизованный API client расположен в `frontend/src/lib/api`.
+- Auth flow соответствует backend ADR-0009: requests выполняются с `credentials: "include"`, unsafe requests получают CSRF через `GET /api/v1/auth/csrf/` и отправляют `X-CSRFToken`.
+- Browser-facing access token не выдаётся и не хранится в `localStorage`.
+- Базовые UI components в `frontend/src/components/ui` не содержат бизнес-логику API; API-вызовы находятся в feature/components и `src/lib/api`.
+- Пользовательские строки вынесены в localization-ready словарь `frontend/src/lib/i18n/messages.ts` с `ru` и `en`.
+- Frontend quality gate: custom project linter, TypeScript typecheck, Vitest unit tests и `next build`.
+
 ## Infrastructure
 
 Локально планируются:
