@@ -61,3 +61,32 @@ jobs:
 
       - name: OpenAPI validation
         run: python backend/manage.py spectacular --validate --file /tmp/foodai-openapi.yml --settings=config.settings.local
+
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Frontend lint, typecheck, tests and build
+        working-directory: frontend
+        run: pnpm check

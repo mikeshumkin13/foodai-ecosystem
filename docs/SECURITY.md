@@ -87,6 +87,14 @@ Web authentication использует Django session cookies:
 - logout очищает session;
 - password change использует `update_session_auth_hash` для текущей session.
 
+Frontend foundation следует этой схеме:
+
+- не хранит access token или session material в `localStorage`/`sessionStorage`;
+- использует централизованный API client с `credentials: "include"`;
+- перед unsafe requests вызывает `GET /api/v1/auth/csrf/`;
+- отправляет CSRF token в заголовке `X-CSRFToken`;
+- держит обработку API ошибок централизованной и не выводит чувствительные payloads в UI.
+
 Email verification и password reset:
 
 - raw tokens не хранятся в БД;

@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-17
 
 ## Текущий завершённый этап
 
-ЭТАП 17, PROMPT 17 — Nutrition calculation engine завершён.
+ЭТАП 18, PROMPT 18 — Next.js frontend foundation завершён.
 
 ## Состояние
 
@@ -157,6 +157,19 @@ Last updated / Обновлено: 2026-08-17
 - `diary.snapshots` оставлен совместимым фасадом, но расчёт выполняется через `nutrition.calculation`.
 - `Meal` creation/update и scan proposal/manual correction используют общий calculation engine, а не расчёты в API view.
 - Добавлены unit tests для 0 g, 50 g, 100 g, 250 g, missing nutrient, invalid negative mass и stable snapshot payload.
+- Создана ветка `feature/frontend-foundation` от актуального `develop`.
+- В `frontend` добавлено Next.js + TypeScript App Router приложение.
+- Добавлены базовые маршруты `/login`, `/register`, `/dashboard`, `/diary`, `/scan`, `/profile`.
+- Frontend shell сделан responsive: desktop sidebar и mobile bottom navigation.
+- Добавлен PWA-ready foundation: manifest, icon и service worker registration для production.
+- Добавлен централизованный API client `frontend/src/lib/api` с `credentials: "include"`, CSRF bootstrap через `/api/v1/auth/csrf/` и `X-CSRFToken` для unsafe requests.
+- Access token не хранится в `localStorage` или `sessionStorage`.
+- Добавлена централизованная обработка frontend API ошибок.
+- Пользовательские строки вынесены в localization-ready словарь `ru`/`en`.
+- Базовые UI components не содержат бизнес-логику API.
+- Добавлены loading states, empty states, базовые формы login/register и MVP scan upload panel.
+- Добавлен frontend quality gate: project frontend linter, TypeScript typecheck, Vitest unit tests и Next.js production build.
+- GitHub Actions CI расширен отдельным frontend job.
 
 ## Проверки
 
@@ -285,7 +298,15 @@ Last updated / Обновлено: 2026-08-17
 - `docker compose --env-file .env config --quiet` — passed.
 - `docker compose --env-file .env build backend vision celery_worker` — passed после запуска Docker Desktop, backend, vision и celery_worker images собраны.
 - `git diff --check` — passed.
+- `make frontend-check` — passed для PROMPT 18: frontend linter прошёл 38 files, TypeScript typecheck passed, Vitest: 2 test files / 3 tests passed, `next build` passed для маршрутов `/`, `/dashboard`, `/diary`, `/login`, `/manifest.webmanifest`, `/profile`, `/register`, `/scan`.
+- `frontend/pnpm install --frozen-lockfile` — passed, lock-file консистентен.
+- `make check` — passed для PROMPT 18: backend/vision Ruff без ошибок, mypy без ошибок в 106 source files, Django system check без ошибок, pytest: 167 passed, coverage 89.40%; frontend linter passed, TypeScript typecheck passed, Vitest: 2 test files / 3 tests passed, Next.js production build passed. Есть одно стороннее `StarletteDeprecationWarning` из FastAPI TestClient.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage18.yml` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — passed, backend, vision и celery_worker images собраны.
+- `git diff --check` — passed.
 
 ## Следующий этап
 
-Остановиться после PROMPT 17. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 18. Следующую задачу начинать только после явной команды пользователя.

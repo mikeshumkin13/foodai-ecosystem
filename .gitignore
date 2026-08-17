@@ -13,6 +13,7 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 .coverage
+.coverage*
 coverage.xml
 htmlcov/
 .venv/
@@ -35,6 +36,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.tsbuildinfo
 
 # IDE and OS
 .DS_Store

@@ -40,13 +40,13 @@ foodai-ecosystem/
 
 - Backend: Python, Django, Django REST Framework, PostgreSQL, Redis, Celery.
 - Vision: Python, FastAPI, Pillow, Transformers, PyTorch CPU; OpenCV добавляется только при реальной необходимости.
-- Frontend: Next.js, TypeScript, responsive PWA.
+- Frontend: Next.js, TypeScript, responsive PWA-ready client.
 - Infrastructure: Docker, Docker Compose, GitHub Actions.
 - Storage: приватное S3-compatible object storage; локально допустим MinIO.
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов, нутриентов и calculation engine для КБЖУ/micronutrients, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery, estimator оценки порции v1 и FastAPI `services/vision` с real food recognition model v1.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов, нутриентов и calculation engine для КБЖУ/micronutrients, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery, estimator оценки порции v1 и FastAPI `services/vision` с real food recognition model v1. Frontend foundation расположен в `frontend`: Next.js + TypeScript App Router, responsive PWA-ready shell, базовые страницы `/login`, `/register`, `/dashboard`, `/diary`, `/scan`, `/profile`, централизованный API client и CSRF/session-cookie flow без access token в `localStorage`.
 
 ## Backend: локальная установка
 
@@ -141,6 +141,29 @@ Benchmark Vision model v1:
 ```bash
 python services/vision/scripts/benchmark_food_model.py --synthetic
 ```
+
+## Frontend: локальная установка
+
+Для frontend используется `pnpm`.
+
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
+
+Проверки frontend:
+
+```bash
+cd frontend
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm check
+```
+
+Frontend API client находится в `frontend/src/lib/api`. Web-клиент использует backend session-cookie схему: requests идут с `credentials: "include"`, unsafe requests получают CSRF через `GET /api/v1/auth/csrf/` и отправляют `X-CSRFToken`. Browser-facing access token не выдаётся и не хранится в `localStorage`.
 
 Демо-данные nutrition catalog для локальной разработки:
 
