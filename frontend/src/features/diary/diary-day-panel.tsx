@@ -1,7 +1,16 @@
 "use client";
 
-import { CalendarDays, RefreshCw, Utensils } from "lucide-react";
+import {
+  CalendarDays,
+  Camera,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Trash2,
+  Utensils,
+} from "lucide-react";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -11,10 +20,12 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { TextField } from "@/components/ui/text-field";
 import { diaryApi } from "@/lib/api/diary";
 import { getErrorMessage } from "@/lib/api/errors";
-import type { DiaryDay, Meal } from "@/lib/api/types";
+import type { DiaryDay, Meal, MealPayload } from "@/lib/api/types";
 import { messages } from "@/lib/i18n/messages";
 
 import { formatDecimal, formatGrams } from "../scan/scan-format";
+import { MealEditor } from "./meal-editor";
+import { getMealItemCountLabel, getMealTimeLabel, getMealTitle, getToday } from "./meal-utils";
 
 const copy = messages.ru;
 
@@ -26,6 +37,10 @@ export function DiaryDayPanel() {
   const [reloadKey, setReloadKey] = useState(0);
   const [diaryDay, setDiaryDay] = useState<DiaryDay | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
+  const [isSavingMeal, setIsSavingMeal] = useState(false);
+  const [deletingMealId, setDeletingMealId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -64,21 +79,82 @@ export function DiaryDayPanel() {
   function handleDateChange(event: ChangeEvent<HTMLInputElement>) {
     const nextDate = event.target.value;
     setDate(nextDate);
+    setIsEditorOpen(false);
+    setEditingMeal(null);
     router.replace(`/diary?date=${encodeURIComponent(nextDate)}`);
+  }
+
+  function handleAddMeal() {
+    setEditingMeal(null);
+    setIsEditorOpen(true);
+  }
+
+  function handleEditMeal(meal: Meal) {
+    setEditingMeal(meal);
+    setIsEditorOpen(true);
+  }
+
+  async function handleSaveMeal(payload: MealPayload) {
+    setIsSavingMeal(true);
+    setError(null);
+    try {
+      if (editingMeal) {
+        await diaryApi.updateMeal(editingMeal.id, payload);
+      } else {
+        await diaryApi.createMeal(payload);
+      }
+      setIsEditorOpen(false);
+      setEditingMeal(null);
+      setReloadKey((currentKey) => currentKey + 1);
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    } finally {
+      setIsSavingMeal(false);
+    }
+  }
+
+  async function handleDeleteMeal(meal: Meal) {
+    if (!window.confirm(copy.diary.deleteConfirm)) {
+      return;
+    }
+
+    setDeletingMealId(meal.id);
+    setError(null);
+    try {
+      await diaryApi.deleteMeal(meal.id);
+      if (editingMeal?.id === meal.id) {
+        setIsEditorOpen(false);
+        setEditingMeal(null);
+      }
+      setReloadKey((currentKey) => currentKey + 1);
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    } finally {
+      setDeletingMealId(null);
+    }
   }
 
   return (
     <section className="diary-day-panel" aria-label={copy.diary.title}>
       <div className="toolbar">
         <TextField label={copy.diary.date} name="date" onChange={handleDateChange} type="date" value={date} />
-        <Button
-          disabled={isLoading}
-          icon={<RefreshCw aria-hidden="true" size={18} />}
-          onClick={() => setReloadKey((currentKey) => currentKey + 1)}
-          variant="secondary"
-        >
-          {copy.common.refresh}
-        </Button>
+        <div className="toolbar__actions">
+          <Button icon={<Plus aria-hidden="true" size={18} />} onClick={handleAddMeal}>
+            {copy.diary.addManualMeal}
+          </Button>
+          <Link className="button button--secondary" href="/scan">
+            <Camera aria-hidden="true" size={18} />
+            <span>{copy.diary.addViaScan}</span>
+          </Link>
+          <Button
+            disabled={isLoading}
+            icon={<RefreshCw aria-hidden="true" size={18} />}
+            onClick={() => setReloadKey((currentKey) => currentKey + 1)}
+            variant="secondary"
+          >
+            {copy.common.refresh}
+          </Button>
+        </div>
       </div>
 
       {error ? (
@@ -88,6 +164,19 @@ export function DiaryDayPanel() {
       ) : null}
 
       {isLoading && !diaryDay ? <LoadingState label={copy.common.loading} /> : null}
+
+      {isEditorOpen ? (
+        <MealEditor
+          date={date}
+          isSaving={isSavingMeal}
+          meal={editingMeal}
+          onCancel={() => {
+            setIsEditorOpen(false);
+            setEditingMeal(null);
+          }}
+          onSubmit={(payload) => void handleSaveMeal(payload)}
+        />
+      ) : null}
 
       {diaryDay ? (
         <>
@@ -101,7 +190,13 @@ export function DiaryDayPanel() {
           {diaryDay.meals.length > 0 ? (
             <div className="meal-list">
               {diaryDay.meals.map((meal) => (
-                <MealCard key={meal.id} meal={meal} />
+                <MealCard
+                  key={meal.id}
+                  isDeleting={deletingMealId === meal.id}
+                  meal={meal}
+                  onDelete={() => void handleDeleteMeal(meal)}
+                  onEdit={() => handleEditMeal(meal)}
+                />
               ))}
             </div>
           ) : (
@@ -135,17 +230,38 @@ function DiaryMetric({ label, unit, value }: { label: string; unit: string; valu
   );
 }
 
-function MealCard({ meal }: { meal: Meal }) {
-  const mealTitle = meal.name || getMealTypeLabel(meal.meal_type);
-
+function MealCard({
+  meal,
+  isDeleting,
+  onEdit,
+  onDelete,
+}: {
+  meal: Meal;
+  isDeleting: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   return (
     <Card className="meal-card">
       <div className="meal-card__header">
         <div>
-          <p>{new Date(meal.logged_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</p>
-          <h2>{mealTitle}</h2>
+          <p>{getMealTimeLabel(meal.logged_at)}</p>
+          <h2>{getMealTitle(meal)}</h2>
         </div>
-        <span>{meal.items.length} поз.</span>
+        <div className="meal-card__actions">
+          <span>{getMealItemCountLabel(meal.items.length)}</span>
+          <Button icon={<Pencil aria-hidden="true" size={17} />} onClick={onEdit} variant="secondary">
+            {copy.diary.editMeal}
+          </Button>
+          <Button
+            disabled={isDeleting}
+            icon={<Trash2 aria-hidden="true" size={17} />}
+            onClick={onDelete}
+            variant="ghost"
+          >
+            {isDeleting ? copy.common.saving : copy.diary.deleteMeal}
+          </Button>
+        </div>
       </div>
 
       <div className="meal-card__items">
@@ -166,20 +282,4 @@ function MealCard({ meal }: { meal: Meal }) {
       </div>
     </Card>
   );
-}
-
-function getMealTypeLabel(mealType: Meal["meal_type"]): string {
-  const labels: Record<Meal["meal_type"], string> = {
-    breakfast: copy.scan.mealTypes.breakfast,
-    lunch: copy.scan.mealTypes.lunch,
-    dinner: copy.scan.mealTypes.dinner,
-    snack: copy.scan.mealTypes.snack,
-    custom: copy.scan.mealTypes.custom,
-  };
-
-  return labels[mealType];
-}
-
-function getToday(): string {
-  return new Date().toISOString().slice(0, 10);
 }

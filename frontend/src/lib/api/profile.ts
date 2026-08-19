@@ -12,6 +12,9 @@ export type NutritionProfileUpdate = Partial<
 };
 
 export const profileApi = {
+  getCurrentNutritionProfile() {
+    return apiRequest<NutritionProfile>("/api/v1/accounts/nutrition-profiles/me/");
+  },
   getNutritionProfile(id: string) {
     return apiRequest<NutritionProfile>(`/api/v1/accounts/nutrition-profiles/${id}/`);
   },

@@ -48,6 +48,7 @@ API не должен привязывать клиентов к одному ч
 - `POST /api/v1/auth/password/change/` — изменение пароля текущего пользователя.
 - `GET /api/v1/accounts/profiles/{id}/` — чтение `UserProfile`.
 - `PUT/PATCH /api/v1/accounts/profiles/{id}/` — обновление `UserProfile`.
+- `GET /api/v1/accounts/nutrition-profiles/me/` — чтение собственного `NutritionProfile` без знания UUID профиля; используется frontend dashboard для безопасного чтения текущего nutrition target context.
 - `GET /api/v1/accounts/nutrition-profiles/{id}/` — чтение собственного `NutritionProfile`.
 - `PUT/PATCH /api/v1/accounts/nutrition-profiles/{id}/` — обновление собственного `NutritionProfile`; первое изменение требует `consent_accepted=true`.
 - `GET /api/v1/accounts/nutrition-restrictions/` — список собственных allergies/intolerances/medical nutrition restrictions.

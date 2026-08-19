@@ -66,7 +66,7 @@ class CanAccessNutritionProfile(BasePermission):
             return True
 
         action = getattr(view, "action", "")
-        if action == "retrieve":
+        if action in {"retrieve", "me"}:
             return user.has_perm(VIEW_OWN_NUTRITION_PROFILE_PERMISSION)
         if action in {"partial_update", "update"}:
             return user.has_perm(CHANGE_OWN_NUTRITION_PROFILE_PERMISSION)

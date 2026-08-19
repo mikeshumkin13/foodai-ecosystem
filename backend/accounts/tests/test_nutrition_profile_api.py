@@ -23,6 +23,10 @@ def _nutrition_profile_url(profile_id: object) -> str:
     return reverse("account-nutrition-profile-detail", kwargs={"id": profile_id})
 
 
+def _nutrition_profile_me_url() -> str:
+    return reverse("account-nutrition-profile-me")
+
+
 def _nutrition_restriction_url(restriction_id: object) -> str:
     return reverse("account-nutrition-restriction-detail", kwargs={"id": restriction_id})
 
@@ -69,6 +73,25 @@ def test_user_can_read_own_nutrition_profile(api_client: APIClient) -> None:
     assert response.json()["id"] == str(profile.id)
     assert response.json()["user_id"] == str(user.id)
     assert response.json()["goal"] == NutritionProfile.Goal.IMPROVE_HABITS
+
+
+def test_user_can_read_current_nutrition_profile(api_client: APIClient) -> None:
+    user = make_user()
+    profile = make_nutrition_profile(
+        user=user,
+        goal=NutritionProfile.Goal.MAINTAIN_WEIGHT,
+        mass_kg="82.40",
+        activity_level=NutritionProfile.ActivityLevel.MODERATE,
+    )
+    make_nutrition_profile()
+    api_client.force_authenticate(user=user)
+
+    response = api_client.get(_nutrition_profile_me_url())
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["id"] == str(profile.id)
+    assert response.json()["user_id"] == str(user.id)
+    assert response.json()["mass_kg"] == "82.40"
 
 
 def test_user_update_nutrition_profile_requires_consent(api_client: APIClient) -> None:
