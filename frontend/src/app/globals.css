@@ -230,6 +230,103 @@ button:disabled {
   gap: 18px;
 }
 
+.dashboard-layout {
+  display: grid;
+  gap: 18px;
+}
+
+.metrics-grid--dashboard {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.dashboard-progress {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.dashboard-progress__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dashboard-progress h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.dashboard-progress p,
+.dashboard-progress small {
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+.dashboard-progress p {
+  margin: 6px 0 0;
+}
+
+.progress-bar {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e9efe9;
+}
+
+.progress-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-amber));
+}
+
+.dashboard-meal-list,
+.quick-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard-meal-row {
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, auto) auto;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fbfcfb;
+  padding: 12px;
+}
+
+.dashboard-meal-row:hover {
+  border-color: rgb(78 143 120 / 50%);
+}
+
+.dashboard-meal-row span,
+.dashboard-meal-row small {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.dashboard-meal-row strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 16px;
+}
+
+.dashboard-meal-row div:nth-child(2) {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
 .panel {
   padding: 20px;
 }
@@ -304,6 +401,14 @@ button:disabled {
   justify-content: space-between;
   gap: 14px;
   margin-bottom: 18px;
+}
+
+.toolbar__actions {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .field {
@@ -795,6 +900,14 @@ button:disabled {
   font-weight: 900;
 }
 
+.meal-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .meal-card__items {
   display: grid;
   gap: 8px;
@@ -834,6 +947,75 @@ button:disabled {
   color: var(--color-primary);
   padding: 5px 8px;
   font-size: 12px;
+  font-weight: 800;
+}
+
+.meal-editor {
+  margin-bottom: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.meal-editor__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.meal-editor h2,
+.draft-items h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.meal-editor p {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.manual-food-search,
+.draft-items {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+}
+
+.manual-food-search__row,
+.draft-item {
+  display: grid;
+  align-items: end;
+  gap: 10px;
+}
+
+.manual-food-search__row {
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 0.28fr) auto;
+}
+
+.draft-item {
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.22fr) auto auto;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fbfcfb;
+  padding: 12px;
+}
+
+.draft-item strong {
+  align-self: center;
+}
+
+.draft-item > span,
+.muted-note {
+  color: var(--color-muted);
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -965,6 +1147,17 @@ button:disabled {
     flex-direction: column;
   }
 
+  .toolbar__actions,
+  .dashboard-progress__header,
+  .meal-editor__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .toolbar__actions {
+    justify-content: start;
+  }
+
   .scan-section-heading {
     display: grid;
   }
@@ -1026,7 +1219,10 @@ button:disabled {
   .portion-box,
   .nutrition-row,
   .correction-grid__row,
-  .meal-card__item {
+  .meal-card__item,
+  .manual-food-search__row,
+  .draft-item,
+  .dashboard-meal-row {
     grid-template-columns: 1fr;
   }
 
@@ -1041,6 +1237,12 @@ button:disabled {
   }
 
   .meal-card__nutrients {
+    justify-content: start;
+  }
+
+  .meal-card__actions,
+  .dashboard-meal-row div:nth-child(2) {
+    justify-items: start;
     justify-content: start;
   }
 

@@ -53,6 +53,10 @@ export type NutrientSnapshot = Record<
   }
 >;
 
+export type MealType = "breakfast" | "lunch" | "dinner" | "snack" | "custom";
+
+export type MealItemSource = "food_catalog" | "manual" | "vision" | "import";
+
 export type MealItem = {
   id: string;
   food_id: string;
@@ -65,7 +69,7 @@ export type MealItem = {
   carbs: string;
   micronutrient_snapshot: NutrientSnapshot;
   nutrient_snapshot: NutrientSnapshot;
-  source: string;
+  source: MealItemSource;
   confidence: string | null;
   manually_corrected: boolean;
   created_at: string;
@@ -75,12 +79,26 @@ export type MealItem = {
 export type Meal = {
   id: string;
   user_id: string;
-  meal_type: "breakfast" | "lunch" | "dinner" | "snack" | "custom";
+  meal_type: MealType;
   logged_at: string;
   name: string;
   items: MealItem[];
   created_at: string;
   updated_at: string;
+};
+
+export type MealItemPayload = {
+  food_id: string;
+  mass_g: string;
+  source?: MealItemSource;
+  manually_corrected?: boolean;
+};
+
+export type MealPayload = {
+  meal_type: MealType;
+  logged_at: string;
+  name?: string;
+  items?: MealItemPayload[];
 };
 
 export type DiaryDay = {

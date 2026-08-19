@@ -75,6 +75,7 @@ foodai-ecosystem/
 - Возраст хранится как `age_category`, а не дата рождения или точный год рождения.
 - Аллергии, intolerance и медицинские ограничения отделены в `accounts.NutritionSensitiveRestriction` и доступны только владельцу через object-level permissions.
 - Nutrition profile API требует owner-only доступ и consent/version foundation для изменения пользовательских nutrition/health данных.
+- `GET /api/v1/accounts/nutrition-profiles/me/` возвращает текущий nutrition profile владельца без раскрытия чужих UUID и используется frontend dashboard для calorie target context.
 - Приложение `nutrition` содержит MVP nutrition catalog: `FoodCategory`, `FoodDataSource`, `Nutrient`, `FoodItem`, `FoodNutrient`.
 - `FoodItem` хранит canonical food item, names/synonyms, category, source, density metadata, verified flag и source reference.
 - Нутриенты не зашиты как только КБЖУ: `FoodNutrient` связывает food item с расширяемым `Nutrient` и хранит `amount_per_100g`.
@@ -172,6 +173,10 @@ Vision не владеет пользователями, дневниками, �
 - `/scan` реализует клиентский Food Scan flow поверх backend API: upload/camera file input, polling статуса, review detected items, отображение confidence, estimate mass, min/max uncertainty, КБЖУ, correction controls, add/remove detected item и explicit confirmation.
 - UI не показывает массу как точное измерение: estimated grams отображаются как `≈`, рядом показывается диапазон portion estimate, а ручная коррекция массы остаётся отдельным действием пользователя.
 - `/diary` подтягивает `GET /api/v1/diary/day/?date=` и показывает дневные totals и meal cards; после confirmation scan frontend открывает дневник за дату созданного meal.
+- `/dashboard` подтягивает дневную агрегацию за сегодня, показывает calories consumed, calorie target, protein, fat, carbohydrates и meals today.
+- Calorie target на dashboard является MVP-ориентиром из текущего nutrition profile; при отсутствии данных или `under_18` target не рассчитывается.
+- `/diary` поддерживает ручное добавление еды из nutrition catalog, редактирование и удаление собственных meals через Meals API.
+- Ручной diary flow не зависит от AI Scan, поэтому пользователь может вести питание при недоступном Vision/Celery/AI.
 - Component tests для scan review components выполняются через Vitest и `react-dom/server`, без добавления browser token storage или прямых API-вызовов вне centralized API client.
 - Frontend quality gate: custom project linter, TypeScript typecheck, Vitest unit tests и `next build`.
 

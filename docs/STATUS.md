@@ -1,10 +1,10 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-08-17
+Last updated / Обновлено: 2026-08-19
 
 ## Текущий завершённый этап
 
-ЭТАП 19, PROMPT 19 — Scan UI завершён.
+ЭТАП 20, PROMPT 20 — Dashboard и Diary UI завершён.
 
 ## Состояние
 
@@ -178,6 +178,14 @@ Last updated / Обновлено: 2026-08-17
 - Confirmation вызывает backend `food-scans/{id}/confirm/` и после создания meal открывает `/diary?date=YYYY-MM-DD`.
 - `/diary` теперь загружает дневную агрегацию через API и показывает totals и meal cards, включая записи, созданные после подтверждения scan.
 - Добавлены component tests для scan detected item card и scan review summary.
+- Создана ветка `feature/frontend-dashboard` от актуального `develop`.
+- Добавлен additive endpoint `GET /api/v1/accounts/nutrition-profiles/me/` для чтения собственного nutrition profile без знания UUID.
+- `/dashboard` стал динамическим: показывает calories consumed, calorie target, protein, fat, carbohydrates и meals today.
+- Calorie target на dashboard является MVP-ориентиром из nutrition profile; при отсутствии данных или `under_18` target не рассчитывается.
+- `/dashboard` показывает список сегодняшних meals и быстрые действия для ручного добавления еды и Scan.
+- `/diary` расширен календарной датой, ручным добавлением еды из nutrition catalog, редактированием и удалением собственных meals.
+- Ручное создание meals работает через существующий Meals API и backend `nutrition.calculation`, поэтому пользователь может вести дневник без AI Scan.
+- Добавлены component/unit tests для dashboard metrics, dashboard summary и manual meal editor.
 
 ## Проверки
 
@@ -320,7 +328,18 @@ Last updated / Обновлено: 2026-08-17
 - `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage19.yml` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
 - `docker compose --env-file .env config --quiet` — passed.
 - `docker compose --env-file .env build backend vision celery_worker` — passed, backend, vision и celery_worker images собраны.
+- `make frontend-typecheck` — passed для PROMPT 20.
+- `make frontend-lint` — passed для PROMPT 20, frontend linter прошёл 52 files.
+- `make frontend-test` — passed для PROMPT 20, Vitest: 7 test files / 10 tests passed.
+- Точечный `pytest backend/accounts/tests/test_nutrition_profile_api.py` — 20 tests passed, но отдельный subset run ожидаемо завершился coverage failure, потому что общий coverage gate применяется ко всем source files.
+- `make lint` — passed для PROMPT 20, Ruff без ошибок.
+- `make check` — passed для PROMPT 20: Ruff без ошибок, mypy без ошибок в 106 source files, Django system check без ошибок, pytest: 168 passed, coverage 89.42%; frontend linter passed, TypeScript typecheck passed, Vitest: 7 test files / 10 tests passed, Next.js production build passed. Есть одно стороннее `StarletteDeprecationWarning` из FastAPI TestClient.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage20.yml` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — первый запуск был заблокирован Codex sandbox, после запуска Docker Desktop и выполнения вне sandbox passed, backend, vision и celery_worker images собраны.
+- `git diff --check` — passed.
 
 ## Следующий этап
 
-Остановиться после PROMPT 19. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 20. Следующую задачу начинать только после явной команды пользователя.

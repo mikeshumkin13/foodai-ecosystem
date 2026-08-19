@@ -928,3 +928,44 @@ Consequences / Последствия:
 - Нельзя добавлять access token storage в `localStorage`/`sessionStorage` без нового security ADR.
 - Scan UI и diary UI должны переиспользовать существующий shell, loading/empty states и centralized error handling.
 - При добавлении полноценного camera/offline UX нужно отдельно проверить browser permissions, privacy copy, fallback states и PWA caching policy.
+
+## ADR-0022: Dashboard And Manual Diary Fallback Before Goals
+
+Date / Дата: 2026-08-19
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Dashboard MVP использует уже существующие данные дневника и nutrition profile, не вводя отдельную
+goals-модель раньше времени.
+
+- `calories consumed`, protein, fat, carbohydrates и `meals today` берутся из
+  `GET /api/v1/diary/day/?date=YYYY-MM-DD`.
+- `calorie target` на этом этапе является осторожным ориентиром frontend, рассчитанным из
+  `NutritionProfile.mass_kg`, `activity_level` и `goal`.
+- Если данных профиля недостаточно или `age_category=under_18`, target не рассчитывается и UI
+  показывает отсутствие ориентира.
+- Для чтения текущего nutrition profile добавлен additive endpoint
+  `GET /api/v1/accounts/nutrition-profiles/me/`.
+- Diary UI должен поддерживать ручное создание, редактирование и удаление meals через existing
+  Meals API, чтобы продукт оставался usable даже при недоступном AI Scan.
+
+Rationale / Обоснование:
+
+- Stage 20 требует dashboard target, но полноценные goals/calorie planning модели ещё не введены.
+- Раннее добавление отдельной goals-доменной модели увеличило бы scope и privacy-поверхность без
+  явного требования текущего этапа.
+- Manual diary fallback является продуктовой отказоустойчивостью: пользователь не должен зависеть
+  от Vision/Celery/AI для базового ведения питания.
+- Additive `nutrition-profiles/me/` упрощает frontend и не раскрывает чужие profile UUID, потому что
+  endpoint использует owner-only queryset и existing nutrition profile permissions.
+
+Consequences / Последствия:
+
+- Dashboard target нельзя трактовать как медицинское или диетологическое назначение.
+- Будущий этап goals должен заменить frontend-estimated calorie target на user-owned goals API.
+- При появлении точных целей, gender/sex fields, clinical restrictions или coach logic потребуется
+  отдельное privacy/safety решение.
+- Ручное создание `MealItem` продолжает использовать backend `nutrition.calculation` через Meals API,
+  поэтому historical nutrient snapshots остаются воспроизводимыми.

@@ -1,5 +1,5 @@
 import { apiRequest } from "./client";
-import type { DiaryDay, Meal } from "./types";
+import type { DiaryDay, Meal, MealPayload } from "./types";
 
 export type MealFilters = {
   date?: string;
@@ -13,6 +13,23 @@ export const diaryApi = {
   },
   day(date: string) {
     return apiRequest<DiaryDay>(`/api/v1/diary/day/?date=${encodeURIComponent(date)}`);
+  },
+  createMeal(payload: MealPayload) {
+    return apiRequest<Meal>("/api/v1/meals/", {
+      method: "POST",
+      body: payload,
+    });
+  },
+  updateMeal(mealId: string, payload: MealPayload) {
+    return apiRequest<Meal>(`/api/v1/meals/${mealId}/`, {
+      method: "PATCH",
+      body: payload,
+    });
+  },
+  deleteMeal(mealId: string) {
+    return apiRequest<void>(`/api/v1/meals/${mealId}/`, {
+      method: "DELETE",
+    });
   },
 };
 

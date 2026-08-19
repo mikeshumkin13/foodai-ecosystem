@@ -6,11 +6,13 @@ from django.contrib.auth import login, logout, update_session_auth_hash
 from django.db.models import QuerySet
 from django.http import HttpResponse
 from django.middleware.csrf import get_token, rotate_token
+from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, viewsets
 from rest_framework.authentication import CSRFCheck
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
@@ -311,6 +313,13 @@ class NutritionProfileViewSet(
             return base_queryset.filter(user=user)
 
         return base_queryset.none()
+
+    @action(detail=False, methods=["get"], url_path="me")
+    def me(self, request: Request) -> Response:
+        user = cast(User, request.user)
+        nutrition_profile = get_object_or_404(self.get_queryset(), user=user)
+        serializer = self.get_serializer(nutrition_profile)
+        return Response(serializer.data)
 
 
 class NutritionSensitiveRestrictionViewSet(

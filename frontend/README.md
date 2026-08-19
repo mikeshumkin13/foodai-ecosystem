@@ -50,3 +50,17 @@ API-вызовы должны идти через `src/lib/api`, а презен
 - переход в `/diary?date=YYYY-MM-DD`.
 
 `/diary` загружает дневную агрегацию через `GET /api/v1/diary/day/?date=` и показывает созданные после confirmation записи.
+
+## Dashboard и Diary
+
+`/dashboard` показывает сводку текущего дня:
+
+- calories consumed;
+- calorie target как MVP-ориентир из текущего nutrition profile;
+- protein, fat, carbohydrates;
+- meals today;
+- быстрые действия для ручного добавления еды и Scan.
+
+`/diary` поддерживает календарную дату, список приёмов пищи, ручное создание еды из nutrition catalog, редактирование и удаление собственных meals.
+
+Ручной diary flow обязателен: пользователь должен иметь возможность вести питание даже при недоступном AI Scan, Vision service или Celery.
