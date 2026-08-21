@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "diary",
     "food_scans",
     "ai_coach",
+    "fitness",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -171,6 +172,11 @@ AI_COACH_PROVIDER_TIMEOUT_SECONDS = get_env_float(
     "AI_COACH_PROVIDER_TIMEOUT_SECONDS",
     default=10.0,
 )
+FITNESS_COACH_PROVIDER = get_env("FITNESS_COACH_PROVIDER", default="mock")
+FITNESS_COACH_PROVIDER_TIMEOUT_SECONDS = get_env_float(
+    "FITNESS_COACH_PROVIDER_TIMEOUT_SECONDS",
+    default=10.0,
+)
 
 CORS_ALLOWED_ORIGINS = get_env_list("DJANGO_CORS_ALLOWED_ORIGINS", default="")
 CORS_ALLOW_CREDENTIALS = get_env_bool("DJANGO_CORS_ALLOW_CREDENTIALS", default=False)
@@ -204,6 +210,7 @@ REST_FRAMEWORK = {
         "auth_password_reset": get_env("AUTH_PASSWORD_RESET_THROTTLE_RATE", default="5/hour"),
         "auth_password_change": get_env("AUTH_PASSWORD_CHANGE_THROTTLE_RATE", default="5/hour"),
         "ai_coach_ask": get_env("AI_COACH_ASK_THROTTLE_RATE", default="30/hour"),
+        "fitness_coach": get_env("FITNESS_COACH_THROTTLE_RATE", default="30/hour"),
     },
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
@@ -217,6 +224,11 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "ENUM_NAME_OVERRIDES": {
         "MealItemSourceEnum": "diary.models.MealItem.Source",
+        "FoodScanStatusEnum": "food_scans.models.FoodScan.Status",
         "FoodScanDetectedItemSourceEnum": "food_scans.models.FoodScanDetectedItem.Source",
+        "WorkoutPlanGoalEnum": "fitness.models.WorkoutPlan.Goal",
+        "WorkoutPlanExperienceLevelEnum": "fitness.models.WorkoutPlan.ExperienceLevel",
+        "WorkoutPlanStatusEnum": "fitness.models.WorkoutPlan.Status",
+        "WorkoutExerciseIntensityEnum": "fitness.models.WorkoutExercise.Intensity",
     },
 }

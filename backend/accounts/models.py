@@ -201,6 +201,7 @@ class RolePermission(models.Model):
             ("view_support_admin", "Can view support admin tools without private user data"),
             ("manage_reference_data", "Can manage shared reference data"),
             ("manage_food_catalog", "Can manage future food catalog content"),
+            ("manage_fitness_catalog", "Can manage fitness catalog content"),
             ("administer_accounts", "Can administer accounts"),
         ]
 

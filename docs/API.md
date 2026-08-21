@@ -77,6 +77,16 @@ API не должен привязывать клиентов к одному ч
 - `GET /api/v1/ai/coach/settings/` — чтение собственных AI coach settings без `user_id`; возвращает consent state для хранения истории AI-чата.
 - `PATCH /api/v1/ai/coach/settings/` — принять или отозвать consent на историю AI-чата через `chat_history_consent_accepted=true` или `chat_history_consent_revoked=true`.
 - `POST /api/v1/ai/coach/ask/` — запрос к AI Nutrition Coach. Тело: `message`, optional `date`, optional `store_response`. Backend строит минимальный context из цели, дневных агрегатов, dietary preferences и текущего запроса. Ответ использует schema `ai_nutrition_coach_response_v1`: `answer`, `suggestions`, `nutrition_notes`, `warnings`, `safety`, `provider`, `stored`. `stored=true` возможен только при явном chat history consent.
+- `GET /api/v1/fitness/exercises/` — список active exercise catalog items; authenticated read-only доступ для пользователей.
+- `GET /api/v1/fitness/exercises/{id}/` — карточка упражнения по UUID.
+- `POST/PUT/PATCH/DELETE /api/v1/fitness/exercises/` и `/api/v1/fitness/exercises/{id}/` — управление exercise catalog; требуется `accounts.manage_fitness_catalog`.
+- `GET /api/v1/fitness/plans/` — список собственных workout plans текущего пользователя.
+- `GET /api/v1/fitness/plans/{id}/` — чтение собственного workout plan с nested `workouts` и structured `WorkoutExercise` prescriptions.
+- `PATCH/DELETE /api/v1/fitness/plans/{id}/` — изменение basic plan metadata или удаление собственного workout plan.
+- `POST /api/v1/fitness/plans/generate/` — AI Fitness Coach foundation. Тело: `goal`, `experience_level`, `duration_minutes`, `sessions_per_week`, `available_equipment`, optional `message`, optional `locale`. Backend сначала применяет safety rules, затем rule-based planner создаёт structured `WorkoutPlan`/`Workout`/`WorkoutExercise`; provider возвращает только explanation. Ответ использует schema `ai_fitness_coach_plan_response_v1`: `plan`, `safety`, `provider`, `explanation`.
+- `POST /api/v1/fitness/plans/{id}/adapt/` — адаптация собственного workout plan поверх structured entities. При injury/acute pain/medical warning signs возвращает safety response и не изменяет существующий plan.
+- `GET/POST /api/v1/fitness/workout-logs/` — список и создание собственных workout logs.
+- `GET/PATCH/DELETE /api/v1/fitness/workout-logs/{id}/` — чтение, изменение и удаление собственного workout log.
 - Internal Vision API:
   - `GET /health` — health check Vision service. Ответ: `{"status": "ok"}`.
   - `POST /v1/analyze` — internal endpoint Vision service. Принимает `object_reference` на приватный backend-controlled объект: `scan_id`, `storage_backend`, `object_key`, `content_type`, `checksum_sha256`. Vision v1 читает подготовленное изображение из private local storage, проверяет checksum и возвращает результат real food classifier как `{"items": [{"label": "...", "confidence": 0.0-1.0}]}`. Contract также допускает optional future geometry fields `segment_area_px` и `portion_reference`, но текущая модель обычно возвращает один dish-level top prediction без bounding boxes и portion estimate.
@@ -128,6 +138,12 @@ UI-клиенты не должны вызывать `fetch` к backend напр
 - `support`, `content_manager` и business `admin` не получают API-доступ к AI coach и AI-диалогам по умолчанию;
 - AI coach API не передаёт провайдеру email, display name, UUID, фотографии, sensitive restrictions, private object keys или полную историю аккаунта;
 - unsafe AI coach input/output возвращает structured safety response и не сохраняет AI message.
+- обычный `user` может читать exercise catalog, пользоваться AI Fitness Coach, читать/менять только собственные workout plans и workout logs;
+- `content_manager` может управлять exercise catalog, но не получает доступ к приватным workout plans/logs;
+- `support` и business `admin` не получают API-доступ к приватным workout plans/logs по умолчанию;
+- обращение User A к UUID workout plan или workout log User B не возвращает чужие данные;
+- AI Fitness Coach provider не получает email, UUID, фотографии, nutrition sensitive restrictions, приватный дневник или health profile;
+- injury/acute pain/medical warning signs возвращают structured safety response вместо создания или адаптации нагрузки.
 
 Nutrition profile не реализует диагнозы. Аллергии, intolerance и medical restrictions хранятся отдельно от обычных dietary preferences.
 

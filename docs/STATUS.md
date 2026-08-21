@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-21
 
 ## Текущий завершённый этап
 
-ЭТАП 21, PROMPT 21 — AI coach foundation завершён.
+ЭТАП 22, PROMPT 22 — AI Fitness Coach завершён.
 
 ## Состояние
 
@@ -200,6 +200,18 @@ Last updated / Обновлено: 2026-08-21
 - `support`, `content_manager` и business `admin` не получают API-доступ к AI coach и AI-диалогам по умолчанию.
 - Дневная агрегация вынесена в `diary.aggregation`, чтобы `DiaryDayView` и AI coach использовали один сервис расчёта totals.
 - Добавлены tests с mocked provider для минимизации context, permissions, safety block и consent-only storage.
+- Создана ветка `feature/fitness-coach` от актуального `develop`.
+- Добавлено Django-приложение `fitness` для AI Fitness Coach foundation и модуля программ тренировок.
+- Добавлены структурированные модели `WorkoutPlan`, `Workout`, `Exercise`, `WorkoutExercise` и `WorkoutLog`.
+- Workout plan не генерируется свободным текстом: rule-based planner создаёт structured workouts и exercise prescriptions.
+- Planner учитывает цель, уровень опыта, доступное оборудование, длительность и sessions per week.
+- Добавлен seed exercise catalog с базовыми упражнениями для MVP.
+- AI Fitness Coach использует provider abstraction `FitnessCoachProvider`; текущий provider `mock` возвращает explanation поверх structured plan draft.
+- Добавлен safety layer для травм, острой боли, warning signs и medical decision запросов; при блокировке plan не создаётся и существующий plan не адаптируется.
+- Добавлены API endpoint-ы для exercise catalog, workout plans generation/adaptation и workout logs.
+- RBAC расширен permissions `fitness.use_ai_fitness_coach`, `fitness.view_own_workoutplan`, `fitness.change_own_workoutplan`, `fitness.view_own_workoutlog`, `fitness.change_own_workoutlog`, `accounts.manage_fitness_catalog`.
+- `user` получает доступ только к собственным workout plans/logs; `content_manager` управляет exercise catalog; `support`, `content_manager` и business `admin` не получают доступ к приватным workout plans/logs по умолчанию.
+- Добавлены tests для structured plan generation, provider minimal context, safety response, plan adaptation, exercise catalog permissions, workout log ownership и IDOR по чужим UUID.
 
 ## Проверки
 
@@ -258,6 +270,15 @@ Last updated / Обновлено: 2026-08-21
 - `docker compose --env-file .env config --quiet` — passed.
 - `docker compose --env-file .env build backend` — passed.
 - `make check` — passed для PROMPT 7: Ruff без ошибок, mypy без ошибок в 42 source files, Django system check без ошибок, pytest: 54 passed, coverage 91.64%.
+- `pytest --no-cov backend/fitness/tests/test_fitness_coach_api.py backend/accounts/tests/test_rbac.py` — passed для PROMPT 22, 33 tests passed.
+- `ruff check backend/fitness backend/accounts/rbac.py backend/accounts/models.py backend/accounts/tests/test_rbac.py backend/config/settings/base.py backend/config/urls.py` — passed для изменённой backend-зоны PROMPT 22.
+- `mypy backend/fitness backend/accounts/rbac.py backend/accounts/models.py backend/config/settings/base.py backend/config/urls.py` с тестовыми env — passed для изменённой backend-зоны PROMPT 22.
+- `make check` — passed для PROMPT 22: Ruff без ошибок, mypy без ошибок в 133 source files, Django system check без ошибок, pytest 200 passed, coverage 88.55%, frontend lint/typecheck/Vitest 10 tests/build passed.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage22.yml` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок и warning.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — passed, images `backend`, `vision`, `celery_worker` built.
+- `git diff --check` — passed.
 - `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
 - `backend/manage.py spectacular --validate` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
 - `docker compose --env-file .env config --quiet` — passed.

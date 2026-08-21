@@ -45,6 +45,7 @@ include = [
   "core*",
   "diary*",
   "food_scans*",
+  "fitness*",
   "integrations*",
   "nutrition*",
 ]

@@ -113,6 +113,13 @@ foodai-ecosystem/
 - Safety/moderation layer `ai_coach.safety` блокирует запросы и ответы, связанные с диагнозами, лекарствами, заменой врача или опасными extreme diet рекомендациями.
 - Output schema AI coach фиксируется как `ai_nutrition_coach_response_v1`.
 - `AICoachSettings` хранит consent/version metadata для истории AI-чата; `AICoachMessage` сохраняется только при явном согласии пользователя на историю и не регистрируется в Django Admin.
+- Приложение `fitness` содержит foundation AI Fitness Coach и модуль программ тренировок внутри backend-монолита.
+- Workout plan не генерируется свободным текстом: `WorkoutPlan`, `Workout`, `Exercise`, `WorkoutExercise` и `WorkoutLog` являются структурированными domain entities.
+- `Exercise` является managed exercise catalog; обычный пользователь читает справочник, `content_manager` управляет им через централизованные permissions, не получая доступ к приватным планам пользователей.
+- Rule-based planner в `fitness.services` учитывает цель, опыт, доступное оборудование, длительность и sessions per week, затем создаёт структурированные workouts и prescriptions.
+- AI Fitness Coach использует provider abstraction `fitness.providers.FitnessCoachProvider`; текущий provider `mock` возвращает объяснение к уже структурированному плану, но не заменяет план свободным текстом.
+- Safety layer `fitness.safety` блокирует запросы и provider output с травмами, острой болью, медицинскими решениями или warning signs и возвращает safety response без создания или изменения плана.
+- Fitness plans и workout logs доступны обычному `user` только в пределах собственных объектов; `support`, `content_manager` и business `admin` не получают API-доступ к приватным workout plans/logs по умолчанию.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 
