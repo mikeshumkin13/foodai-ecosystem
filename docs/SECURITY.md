@@ -29,6 +29,7 @@ FoodAI Ecosystem строится по принципам privacy-by-design и s
 - nutrition profile;
 - allergies, intolerances и medical nutrition restrictions;
 - AI-диалоги;
+- wellbeing history и sensitive wellbeing messages;
 - workout plans и workout logs;
 - токены;
 - пароли;
@@ -214,20 +215,32 @@ RBAC foundation использует Django Groups/Permissions:
 | Роль | Разрешено | Запрещено по умолчанию |
 | --- | --- | --- |
 | `anonymous` | Только явно публичные endpoint-ы, например `GET /api/v1/health/`. | Любые приватные профили, дневники, фото, health data, AI-диалоги, admin/support/content endpoints. |
-| `user` | Читать и изменять только собственные `UserProfile`, `NutritionProfile`, `NutritionSensitiveRestriction`, meals/diary, food scans, workout plans/logs и AI coach settings; пользоваться AI nutrition/fitness coach; читать nutrition и exercise catalog; будущие цели только в пределах собственных объектов. | Доступ к чужим UUID-ресурсам, чужим дневникам, чужим фото, AI-диалогам, workout plans/logs, изменение nutrition/exercise catalog, support/admin/content-management функциям. |
-| `support` | Support tooling и support admin foundation без приватных пользовательских данных. | Health data, nutrition profile, allergies/medical restrictions, фото еды, дневники, workout plans/logs, AI coach и AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
-| `content_manager` | Управление каталогом продуктов, exercise catalog, nutrients, справочниками и контентом через catalog/reference permissions. | Приватные дневники пользователей, фото, health data, nutrition profile, workout plans/logs, allergies/medical restrictions, AI coach и AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
-| `admin` | Административные permissions для управления users/profiles, nutrition/exercise catalog, role groups и просмотра read-only admin audit log согласно Django permissions. | Nutrition profile, sensitive restrictions, workout plans/logs, AI coach и AI-диалоги без отдельной процедуры; автоматический обход object-level policy без выданных permissions; использование как замена `superuser`; изменение audit log. |
+| `user` | Читать и изменять только собственные `UserProfile`, `NutritionProfile`, `NutritionSensitiveRestriction`, meals/diary, food scans, workout plans/logs, AI coach settings и Wellbeing Assistant settings; пользоваться AI nutrition/fitness/wellbeing assistants; читать nutrition и exercise catalog; будущие цели только в пределах собственных объектов. | Доступ к чужим UUID-ресурсам, чужим дневникам, чужим фото, AI-диалогам, wellbeing history, workout plans/logs, изменение nutrition/exercise catalog, support/admin/content-management функциям. |
+| `support` | Support tooling и support admin foundation без приватных пользовательских данных. | Health data, nutrition profile, allergies/medical restrictions, фото еды, дневники, workout plans/logs, AI coach, Wellbeing Assistant и AI/wellbeing-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
+| `content_manager` | Управление каталогом продуктов, exercise catalog, nutrients, справочниками и контентом через catalog/reference permissions. | Приватные дневники пользователей, фото, health data, nutrition profile, workout plans/logs, allergies/medical restrictions, AI coach, Wellbeing Assistant и AI/wellbeing-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
+| `admin` | Административные permissions для управления users/profiles, nutrition/exercise catalog, role groups и просмотра read-only admin audit log согласно Django permissions. | Nutrition profile, sensitive restrictions, workout plans/logs, AI coach, Wellbeing Assistant и AI/wellbeing-диалоги без отдельной процедуры; автоматический обход object-level policy без выданных permissions; использование как замена `superuser`; изменение audit log. |
 | `superuser` | Полный технический доступ Django для аварийных/системных операций. | Повседневная операционная работа и роль обычного администратора продукта. |
 
 Текущие permission groups:
 
-- `user`: `accounts.view_own_userprofile`, `accounts.change_own_userprofile`, `accounts.view_own_nutritionprofile`, `accounts.change_own_nutritionprofile`, `accounts.view_own_nutritionsensitiverestriction`, `accounts.change_own_nutritionsensitiverestriction`, `diary.view_own_meal`, `diary.change_own_meal`, `food_scans.view_own_foodscan`, `food_scans.change_own_foodscan`, `ai_coach.use_ai_nutrition_coach`, `ai_coach.view_own_aicoachsettings`, `ai_coach.change_own_aicoachsettings`, `fitness.use_ai_fitness_coach`, `fitness.view_own_workoutplan`, `fitness.change_own_workoutplan`, `fitness.view_own_workoutlog`, `fitness.change_own_workoutlog`.
+- `user`: `accounts.view_own_userprofile`, `accounts.change_own_userprofile`, `accounts.view_own_nutritionprofile`, `accounts.change_own_nutritionprofile`, `accounts.view_own_nutritionsensitiverestriction`, `accounts.change_own_nutritionsensitiverestriction`, `diary.view_own_meal`, `diary.change_own_meal`, `food_scans.view_own_foodscan`, `food_scans.change_own_foodscan`, `ai_coach.use_ai_nutrition_coach`, `ai_coach.view_own_aicoachsettings`, `ai_coach.change_own_aicoachsettings`, `wellbeing.use_wellbeing_assistant`, `wellbeing.view_own_wellbeingassistantsettings`, `wellbeing.change_own_wellbeingassistantsettings`, `fitness.use_ai_fitness_coach`, `fitness.view_own_workoutplan`, `fitness.change_own_workoutplan`, `fitness.view_own_workoutlog`, `fitness.change_own_workoutlog`.
 - `support`: `accounts.access_support_tools`, `accounts.view_support_admin`.
 - `content_manager`: `accounts.manage_catalog_content`, `accounts.manage_reference_data`, `accounts.manage_food_catalog`, `accounts.manage_fitness_catalog`, `nutrition` model permissions для `FoodCategory`, `FoodDataSource`, `Nutrient`, `FoodItem`, `FoodNutrient` и `fitness` model permissions для `Exercise`.
 - `admin`: `accounts.administer_accounts`, account model permissions, `auth.view_group`, `auth.change_group`, `accounts.view_adminauditlog`, support/content/reference/catalog foundation permissions, `nutrition` model permissions и `fitness` model permissions для `Exercise`.
 
-IDOR baseline: User A не должен читать или менять ресурс User B даже при знании UUID. Для `UserProfile`, nutrition profile/restrictions, `Meal`, `FoodScan`, `WorkoutPlan` и `WorkoutLog` это покрыто API-тестами.
+IDOR baseline: User A не должен читать или менять ресурс User B даже при знании UUID. Для `UserProfile`, nutrition profile/restrictions, `Meal`, `FoodScan`, `WorkoutPlan` и `WorkoutLog` это покрыто API-тестами. Wellbeing Assistant на этом этапе не раскрывает message history API и отдаёт settings только текущего пользователя.
+
+## Wellbeing assistant security
+
+- Wellbeing Assistant реализован в backend app `wellbeing` через provider abstraction, без привязки бизнес-логики к конкретному LLM-провайдеру.
+- Сервис не называется и не позиционируется как лицензированный психолог, не ставит диагнозы, не назначает лечение и не заменяет qualified professional support.
+- Provider получает только locale, дату, разрешённые wellbeing focus areas и текущий запрос пользователя.
+- Provider не получает email, display name, UUID пользователя, фотографии, private object keys, health profile, nutrition sensitive restrictions, дневник питания, workout logs или историю аккаунта.
+- Safety layer выполняется до provider call и после provider output.
+- Self-harm, suicidal ideation, harm-to-others, immediate danger, medical/clinical decision и unsafe behavior planning возвращают structured safety response без provider call для unsafe input.
+- `WellbeingAssistantMessage` сохраняется только при явном history consent и только для safe/non-sensitive exchanges.
+- Safety-blocked messages и sensitive wellbeing content не сохраняются в history и не отправляются в analytics.
+- Wellbeing Assistant messages не регистрируются в Django Admin на этом этапе.
 
 ## Fitness coach security
 

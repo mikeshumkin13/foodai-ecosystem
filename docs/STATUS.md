@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-21
 
 ## Текущий завершённый этап
 
-ЭТАП 22, PROMPT 22 — AI Fitness Coach завершён.
+ЭТАП 23, PROMPT 23 — AI Wellbeing Assistant завершён.
 
 ## Состояние
 
@@ -212,6 +212,21 @@ Last updated / Обновлено: 2026-08-21
 - RBAC расширен permissions `fitness.use_ai_fitness_coach`, `fitness.view_own_workoutplan`, `fitness.change_own_workoutplan`, `fitness.view_own_workoutlog`, `fitness.change_own_workoutlog`, `accounts.manage_fitness_catalog`.
 - `user` получает доступ только к собственным workout plans/logs; `content_manager` управляет exercise catalog; `support`, `content_manager` и business `admin` не получают доступ к приватным workout plans/logs по умолчанию.
 - Добавлены tests для structured plan generation, provider minimal context, safety response, plan adaptation, exercise catalog permissions, workout log ownership и IDOR по чужим UUID.
+- Создана ветка `feature/wellbeing-assistant` от актуального `develop`.
+- Добавлено Django-приложение `wellbeing` для AI Wellbeing Assistant foundation.
+- Wellbeing Assistant предназначен для формирования привычек, adherence, режима, motivation strategies, reflection и планирования маленьких действий.
+- Сервис не позиционируется как лицензированный психолог, не ставит диагнозы, не назначает лечение и не заменяет qualified professional support.
+- Бизнес-логика использует provider abstraction `WellbeingAssistantProvider`; текущий provider `mock` не привязан к конкретному LLM-провайдеру.
+- Provider получает только минимальный structured context: locale, дату, разрешённые focus areas и текущий запрос пользователя.
+- Добавлен output schema `ai_wellbeing_assistant_response_v1`.
+- Safety layer блокирует self-harm/suicidal ideation, harm-to-others, immediate danger, medical/clinical decision requests и unsafe behavior planning до provider call; provider output также проходит safety check.
+- Добавлен consent/version foundation `WellbeingAssistantSettings`.
+- `WellbeingAssistantMessage` сохраняется только при явном history consent и только для safe/non-sensitive exchanges.
+- Safety-blocked и sensitive wellbeing messages не сохраняются в history/analytics даже при consent.
+- Добавлены API endpoint-ы `GET/PATCH /api/v1/wellbeing/settings/` и `POST /api/v1/wellbeing/ask/`.
+- RBAC расширен permissions `wellbeing.use_wellbeing_assistant`, `wellbeing.view_own_wellbeingassistantsettings`, `wellbeing.change_own_wellbeingassistantsettings` только для роли `user`.
+- `support`, `content_manager` и business `admin` не получают API-доступ к Wellbeing Assistant и wellbeing-диалогам по умолчанию.
+- Добавлены tests с mocked provider для минимального context, permissions, consent-only storage, sensitive-not-stored policy и safety scenarios.
 
 ## Проверки
 
@@ -383,7 +398,16 @@ Last updated / Обновлено: 2026-08-21
 - `docker compose --env-file .env config --quiet` — passed.
 - `git diff --check` — passed.
 - `docker compose --env-file .env build backend vision celery_worker` — первый запуск был заблокирован Codex sandbox из-за Docker socket/buildx permissions, затем выполнен пользователем вручную 2026-08-21 и passed: backend, vision и celery_worker images собраны.
+- `pytest --no-cov backend/wellbeing/tests/test_wellbeing_assistant_api.py backend/accounts/tests/test_rbac.py` — passed для PROMPT 23, 29 tests passed.
+- `ruff check backend/wellbeing backend/accounts/rbac.py backend/accounts/tests/test_rbac.py backend/config/settings/base.py backend/config/urls.py` — passed для изменённой backend-зоны PROMPT 23.
+- `mypy backend/wellbeing backend/accounts/rbac.py backend/accounts/tests/test_rbac.py backend/config/settings/base.py backend/config/urls.py` с тестовыми env — passed для изменённой backend-зоны PROMPT 23.
+- `make check` — passed для PROMPT 23: Ruff без ошибок, mypy без ошибок в 146 source files, Django system check без ошибок, pytest: 215 passed, coverage 88.96%; frontend linter passed, TypeScript typecheck passed, Vitest: 7 test files / 10 tests passed, Next.js production build passed. Есть одно стороннее `StarletteDeprecationWarning` из FastAPI TestClient.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage23.yml` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — первый запуск был заблокирован Codex sandbox из-за Docker buildx permissions; повтор с разрешением на Docker Desktop passed, backend, vision и celery_worker images собраны.
+- `git diff --check` — passed.
 
 ## Следующий этап
 
-Остановиться после PROMPT 21. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 23. Следующую задачу начинать только после явной команды пользователя.

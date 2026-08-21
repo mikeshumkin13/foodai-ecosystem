@@ -1106,3 +1106,96 @@ Consequences / Последствия:
   IDOR-тесты.
 - Изменение rule-based planner formulas, exercise selection или safety rules требует обновления
   tests и документации.
+
+## ADR-0025: AI Wellbeing Assistant Safety And Storage Boundary
+
+Date / Дата: 2026-08-21
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+AI Wellbeing Assistant foundation реализуется внутри backend-монолита отдельным Django app
+`wellbeing`.
+
+Сервис предназначен для:
+
+- формирования привычек;
+- adherence;
+- режима;
+- motivation strategies;
+- reflection;
+- планирования маленьких действий.
+
+Сервис не называется и не позиционируется как лицензированный психолог. Он не ставит диагнозы, не
+назначает лечение и не заменяет qualified professional support.
+
+Бизнес-логика работает через provider abstraction
+`wellbeing.providers.WellbeingAssistantProvider`. Текущий provider по умолчанию: `mock`.
+Подключение внешнего LLM-провайдера требует отдельного ADR с privacy, retention, logging, timeout,
+cost-control и safety оценкой.
+
+Provider получает только минимальный structured context:
+
+- locale `ru`/`en`;
+- дату context;
+- список разрешённых wellbeing focus areas;
+- текущий запрос пользователя.
+
+Context не включает email, display name, UUID пользователя, фотографии, private object keys, health
+profile, nutrition sensitive restrictions, дневник питания, workout logs, AI history или полную
+историю аккаунта.
+
+Output schema фиксируется как `ai_wellbeing_assistant_response_v1`:
+
+- `answer`;
+- `focus_area`;
+- `small_actions`;
+- `reflection_prompts`;
+- `adherence_strategy`;
+- `warnings`;
+- `safety`;
+- `provider`;
+- `stored`;
+- `storage_reason`.
+
+Safety layer `wellbeing.safety` выполняется до provider call и после provider output. Он блокирует:
+
+- self-harm и suicidal ideation;
+- harm-to-others;
+- immediate danger;
+- medical/clinical decision requests;
+- unsafe behavior planning.
+
+При safety block provider не вызывается для unsafe input, response не сохраняется, и API возвращает
+structured safety response. Для potentially urgent категорий response выставляет
+`urgent_support_recommended=true`, без указания конкретных локальных hotline номеров.
+
+`WellbeingAssistantSettings` хранит consent/version metadata для истории wellbeing-чата.
+`WellbeingAssistantMessage` сохраняется только если пользователь явно дал consent и request/response
+не заблокированы safety layer и не содержат sensitive wellbeing content. Sensitive wellbeing content
+не сохраняется в history и не отправляется в analytics. Отдельная analytics-модель или event stream
+для wellbeing messages на этом этапе не создаётся.
+
+Rationale / Обоснование:
+
+- Wellbeing-сообщения могут содержать психологически чувствительные данные, поэтому storage policy
+  должна быть строже обычного consent-only подхода.
+- Habit/adherence/reflection support полезен продукту, но не должен смешиваться с clinical advice.
+- Provider abstraction снижает vendor lock-in и удерживает LLM-вызовы вне Django views.
+- Минимальный context соответствует privacy-by-design и снижает риск передачи лишних health/diary
+  данных внешнему AI-провайдеру.
+- Safety foundation нужен до production, чтобы опасные сообщения не попадали в обычный motivation
+  flow.
+
+Consequences / Последствия:
+
+- Future wellbeing UI должен показывать `storage_reason`, чтобы пользователь понимал, почему
+  sensitive exchange не сохранён даже при consent.
+- Подключение конкретного LLM-провайдера требует отдельного решения по retention/logging и
+  provider-side moderation.
+- Если позже появится history API, он должен быть owner-only и покрываться IDOR-тестами.
+- Любые analytics по wellbeing должны использовать только агрегированные/обезличенные события без
+  sensitive message text и с отдельным privacy review.
+- Расширение context данными sleep, mood, wearable, medical history или support notes требует
+  отдельного privacy/safety решения.
