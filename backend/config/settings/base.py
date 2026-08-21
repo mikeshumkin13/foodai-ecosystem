@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "nutrition",
     "diary",
     "food_scans",
+    "ai_coach",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -165,6 +166,11 @@ FOOD_SCAN_PRIVATE_MEDIA_ROOT = get_env(
 )
 VISION_SERVICE_URL = get_env("VISION_SERVICE_URL", default="http://localhost:8001")
 VISION_SERVICE_TIMEOUT_SECONDS = get_env_float("VISION_SERVICE_TIMEOUT_SECONDS", default=2.0)
+AI_COACH_PROVIDER = get_env("AI_COACH_PROVIDER", default="mock")
+AI_COACH_PROVIDER_TIMEOUT_SECONDS = get_env_float(
+    "AI_COACH_PROVIDER_TIMEOUT_SECONDS",
+    default=10.0,
+)
 
 CORS_ALLOWED_ORIGINS = get_env_list("DJANGO_CORS_ALLOWED_ORIGINS", default="")
 CORS_ALLOW_CREDENTIALS = get_env_bool("DJANGO_CORS_ALLOW_CREDENTIALS", default=False)
@@ -197,6 +203,7 @@ REST_FRAMEWORK = {
         ),
         "auth_password_reset": get_env("AUTH_PASSWORD_RESET_THROTTLE_RATE", default="5/hour"),
         "auth_password_change": get_env("AUTH_PASSWORD_CHANGE_THROTTLE_RATE", default="5/hour"),
+        "ai_coach_ask": get_env("AI_COACH_ASK_THROTTLE_RATE", default="30/hour"),
     },
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",

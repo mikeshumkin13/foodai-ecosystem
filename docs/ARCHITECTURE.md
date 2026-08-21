@@ -106,6 +106,13 @@ foodai-ecosystem/
 - Matching Vision label к nutrition catalog выполняется детерминированно через `food_scans.matching` по names/synonyms; fuzzy/ML-ranking не добавлен в MVP foundation.
 - Scan results не создают дневник автоматически; только явное подтверждение пользователя создаёт `Meal` и `MealItem`.
 - При proposal creation и manual correction scan использует `nutrition.calculation` для пересчёта nutrient snapshot; при confirmation `MealItem` получает копию proposal snapshot из `FoodScanDetectedItem`, чтобы изменения `FoodItem`/`FoodNutrient` после анализа не меняли подтверждённые расчёты.
+- Приложение `ai_coach` содержит foundation AI Nutrition Coach внутри backend-монолита.
+- Бизнес-логика coach использует provider abstraction `ai_coach.providers.AICoachProvider`; текущая локальная реализация `mock` не привязана к конкретному LLM-провайдеру.
+- AI coach получает только структурированный минимальный контекст: цель пользователя, дневные агрегаты, разрешённые dietary preferences и текущий запрос пользователя.
+- AI coach context не включает email, display name, UUID пользователя, фотографии, private object keys, sensitive restrictions или полную историю аккаунта.
+- Safety/moderation layer `ai_coach.safety` блокирует запросы и ответы, связанные с диагнозами, лекарствами, заменой врача или опасными extreme diet рекомендациями.
+- Output schema AI coach фиксируется как `ai_nutrition_coach_response_v1`.
+- `AICoachSettings` хранит consent/version metadata для истории AI-чата; `AICoachMessage` сохраняется только при явном согласии пользователя на историю и не регистрируется в Django Admin.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 

@@ -1,10 +1,10 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-08-19
+Last updated / Обновлено: 2026-08-21
 
 ## Текущий завершённый этап
 
-ЭТАП 20, PROMPT 20 — Dashboard и Diary UI завершён.
+ЭТАП 21, PROMPT 21 — AI coach foundation завершён.
 
 ## Состояние
 
@@ -186,6 +186,20 @@ Last updated / Обновлено: 2026-08-19
 - `/diary` расширен календарной датой, ручным добавлением еды из nutrition catalog, редактированием и удалением собственных meals.
 - Ручное создание meals работает через существующий Meals API и backend `nutrition.calculation`, поэтому пользователь может вести дневник без AI Scan.
 - Добавлены component/unit tests для dashboard metrics, dashboard summary и manual meal editor.
+- Создана ветка `feature/ai-coach` от актуального `develop`.
+- Добавлено Django-приложение `ai_coach` для AI Nutrition Coach foundation.
+- Бизнес-логика AI coach использует provider abstraction `AICoachProvider`; текущий provider по умолчанию — `mock`.
+- AI coach получает только минимальный структурированный context: цель, дневные агрегаты, разрешённые dietary preferences, locale и текущий запрос пользователя.
+- AI coach context не включает email, display name, UUID пользователя, фотографии, private object keys, sensitive restrictions или полную историю аккаунта.
+- Добавлен output schema `ai_nutrition_coach_response_v1`.
+- Добавлен safety/moderation layer до и после provider call для запрета диагнозов, решений по лекарствам, замены врача и dangerous/extreme diet рекомендаций.
+- Добавлен consent/version foundation `AICoachSettings`; `AICoachMessage` сохраняется только при явном consent на историю AI-чата.
+- AI-диалоги не зарегистрированы в Django Admin на этом этапе.
+- Добавлены API endpoint-ы `GET/PATCH /api/v1/ai/coach/settings/` и `POST /api/v1/ai/coach/ask/`.
+- RBAC расширен permissions `ai_coach.use_ai_nutrition_coach`, `ai_coach.view_own_aicoachsettings`, `ai_coach.change_own_aicoachsettings` только для роли `user`.
+- `support`, `content_manager` и business `admin` не получают API-доступ к AI coach и AI-диалогам по умолчанию.
+- Дневная агрегация вынесена в `diary.aggregation`, чтобы `DiaryDayView` и AI coach использовали один сервис расчёта totals.
+- Добавлены tests с mocked provider для минимизации context, permissions, safety block и consent-only storage.
 
 ## Проверки
 
@@ -339,7 +353,16 @@ Last updated / Обновлено: 2026-08-19
 - `docker compose --env-file .env config --quiet` — passed.
 - `docker compose --env-file .env build backend vision celery_worker` — первый запуск был заблокирован Codex sandbox, после запуска Docker Desktop и выполнения вне sandbox passed, backend, vision и celery_worker images собраны.
 - `git diff --check` — passed.
+- `pytest --no-cov backend/ai_coach/tests/test_ai_coach_api.py backend/accounts/tests/test_rbac.py` — passed для PROMPT 21, 27 tests passed.
+- `make check` — первый прогон PROMPT 21 прошёл backend/vision tests, но frontend typecheck упал на локальном generated cache `.next/types/* 2.ts`; после штатного `pnpm build` duplicate generated files исчезли.
+- `frontend/pnpm typecheck` — passed после регенерации `.next` через `pnpm build`.
+- `make check` — passed для PROMPT 21: Ruff без ошибок, mypy без ошибок в 120 source files, Django system check без ошибок, pytest: 181 passed, coverage 89.98%; frontend linter passed, TypeScript typecheck passed, Vitest: 7 test files / 10 tests passed, Next.js production build passed. Есть одно стороннее `StarletteDeprecationWarning` из FastAPI TestClient.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage21.yml` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `git diff --check` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — первый запуск был заблокирован Codex sandbox из-за Docker socket/buildx permissions, затем выполнен пользователем вручную 2026-08-21 и passed: backend, vision и celery_worker images собраны.
 
 ## Следующий этап
 
-Остановиться после PROMPT 20. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 21. Следующую задачу начинать только после явной команды пользователя.
