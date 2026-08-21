@@ -38,7 +38,16 @@ package-dir = {"" = "backend"}
 
 [tool.setuptools.packages.find]
 where = ["backend"]
-include = ["accounts*", "config*", "core*", "diary*", "food_scans*", "integrations*", "nutrition*"]
+include = [
+  "accounts*",
+  "ai_coach*",
+  "config*",
+  "core*",
+  "diary*",
+  "food_scans*",
+  "integrations*",
+  "nutrition*",
+]
 
 [tool.pytest.ini_options]
 minversion = "8.0"

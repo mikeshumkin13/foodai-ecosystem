@@ -213,15 +213,15 @@ RBAC foundation использует Django Groups/Permissions:
 | Роль | Разрешено | Запрещено по умолчанию |
 | --- | --- | --- |
 | `anonymous` | Только явно публичные endpoint-ы, например `GET /api/v1/health/`. | Любые приватные профили, дневники, фото, health data, AI-диалоги, admin/support/content endpoints. |
-| `user` | Читать и изменять только собственные `UserProfile`, `NutritionProfile`, `NutritionSensitiveRestriction`, meals/diary и food scans; читать nutrition catalog; будущие цели только в пределах собственных объектов. | Доступ к чужим UUID-ресурсам, чужим дневникам, чужим фото, изменение nutrition catalog, support/admin/content-management функциям. |
-| `support` | Support tooling и support admin foundation без приватных пользовательских данных. | Health data, nutrition profile, allergies/medical restrictions, фото еды, дневники, AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
-| `content_manager` | Управление каталогом продуктов, nutrients, справочниками и контентом через catalog/reference permissions. | Приватные дневники пользователей, фото, health data, nutrition profile, allergies/medical restrictions, AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
-| `admin` | Административные permissions для управления users/profiles, role groups, nutrition catalog и просмотра read-only admin audit log согласно Django permissions. | Nutrition profile и sensitive restrictions без отдельной процедуры; автоматический обход object-level policy без выданных permissions; использование как замена `superuser`; изменение audit log. |
+| `user` | Читать и изменять только собственные `UserProfile`, `NutritionProfile`, `NutritionSensitiveRestriction`, meals/diary, food scans и AI coach settings; пользоваться AI coach; читать nutrition catalog; будущие цели только в пределах собственных объектов. | Доступ к чужим UUID-ресурсам, чужим дневникам, чужим фото, AI-диалогам, изменение nutrition catalog, support/admin/content-management функциям. |
+| `support` | Support tooling и support admin foundation без приватных пользовательских данных. | Health data, nutrition profile, allergies/medical restrictions, фото еды, дневники, AI coach и AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
+| `content_manager` | Управление каталогом продуктов, nutrients, справочниками и контентом через catalog/reference permissions. | Приватные дневники пользователей, фото, health data, nutrition profile, allergies/medical restrictions, AI coach и AI-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
+| `admin` | Административные permissions для управления users/profiles, role groups, nutrition catalog и просмотра read-only admin audit log согласно Django permissions. | Nutrition profile, sensitive restrictions, AI coach и AI-диалоги без отдельной процедуры; автоматический обход object-level policy без выданных permissions; использование как замена `superuser`; изменение audit log. |
 | `superuser` | Полный технический доступ Django для аварийных/системных операций. | Повседневная операционная работа и роль обычного администратора продукта. |
 
 Текущие permission groups:
 
-- `user`: `accounts.view_own_userprofile`, `accounts.change_own_userprofile`, `accounts.view_own_nutritionprofile`, `accounts.change_own_nutritionprofile`, `accounts.view_own_nutritionsensitiverestriction`, `accounts.change_own_nutritionsensitiverestriction`, `diary.view_own_meal`, `diary.change_own_meal`, `food_scans.view_own_foodscan`, `food_scans.change_own_foodscan`.
+- `user`: `accounts.view_own_userprofile`, `accounts.change_own_userprofile`, `accounts.view_own_nutritionprofile`, `accounts.change_own_nutritionprofile`, `accounts.view_own_nutritionsensitiverestriction`, `accounts.change_own_nutritionsensitiverestriction`, `diary.view_own_meal`, `diary.change_own_meal`, `food_scans.view_own_foodscan`, `food_scans.change_own_foodscan`, `ai_coach.use_ai_nutrition_coach`, `ai_coach.view_own_aicoachsettings`, `ai_coach.change_own_aicoachsettings`.
 - `support`: `accounts.access_support_tools`, `accounts.view_support_admin`.
 - `content_manager`: `accounts.manage_catalog_content`, `accounts.manage_reference_data`, `accounts.manage_food_catalog` и `nutrition` model permissions для `FoodCategory`, `FoodDataSource`, `Nutrient`, `FoodItem`, `FoodNutrient`.
 - `admin`: `accounts.administer_accounts`, account model permissions, `auth.view_group`, `auth.change_group`, `accounts.view_adminauditlog`, support/content/reference/catalog foundation permissions и `nutrition` model permissions.
@@ -232,12 +232,24 @@ IDOR baseline: User A не должен читать или менять рес�
 
 AI получает только минимально необходимый контекст пользователя.
 
+Текущий AI Nutrition Coach foundation:
+
+- реализован в backend app `ai_coach` через provider abstraction, без привязки бизнес-логики к конкретному LLM-провайдеру;
+- получает только цель, дневные агрегаты, разрешённые dietary preferences и текущий запрос пользователя;
+- не получает email, display name, UUID пользователя, фотографии, private object keys, sensitive restrictions или полную историю аккаунта;
+- использует moderation/safety layer до и после provider call;
+- хранит AI response/history только при явном chat history consent пользователя;
+- unsafe user requests и unsafe provider outputs не сохраняются как `AICoachMessage`;
+- AI-диалоги не регистрируются в Django Admin на этом этапе.
+
 AI не должен:
 
 - ставить диагнозы;
 - назначать лекарства;
 - заменять врача, лицензированного нутрициолога или психолога;
 - самостоятельно принимать медицинские решения.
+- отменять назначения врача;
+- давать опасные extreme diet рекомендации.
 
 Потенциально опасные ситуации требуют отдельной safety-логики до production.
 

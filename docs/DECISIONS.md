@@ -969,3 +969,75 @@ Consequences / Последствия:
   отдельное privacy/safety решение.
 - Ручное создание `MealItem` продолжает использовать backend `nutrition.calculation` через Meals API,
   поэтому historical nutrient snapshots остаются воспроизводимыми.
+
+## ADR-0023: AI Nutrition Coach Provider Boundary And Safety Layer
+
+Date / Дата: 2026-08-19
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+AI Nutrition Coach foundation реализуется внутри backend-монолита отдельным Django app `ai_coach`.
+Бизнес-логика не вызывает конкретный LLM напрямую и работает через provider abstraction
+`ai_coach.providers.AICoachProvider`.
+
+Текущий provider по умолчанию: `mock`. Он нужен для development/tests и не является обещанием
+production-качества AI-ответов. Подключение конкретного внешнего LLM-провайдера, ключей, retention
+policy и provider-specific safety требует отдельного решения.
+
+AI coach получает только структурированный минимальный context:
+
+- цель пользователя из `NutritionProfile.goal`;
+- дневные агрегаты из `MealItem` snapshots за выбранную дату;
+- разрешённые dietary preferences;
+- текущий запрос пользователя;
+- locale `ru`/`en` для ответа.
+
+Context не включает email, display name, UUID пользователя, фотографии, private object keys,
+sensitive restrictions, полную историю аккаунта или историю AI-чата.
+
+Output schema фиксируется как `ai_nutrition_coach_response_v1`:
+
+- `answer`;
+- `suggestions`;
+- `nutrition_notes`;
+- `warnings`;
+- `safety`;
+- `provider`;
+- `stored`.
+
+Safety layer выполняется до и после provider call. Он блокирует запросы и ответы, связанные с:
+
+- диагнозами;
+- назначением или отменой лекарств;
+- заменой врача, лицензированного нутрициолога или психолога;
+- dangerous/extreme diet рекомендациями.
+
+AI response/history хранится в `AICoachMessage` только если пользователь явно дал consent на историю
+AI-чата через `AICoachSettings`. Unsafe user requests и unsafe provider outputs не сохраняются даже
+при наличии consent. `AICoachMessage` не регистрируется в Django Admin на этом этапе.
+
+Rationale / Обоснование:
+
+- AI coach нужен как отдельная product capability, но LLM-провайдер может меняться по стоимости,
+  качеству, privacy и legal причинам.
+- Минимальный context снижает privacy risk и соответствует принципу data minimization.
+- Diary aggregates достаточно для MVP-объяснения дневного баланса; полная история дневника и фото
+  не нужны для одного ответа.
+- Consent-only storage нужен, потому что AI-диалоги являются чувствительными пользовательскими
+  данными.
+- Rule-based safety foundation не заменяет production moderation, но задаёт явную границу для
+  запрета medical и extreme diet сценариев уже в MVP.
+
+Consequences / Последствия:
+
+- Новые AI-сценарии должны использовать provider abstraction и explicit context builder, а не
+  напрямую собирать данные пользователя во views.
+- Подключение OpenAI, Anthropic, локальной модели или другого LLM требует отдельного ADR с
+  retention, logging, timeout, cost-control и legal/safety оценкой.
+- Future AI history UI/API должен читать только собственные сообщения пользователя и иметь
+  отдельные IDOR tests.
+- Support, content_manager и business admin не получают доступ к AI-диалогам по умолчанию.
+- Любое расширение context должно проходить privacy review и обновлять `docs/SECURITY.md` /
+  `docs/API.md`.

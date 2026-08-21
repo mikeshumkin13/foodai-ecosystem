@@ -74,6 +74,9 @@ API не должен привязывать клиентов к одному ч
 - `DELETE /api/v1/food-scans/{id}/items/{item_id}/` — удалить ошибочный detected item из active results через soft-delete; удалённый item не попадёт в confirmation.
 - `POST /api/v1/food-scans/{id}/items/` — добавить отсутствующий detected item вручную. Тело: `food_id`, `mass_g`, optional `label`.
 - `POST /api/v1/food-scans/{id}/confirm/` — подтвердить scan и создать `Meal`/`MealItem` только из active matched items. Тело: `meal_type`, optional `logged_at`, optional `name`. Endpoint идемпотентно возвращает существующий meal для уже confirmed scan.
+- `GET /api/v1/ai/coach/settings/` — чтение собственных AI coach settings без `user_id`; возвращает consent state для хранения истории AI-чата.
+- `PATCH /api/v1/ai/coach/settings/` — принять или отозвать consent на историю AI-чата через `chat_history_consent_accepted=true` или `chat_history_consent_revoked=true`.
+- `POST /api/v1/ai/coach/ask/` — запрос к AI Nutrition Coach. Тело: `message`, optional `date`, optional `store_response`. Backend строит минимальный context из цели, дневных агрегатов, dietary preferences и текущего запроса. Ответ использует schema `ai_nutrition_coach_response_v1`: `answer`, `suggestions`, `nutrition_notes`, `warnings`, `safety`, `provider`, `stored`. `stored=true` возможен только при явном chat history consent.
 - Internal Vision API:
   - `GET /health` — health check Vision service. Ответ: `{"status": "ok"}`.
   - `POST /v1/analyze` — internal endpoint Vision service. Принимает `object_reference` на приватный backend-controlled объект: `scan_id`, `storage_backend`, `object_key`, `content_type`, `checksum_sha256`. Vision v1 читает подготовленное изображение из private local storage, проверяет checksum и возвращает результат real food classifier как `{"items": [{"label": "...", "confidence": 0.0-1.0}]}`. Contract также допускает optional future geometry fields `segment_area_px` и `portion_reference`, но текущая модель обычно возвращает один dish-level top prediction без bounding boxes и portion estimate.
@@ -121,6 +124,10 @@ UI-клиенты не должны вызывать `fetch` к backend напр
 - обращение User A к UUID чужого food scan или item action не раскрывает чужие detected items и не создаёт meal;
 - `support`, `content_manager` и business `admin` не получают API-доступ к фотографиям еды по умолчанию;
 - food scan API не возвращает private storage key и не выдаёт постоянный публичный URL.
+- обычный `user` может читать/менять только собственные AI coach settings и пользоваться AI coach;
+- `support`, `content_manager` и business `admin` не получают API-доступ к AI coach и AI-диалогам по умолчанию;
+- AI coach API не передаёт провайдеру email, display name, UUID, фотографии, sensitive restrictions, private object keys или полную историю аккаунта;
+- unsafe AI coach input/output возвращает structured safety response и не сохраняет AI message.
 
 Nutrition profile не реализует диагнозы. Аллергии, intolerance и medical restrictions хранятся отдельно от обычных dietary preferences.
 

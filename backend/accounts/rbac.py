@@ -55,6 +55,9 @@ VIEW_OWN_MEAL_PERMISSION = "diary.view_own_meal"
 CHANGE_OWN_MEAL_PERMISSION = "diary.change_own_meal"
 VIEW_OWN_FOOD_SCAN_PERMISSION = "food_scans.view_own_foodscan"
 CHANGE_OWN_FOOD_SCAN_PERMISSION = "food_scans.change_own_foodscan"
+USE_AI_COACH_PERMISSION = "ai_coach.use_ai_nutrition_coach"
+VIEW_OWN_AI_COACH_SETTINGS_PERMISSION = "ai_coach.view_own_aicoachsettings"
+CHANGE_OWN_AI_COACH_SETTINGS_PERMISSION = "ai_coach.change_own_aicoachsettings"
 NUTRITION_CATALOG_MODEL_PERMISSIONS = frozenset(
     {
         "nutrition.add_foodcategory",
@@ -342,6 +345,24 @@ PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
         name="Can change own food scan",
         app_label="food_scans",
     ),
+    PermissionDefinition(
+        codename="use_ai_nutrition_coach",
+        model="aicoachsettings",
+        name="Can use AI nutrition coach",
+        app_label="ai_coach",
+    ),
+    PermissionDefinition(
+        codename="view_own_aicoachsettings",
+        model="aicoachsettings",
+        name="Can view own AI coach settings",
+        app_label="ai_coach",
+    ),
+    PermissionDefinition(
+        codename="change_own_aicoachsettings",
+        model="aicoachsettings",
+        name="Can change own AI coach settings",
+        app_label="ai_coach",
+    ),
 )
 
 ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
@@ -360,6 +381,9 @@ ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
                 CHANGE_OWN_MEAL_PERMISSION,
                 VIEW_OWN_FOOD_SCAN_PERMISSION,
                 CHANGE_OWN_FOOD_SCAN_PERMISSION,
+                USE_AI_COACH_PERMISSION,
+                VIEW_OWN_AI_COACH_SETTINGS_PERMISSION,
+                CHANGE_OWN_AI_COACH_SETTINGS_PERMISSION,
             }
         ),
     ),
