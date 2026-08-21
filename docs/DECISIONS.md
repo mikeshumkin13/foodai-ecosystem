@@ -1041,3 +1041,68 @@ Consequences / Последствия:
 - Support, content_manager и business admin не получают доступ к AI-диалогам по умолчанию.
 - Любое расширение context должно проходить privacy review и обновлять `docs/SECURITY.md` /
   `docs/API.md`.
+
+## ADR-0024: Structured AI Fitness Coach Foundation
+
+Date / Дата: 2026-08-21
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+AI Fitness Coach foundation реализуется внутри backend-монолита отдельным Django app `fitness`.
+
+План тренировки не генерируется свободным текстом. Основные сущности:
+
+- `WorkoutPlan` — пользовательский план с целью, уровнем опыта, длительностью, доступным
+  оборудованием и AI explanation metadata;
+- `Workout` — структурированная тренировка внутри плана;
+- `Exercise` — managed exercise catalog;
+- `WorkoutExercise` — prescription: exercise, order, sets, reps/time, rest, intensity и coaching
+  notes;
+- `WorkoutLog` — пользовательская история выполнения тренировки.
+
+Сначала работает rule-based planner `fitness.services`: он учитывает `goal`, `experience_level`,
+`duration_minutes`, `sessions_per_week` и `available_equipment`, выбирает упражнения из exercise
+catalog и создаёт structured workouts. AI provider abstraction `FitnessCoachProvider` используется
+только для explanation/adaptation текста поверх structured plan draft; provider не является source
+of truth для структуры плана.
+
+Текущий provider по умолчанию: `mock`. Подключение конкретного LLM-провайдера требует отдельного
+решения по privacy, retention, timeout, logging, cost-control и safety.
+
+Safety layer `fitness.safety` выполняется до создания или адаптации плана и после provider output.
+Он блокирует травмы, острую боль, warning signs и medical decision запросы. При блокировке API
+возвращает structured safety response и не создаёт/не изменяет нагрузку.
+
+Доступ:
+
+- `user` может пользоваться AI Fitness Coach и читать/изменять только собственные workout
+  plans/logs;
+- `content_manager` может управлять exercise catalog, но не приватными plans/logs;
+- `support` и business `admin` не получают API-доступ к приватным workout plans/logs по умолчанию;
+- `superuser` остаётся техническим Django override.
+
+Rationale / Обоснование:
+
+- Тренировочные планы должны быть машиночитаемыми, редактируемыми и пригодными для логирования,
+  поэтому свободный текст не может быть основным форматом плана.
+- Rule-based foundation даёт предсказуемое MVP-поведение без обещаний персональной медицинской
+  пригодности.
+- Provider abstraction снижает vendor lock-in и не смешивает LLM-вызовы с Django views.
+- Injury/acute pain сценарии высокорисковые; продукт должен возвращать safety response вместо
+  продолжения нагрузки.
+- Exercise catalog является shared reference data и должен управляться отдельно от приватных
+  пользовательских workout logs.
+
+Consequences / Последствия:
+
+- Future Fitness Coach UI должен читать structured entities, а не парсить AI text.
+- Любая LLM-интеграция должна работать поверх structured plan draft и не получать лишние
+  пользовательские данные.
+- Расширение plan context данными health profile, wearable, injuries или medical restrictions
+  требует отдельного privacy/safety решения.
+- Workout logs считаются чувствительными fitness data и должны иметь owner-only access и
+  IDOR-тесты.
+- Изменение rule-based planner formulas, exercise selection или safety rules требует обновления
+  tests и документации.

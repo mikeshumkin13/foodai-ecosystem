@@ -49,6 +49,7 @@ VIEW_ADMIN_AUDIT_LOG_PERMISSION = "accounts.view_adminauditlog"
 VIEW_SUPPORT_ADMIN_PERMISSION = "accounts.view_support_admin"
 MANAGE_REFERENCE_DATA_PERMISSION = "accounts.manage_reference_data"
 MANAGE_FOOD_CATALOG_PERMISSION = "accounts.manage_food_catalog"
+MANAGE_FITNESS_CATALOG_PERMISSION = "accounts.manage_fitness_catalog"
 VIEW_ROLE_GROUP_PERMISSION = "auth.view_group"
 CHANGE_ROLE_GROUP_PERMISSION = "auth.change_group"
 VIEW_OWN_MEAL_PERMISSION = "diary.view_own_meal"
@@ -58,6 +59,11 @@ CHANGE_OWN_FOOD_SCAN_PERMISSION = "food_scans.change_own_foodscan"
 USE_AI_COACH_PERMISSION = "ai_coach.use_ai_nutrition_coach"
 VIEW_OWN_AI_COACH_SETTINGS_PERMISSION = "ai_coach.view_own_aicoachsettings"
 CHANGE_OWN_AI_COACH_SETTINGS_PERMISSION = "ai_coach.change_own_aicoachsettings"
+USE_AI_FITNESS_COACH_PERMISSION = "fitness.use_ai_fitness_coach"
+VIEW_OWN_WORKOUT_PLAN_PERMISSION = "fitness.view_own_workoutplan"
+CHANGE_OWN_WORKOUT_PLAN_PERMISSION = "fitness.change_own_workoutplan"
+VIEW_OWN_WORKOUT_LOG_PERMISSION = "fitness.view_own_workoutlog"
+CHANGE_OWN_WORKOUT_LOG_PERMISSION = "fitness.change_own_workoutlog"
 NUTRITION_CATALOG_MODEL_PERMISSIONS = frozenset(
     {
         "nutrition.add_foodcategory",
@@ -80,6 +86,14 @@ NUTRITION_CATALOG_MODEL_PERMISSIONS = frozenset(
         "nutrition.view_foodnutrient",
         "nutrition.change_foodnutrient",
         "nutrition.delete_foodnutrient",
+    }
+)
+FITNESS_CATALOG_MODEL_PERMISSIONS = frozenset(
+    {
+        "fitness.add_exercise",
+        "fitness.view_exercise",
+        "fitness.change_exercise",
+        "fitness.delete_exercise",
     }
 )
 
@@ -195,6 +209,11 @@ PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
         codename="manage_food_catalog",
         model="rolepermission",
         name="Can manage future food catalog content",
+    ),
+    PermissionDefinition(
+        codename="manage_fitness_catalog",
+        model="rolepermission",
+        name="Can manage fitness catalog content",
     ),
     PermissionDefinition(
         codename="administer_accounts",
@@ -363,6 +382,60 @@ PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
         name="Can change own AI coach settings",
         app_label="ai_coach",
     ),
+    PermissionDefinition(
+        codename="add_exercise",
+        model="exercise",
+        name="Can add exercise",
+        app_label="fitness",
+    ),
+    PermissionDefinition(
+        codename="view_exercise",
+        model="exercise",
+        name="Can view exercise",
+        app_label="fitness",
+    ),
+    PermissionDefinition(
+        codename="change_exercise",
+        model="exercise",
+        name="Can change exercise",
+        app_label="fitness",
+    ),
+    PermissionDefinition(
+        codename="delete_exercise",
+        model="exercise",
+        name="Can delete exercise",
+        app_label="fitness",
+    ),
+    PermissionDefinition(
+        codename="use_ai_fitness_coach",
+        model="workoutplan",
+        name="Can use AI fitness coach",
+        app_label="fitness",
+    ),
+    PermissionDefinition(
+        codename="view_own_workoutplan",
+        model="workoutplan",
+        name="Can view own workout plan",
+        app_label="fitness",
+    ),
+    PermissionDefinition(
+        codename="change_own_workoutplan",
+        model="workoutplan",
+        name="Can change own workout plan",
+        app_label="fitness",
+    ),
+    PermissionDefinition(
+        codename="view_own_workoutlog",
+        model="workoutlog",
+        name="Can view own workout log",
+        app_label="fitness",
+    ),
+    PermissionDefinition(
+        codename="change_own_workoutlog",
+        model="workoutlog",
+        name="Can change own workout log",
+        app_label="fitness",
+    ),
 )
 
 ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
@@ -384,6 +457,11 @@ ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
                 USE_AI_COACH_PERMISSION,
                 VIEW_OWN_AI_COACH_SETTINGS_PERMISSION,
                 CHANGE_OWN_AI_COACH_SETTINGS_PERMISSION,
+                USE_AI_FITNESS_COACH_PERMISSION,
+                VIEW_OWN_WORKOUT_PLAN_PERMISSION,
+                CHANGE_OWN_WORKOUT_PLAN_PERMISSION,
+                VIEW_OWN_WORKOUT_LOG_PERMISSION,
+                CHANGE_OWN_WORKOUT_LOG_PERMISSION,
             }
         ),
     ),
@@ -405,7 +483,9 @@ ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
                 "accounts.manage_catalog_content",
                 MANAGE_REFERENCE_DATA_PERMISSION,
                 MANAGE_FOOD_CATALOG_PERMISSION,
+                MANAGE_FITNESS_CATALOG_PERMISSION,
                 *NUTRITION_CATALOG_MODEL_PERMISSIONS,
+                *FITNESS_CATALOG_MODEL_PERMISSIONS,
             }
         ),
     ),
@@ -430,7 +510,9 @@ ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
                 VIEW_SUPPORT_ADMIN_PERMISSION,
                 MANAGE_REFERENCE_DATA_PERMISSION,
                 MANAGE_FOOD_CATALOG_PERMISSION,
+                MANAGE_FITNESS_CATALOG_PERMISSION,
                 *NUTRITION_CATALOG_MODEL_PERMISSIONS,
+                *FITNESS_CATALOG_MODEL_PERMISSIONS,
                 ADMINISTER_ACCOUNTS_PERMISSION,
             }
         ),
