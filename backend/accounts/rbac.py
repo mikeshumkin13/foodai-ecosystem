@@ -59,6 +59,13 @@ CHANGE_OWN_FOOD_SCAN_PERMISSION = "food_scans.change_own_foodscan"
 USE_AI_COACH_PERMISSION = "ai_coach.use_ai_nutrition_coach"
 VIEW_OWN_AI_COACH_SETTINGS_PERMISSION = "ai_coach.view_own_aicoachsettings"
 CHANGE_OWN_AI_COACH_SETTINGS_PERMISSION = "ai_coach.change_own_aicoachsettings"
+USE_WELLBEING_ASSISTANT_PERMISSION = "wellbeing.use_wellbeing_assistant"
+VIEW_OWN_WELLBEING_ASSISTANT_SETTINGS_PERMISSION = (
+    "wellbeing.view_own_wellbeingassistantsettings"
+)
+CHANGE_OWN_WELLBEING_ASSISTANT_SETTINGS_PERMISSION = (
+    "wellbeing.change_own_wellbeingassistantsettings"
+)
 USE_AI_FITNESS_COACH_PERMISSION = "fitness.use_ai_fitness_coach"
 VIEW_OWN_WORKOUT_PLAN_PERMISSION = "fitness.view_own_workoutplan"
 CHANGE_OWN_WORKOUT_PLAN_PERMISSION = "fitness.change_own_workoutplan"
@@ -383,6 +390,24 @@ PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
         app_label="ai_coach",
     ),
     PermissionDefinition(
+        codename="use_wellbeing_assistant",
+        model="wellbeingassistantsettings",
+        name="Can use wellbeing assistant",
+        app_label="wellbeing",
+    ),
+    PermissionDefinition(
+        codename="view_own_wellbeingassistantsettings",
+        model="wellbeingassistantsettings",
+        name="Can view own wellbeing assistant settings",
+        app_label="wellbeing",
+    ),
+    PermissionDefinition(
+        codename="change_own_wellbeingassistantsettings",
+        model="wellbeingassistantsettings",
+        name="Can change own wellbeing assistant settings",
+        app_label="wellbeing",
+    ),
+    PermissionDefinition(
         codename="add_exercise",
         model="exercise",
         name="Can add exercise",
@@ -457,6 +482,9 @@ ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
                 USE_AI_COACH_PERMISSION,
                 VIEW_OWN_AI_COACH_SETTINGS_PERMISSION,
                 CHANGE_OWN_AI_COACH_SETTINGS_PERMISSION,
+                USE_WELLBEING_ASSISTANT_PERMISSION,
+                VIEW_OWN_WELLBEING_ASSISTANT_SETTINGS_PERMISSION,
+                CHANGE_OWN_WELLBEING_ASSISTANT_SETTINGS_PERMISSION,
                 USE_AI_FITNESS_COACH_PERMISSION,
                 VIEW_OWN_WORKOUT_PLAN_PERMISSION,
                 CHANGE_OWN_WORKOUT_PLAN_PERMISSION,

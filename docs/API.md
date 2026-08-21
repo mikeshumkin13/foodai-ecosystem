@@ -87,6 +87,9 @@ API не должен привязывать клиентов к одному ч
 - `POST /api/v1/fitness/plans/{id}/adapt/` — адаптация собственного workout plan поверх structured entities. При injury/acute pain/medical warning signs возвращает safety response и не изменяет существующий plan.
 - `GET/POST /api/v1/fitness/workout-logs/` — список и создание собственных workout logs.
 - `GET/PATCH/DELETE /api/v1/fitness/workout-logs/{id}/` — чтение, изменение и удаление собственного workout log.
+- `GET /api/v1/wellbeing/settings/` — чтение собственных Wellbeing Assistant settings без `user_id`; возвращает consent state для хранения истории wellbeing-чата.
+- `PATCH /api/v1/wellbeing/settings/` — принять или отозвать consent на историю Wellbeing Assistant через `history_consent_accepted=true` или `history_consent_revoked=true`.
+- `POST /api/v1/wellbeing/ask/` — запрос к AI Wellbeing Assistant. Тело: `message`, optional `date`, optional `store_response`. Backend передаёт provider только минимальный context: locale, дату, разрешённые focus areas и текущий запрос. Ответ использует schema `ai_wellbeing_assistant_response_v1`: `answer`, `focus_area`, `small_actions`, `reflection_prompts`, `adherence_strategy`, `warnings`, `safety`, `provider`, `stored`, `storage_reason`. `stored=true` возможен только при явном consent и только если request/response не заблокированы safety layer и не содержат sensitive wellbeing content.
 - Internal Vision API:
   - `GET /health` — health check Vision service. Ответ: `{"status": "ok"}`.
   - `POST /v1/analyze` — internal endpoint Vision service. Принимает `object_reference` на приватный backend-controlled объект: `scan_id`, `storage_backend`, `object_key`, `content_type`, `checksum_sha256`. Vision v1 читает подготовленное изображение из private local storage, проверяет checksum и возвращает результат real food classifier как `{"items": [{"label": "...", "confidence": 0.0-1.0}]}`. Contract также допускает optional future geometry fields `segment_area_px` и `portion_reference`, но текущая модель обычно возвращает один dish-level top prediction без bounding boxes и portion estimate.
@@ -144,6 +147,11 @@ UI-клиенты не должны вызывать `fetch` к backend напр
 - обращение User A к UUID workout plan или workout log User B не возвращает чужие данные;
 - AI Fitness Coach provider не получает email, UUID, фотографии, nutrition sensitive restrictions, приватный дневник или health profile;
 - injury/acute pain/medical warning signs возвращают structured safety response вместо создания или адаптации нагрузки.
+- обычный `user` может читать/менять только собственные Wellbeing Assistant settings и пользоваться Wellbeing Assistant;
+- `support`, `content_manager` и business `admin` не получают API-доступ к Wellbeing Assistant и wellbeing-диалогам по умолчанию;
+- Wellbeing Assistant provider не получает email, display name, UUID, фотографии, private object keys, health profile, дневник питания, workout logs или полную историю аккаунта;
+- self-harm, harm-to-others, immediate danger, medical/clinical decision и unsafe behavior planning возвращают structured safety response до provider call;
+- safety-blocked и sensitive wellbeing messages не сохраняются в history/analytics даже при consent.
 
 Nutrition profile не реализует диагнозы. Аллергии, intolerance и medical restrictions хранятся отдельно от обычных dietary preferences.
 

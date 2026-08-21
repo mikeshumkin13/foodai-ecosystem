@@ -48,6 +48,7 @@ include = [
   "fitness*",
   "integrations*",
   "nutrition*",
+  "wellbeing*",
 ]
 
 [tool.pytest.ini_options]

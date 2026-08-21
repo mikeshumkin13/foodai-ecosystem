@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "food_scans",
     "ai_coach",
     "fitness",
+    "wellbeing",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -177,6 +178,11 @@ FITNESS_COACH_PROVIDER_TIMEOUT_SECONDS = get_env_float(
     "FITNESS_COACH_PROVIDER_TIMEOUT_SECONDS",
     default=10.0,
 )
+WELLBEING_ASSISTANT_PROVIDER = get_env("WELLBEING_ASSISTANT_PROVIDER", default="mock")
+WELLBEING_ASSISTANT_PROVIDER_TIMEOUT_SECONDS = get_env_float(
+    "WELLBEING_ASSISTANT_PROVIDER_TIMEOUT_SECONDS",
+    default=10.0,
+)
 
 CORS_ALLOWED_ORIGINS = get_env_list("DJANGO_CORS_ALLOWED_ORIGINS", default="")
 CORS_ALLOW_CREDENTIALS = get_env_bool("DJANGO_CORS_ALLOW_CREDENTIALS", default=False)
@@ -211,6 +217,7 @@ REST_FRAMEWORK = {
         "auth_password_change": get_env("AUTH_PASSWORD_CHANGE_THROTTLE_RATE", default="5/hour"),
         "ai_coach_ask": get_env("AI_COACH_ASK_THROTTLE_RATE", default="30/hour"),
         "fitness_coach": get_env("FITNESS_COACH_THROTTLE_RATE", default="30/hour"),
+        "wellbeing_assistant": get_env("WELLBEING_ASSISTANT_THROTTLE_RATE", default="30/hour"),
     },
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",

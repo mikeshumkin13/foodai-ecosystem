@@ -120,6 +120,13 @@ foodai-ecosystem/
 - AI Fitness Coach использует provider abstraction `fitness.providers.FitnessCoachProvider`; текущий provider `mock` возвращает объяснение к уже структурированному плану, но не заменяет план свободным текстом.
 - Safety layer `fitness.safety` блокирует запросы и provider output с травмами, острой болью, медицинскими решениями или warning signs и возвращает safety response без создания или изменения плана.
 - Fitness plans и workout logs доступны обычному `user` только в пределах собственных объектов; `support`, `content_manager` и business `admin` не получают API-доступ к приватным workout plans/logs по умолчанию.
+- Приложение `wellbeing` содержит foundation AI Wellbeing Assistant для привычек, adherence, режима, motivation strategies, reflection и планирования маленьких действий.
+- Wellbeing Assistant не позиционируется как лицензированный психолог и не ставит диагнозы, не назначает лечение и не заменяет квалифицированную поддержку.
+- Бизнес-логика использует provider abstraction `wellbeing.providers.WellbeingAssistantProvider`; текущий provider `mock` не привязан к конкретному LLM-провайдеру.
+- Provider получает только минимальный structured context: locale, дату, разрешённые wellbeing focus areas и текущий запрос пользователя.
+- Safety layer `wellbeing.safety` блокирует self-harm, harm-to-others, immediate danger, medical/clinical decision и unsafe behavior planning до provider call и проверяет provider output.
+- `WellbeingAssistantSettings` хранит consent/version metadata для истории; `WellbeingAssistantMessage` сохраняется только при явном consent и только если вход/выход не содержит safety или sensitive wellbeing content.
+- Wellbeing Assistant не создаёт analytics events с чувствительными сообщениями; sensitive wellbeing content возвращает response без persistence.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 
