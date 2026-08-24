@@ -1284,3 +1284,57 @@ Consequences / Последствия:
 - Если появятся async deletion jobs, API должен сохранять idempotency key/status и не возвращать
   sensitive payload в task/logs.
 - Legal review перед production должна проверить retention/export/delete требования целевых стран.
+
+## ADR-0027: Security Hardening Baseline And Threat Model
+
+Date / Дата: 2026-08-24
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Security hardening на Stage 25 фиксируется как baseline, а не как заявление о полной безопасности.
+
+Добавлены:
+
+- `docs/THREAT_MODEL.md` как текущая модель угроз;
+- production security headers в `config.settings.production`;
+- custom Django security system checks в `core.security_checks`;
+- automated tests для headers, CORS allowlist, CSRF enforcement, deny-by-default DRF permissions и
+  production configuration checks;
+- Dependabot configuration для Python, frontend, GitHub Actions и Docker dependencies.
+
+Production settings должны явно включать:
+
+- `SECURE_SSL_REDIRECT`;
+- HSTS;
+- `SESSION_COOKIE_SECURE`;
+- `CSRF_COOKIE_SECURE`;
+- `CSRF_COOKIE_HTTPONLY`;
+- `SECURE_CONTENT_TYPE_NOSNIFF`;
+- `SECURE_REFERRER_POLICY`;
+- `SECURE_CROSS_ORIGIN_OPENER_POLICY`;
+- `X_FRAME_OPTIONS = "DENY"`.
+
+Custom system checks активируются для `APP_ENV=production` или `config.settings.production` и
+блокируют опасные production-конфигурации: `DEBUG=true`, слабый/local `SECRET_KEY`, wildcard
+`ALLOWED_HOSTS`, wildcard или HTTP CORS/CSRF origins, insecure cookies, отключённый HTTPS redirect,
+отключённый nosniff и нарушение deny-by-default DRF permissions.
+
+Rationale / Обоснование:
+
+- Ошибочная production-конфигурация является реалистичным риском для раннего продукта.
+- Security headers и deploy checks должны быть проверяемой частью quality gate, а не только
+  документацией.
+- Threat model нужен до production, чтобы явно видеть assets, actors, trust boundaries, mitigations и
+  residual risks.
+- Dependabot снижает риск незамеченных dependency updates, но не заменяет отдельный vulnerability
+  audit gate.
+
+Consequences / Последствия:
+
+- `manage.py check --deploy` должен проходить на production-like конфигурации без ошибок.
+- Новые endpoints должны сохранять default-deny и object-level permission tests.
+- Новые внешние HTTP clients требуют SSRF review и не должны строиться из пользовательских URL.
+- Подключение S3-compatible storage, CSP, dependency audit gate, service-to-service auth и structured
+  log redaction остаются отдельными production-readiness задачами.

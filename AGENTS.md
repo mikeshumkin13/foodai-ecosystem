@@ -11,6 +11,7 @@
    - `docs/STATUS.md`
    - `docs/DECISIONS.md`
    - `docs/SECURITY.md`
+   - `docs/THREAT_MODEL.md`
    - `docs/API.md`
 2. Проверить `git status` и текущую ветку.
 3. Если реальный код противоречит документации, сначала определить причину.

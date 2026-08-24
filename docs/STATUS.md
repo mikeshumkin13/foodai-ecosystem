@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-24
 
 ## Текущий завершённый этап
 
-ЭТАП 24, PROMPT 24 — Privacy Center завершён.
+ЭТАП 25, PROMPT 25 — Security hardening завершён.
 
 ## Состояние
 
@@ -241,6 +241,16 @@ Last updated / Обновлено: 2026-08-24
 - `/privacy` показывает категории данных, consent toggles, JSON export, список собственных food photos для удаления, удаление AI chat history и удаление аккаунта.
 - Frontend privacy actions используют centralized API client с текущей CSRF/session-cookie схемой; access token в browser storage не добавлялся.
 - Добавлены backend deletion workflow tests для consent defaults, export, food photo deletion, cross-user/IDOR, stale background task, AI history deletion и account deletion.
+- Создана ветка `feature/security-hardening` от актуального `develop`.
+- Проведён security review текущей поверхности: authentication, authorization, IDOR, CSRF, CORS, XSS, SQL injection, SSRF, file uploads, rate limits, password reset, secrets, logs, Django Admin, signed URLs, object storage, container permissions, dependencies, debug mode и security headers.
+- Добавлен `docs/THREAT_MODEL.md` с assets, actors, trust boundaries, threats, mitigations и remaining risks.
+- Production settings усилены security headers: HSTS, HTTPS redirect, secure cookies, CSRF HttpOnly default, nosniff, referrer policy, cross-origin opener policy и `X_FRAME_OPTIONS=DENY`.
+- Добавлены custom Django security checks `core.security_checks` для production/runtime guardrails.
+- Security checks блокируют опасные production settings: `DEBUG=true`, слабый/local `SECRET_KEY`, wildcard hosts/CORS/CSRF origins, HTTP origins, insecure cookies, отключённый HTTPS redirect/nosniff и нарушение default-deny DRF permissions.
+- Добавлены automated security tests для headers, CORS allowlist, CSRF enforcement, deny-by-default DRF permissions и production configuration checks.
+- Добавлен `.github/dependabot.yml` для регулярного dependency update monitoring по Python, frontend, GitHub Actions и Docker.
+- `AGENTS.md` теперь требует читать `docs/THREAT_MODEL.md` в следующих Codex-сеансах.
+- Зафиксированы оставшиеся security risks: внешний pentest, CSP, production S3-compatible private storage, dependency audit gate, Docker digest/SBOM/provenance, structured log redaction и service-to-service auth для Vision.
 
 ## Проверки
 
@@ -431,7 +441,17 @@ Last updated / Обновлено: 2026-08-24
 - `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage24.yml` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
 - `docker compose --env-file .env config --quiet` — passed.
 - `docker compose --env-file .env build backend vision celery_worker` — первый запуск показал, что Docker daemon не был запущен; после запуска Docker Desktop повтор passed, backend, vision и celery_worker images собраны.
+- `pytest --no-cov backend/core/tests/test_security_hardening.py` — passed для PROMPT 25, 6 tests passed.
+- `ruff check backend/core backend/config/settings/production.py` — passed для изменённой backend-зоны PROMPT 25.
+- `mypy backend/core backend/config/settings/production.py` с тестовыми env — passed для изменённой backend-зоны PROMPT 25.
+- `backend/manage.py check --deploy --settings=config.settings.production` с production-like безопасными env — passed, Django deploy/security checks без issues.
+- `make check` — passed для PROMPT 25: Ruff без ошибок, mypy без ошибок в 158 source files, Django system check без ошибок, pytest: 235 passed, coverage 89.11%; frontend linter passed, TypeScript typecheck passed, Vitest: 7 test files / 10 tests passed, Next.js production build passed. Есть одно стороннее `StarletteDeprecationWarning` из FastAPI TestClient.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage25.yml` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `pip check` — passed, broken requirements не найдены; pip сообщил только локальное cache permission warning.
+- `docker compose --env-file .env build backend vision celery_worker` — passed, backend, vision и celery_worker images собраны.
 
 ## Следующий этап
 
-Остановиться после PROMPT 24. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 25. Следующую задачу начинать только после явной команды пользователя.
