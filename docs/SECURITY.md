@@ -293,6 +293,46 @@ AI не должен:
 - Account deletion требует текущий пароль, удаляет private food photo objects, связанные PostgreSQL rows, DB sessions и user-scoped cache keys.
 - Deletion workflows не логируют фото, private object key, AI payload, health/nutrition profile или содержимое дневника.
 
+## Security hardening baseline
+
+Stage 25 review проверил текущую поверхность по темам authentication, authorization, IDOR, CSRF,
+CORS, XSS, SQL injection, SSRF, file uploads, rate limits, password reset, secrets, logs, Django
+Admin, signed URLs, object storage, container permissions, dependencies, debug mode и security
+headers.
+
+Итоговые выводы:
+
+- Authentication основана на Django session cookies и CSRF; bearer access token не выдаётся web UI.
+- Authorization использует centralized permissions и owner-only querysets; новые пользовательские
+  UUID-ресурсы должны добавлять IDOR-тесты.
+- File uploads уже используют фактическую проверку формата, EXIF stripping, safe object keys и
+  private storage boundary.
+- Vision HTTP calls идут только через service/client abstraction и не строятся из пользовательских
+  URL.
+- SQL injection risk сейчас снижен применением Django ORM; в app code не найдено raw SQL с
+  пользовательским вводом.
+- Frontend linter запрещает `localStorage`/`sessionStorage` и direct `fetch` вне centralized API
+  client.
+- Production settings теперь явно включают secure headers: HSTS, nosniff, referrer policy,
+  cross-origin opener policy и `X_FRAME_OPTIONS=DENY`.
+- Добавлены Django security system checks, которые для production блокируют опасные настройки:
+  `DEBUG=true`, слабый/local `SECRET_KEY`, wildcard hosts/CORS/CSRF origins, HTTP origins,
+  insecure cookies, отключённый HTTPS redirect/nosniff и нарушение default-deny DRF permissions.
+- Добавлен `docs/THREAT_MODEL.md`.
+- Добавлен `.github/dependabot.yml` для регулярного dependency update monitoring.
+
+Оставшиеся риски:
+
+- Это не подтверждение полной безопасности; перед production нужен внешний security review/pentest.
+- CSP пока не включён и требует отдельной проверки совместимости Swagger/Admin/frontend.
+- Production S3-compatible private storage backend ещё не реализован.
+- Backend dependency lock/audit gate ещё не принят; Dependabot не заменяет vulnerability scanning.
+- Docker image digest pinning, SBOM/provenance и container hardening beyond non-root user остаются
+  production-readiness задачами.
+- Structured log redaction и observability policy требуют отдельной реализации перед production.
+- Service-to-service authentication для Vision не реализована; local compose network не является
+  достаточной production boundary.
+
 ## Права пользователя
 
 Система должна поддерживать:
