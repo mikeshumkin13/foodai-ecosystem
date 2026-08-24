@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-24
 
 ## Текущий завершённый этап
 
-ЭТАП 25, PROMPT 25 — Security hardening завершён.
+ЭТАП 26, PROMPT 26 — Security audit trail / Audit Log завершён.
 
 ## Состояние
 
@@ -251,6 +251,17 @@ Last updated / Обновлено: 2026-08-24
 - Добавлен `.github/dependabot.yml` для регулярного dependency update monitoring по Python, frontend, GitHub Actions и Docker.
 - `AGENTS.md` теперь требует читать `docs/THREAT_MODEL.md` в следующих Codex-сеансах.
 - Зафиксированы оставшиеся security risks: внешний pentest, CSP, production S3-compatible private storage, dependency audit gate, Docker digest/SBOM/provenance, structured log redaction и service-to-service auth для Vision.
+- Создана ветка `feature/audit-log` от актуального `develop`.
+- Добавлено Django-приложение `audit` с `AuditLog` для security audit trail.
+- `AuditLog` хранит actor, actor UUID snapshot, action, target type, target ID, timestamp, безопасные metadata и request correlation ID.
+- Добавлен `audit.middleware.CorrelationIdMiddleware`, который принимает безопасный `X-Request-ID`/`X-Correlation-ID` или генерирует новый correlation ID и возвращает его в response header.
+- Audit metadata проходит sanitizer: password/token/secret/photo/image/object_key/AI conversation/message/health/medical/cookie/session/CSRF payload редактируются.
+- Django Admin изменения `accounts.User` пишутся как `admin_user_changed`; изменения role groups и role-related полей пользователя пишутся как `role_changed`.
+- Privacy Center пишет audit events для export data, privacy consent changes и account deletion без сохранения экспортируемого JSON, фото, AI-диалогов, object keys, пароля или detailed health profile.
+- Добавлен foundation `record_support_access` для будущей процедуры support access.
+- `audit.AuditLog` зарегистрирован в Django Admin как read-only модель без add/change/delete actions.
+- Право `audit.view_auditlog` выдано только роли `admin`; `user`, `support` и `content_manager` остаются deny-by-default.
+- Добавлены тесты audit sanitizer, admin audit integration, support access foundation, admin read-only permissions, RBAC и Privacy Center audit events.
 
 ## Проверки
 
@@ -451,7 +462,17 @@ Last updated / Обновлено: 2026-08-24
 - `docker compose --env-file .env config --quiet` — passed.
 - `pip check` — passed, broken requirements не найдены; pip сообщил только локальное cache permission warning.
 - `docker compose --env-file .env build backend vision celery_worker` — passed, backend, vision и celery_worker images собраны.
+- `pytest --no-cov backend/audit/tests/test_audit_log.py backend/accounts/tests/test_admin_panel.py backend/accounts/tests/test_rbac.py backend/privacy/tests/test_privacy_center_api.py` — passed для PROMPT 26, 50 tests passed.
+- `ruff check .` — passed для PROMPT 26, ошибок нет.
+- `mypy backend services/vision` с тестовыми env — passed для PROMPT 26, no issues in 166 source files.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `make check` — passed для PROMPT 26: Ruff без ошибок, mypy без ошибок в 166 source files, Django system check без ошибок, pytest: 242 passed, coverage 88.73%; frontend linter passed, TypeScript typecheck passed, Vitest: 7 test files / 10 tests passed, Next.js production build passed. Есть одно стороннее `StarletteDeprecationWarning` из FastAPI TestClient.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage26.yml` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `pip check` — passed, broken requirements не найдены; pip сообщил только локальное cache permission warning.
+- `git diff --check` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — первый запуск был заблокирован Codex sandbox из-за Docker buildx activity permissions; повтор с разрешением на Docker Desktop passed, backend, vision и celery_worker images собраны.
 
 ## Следующий этап
 
-Остановиться после PROMPT 25. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 26. Следующую задачу начинать только после явной команды пользователя.

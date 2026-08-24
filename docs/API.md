@@ -164,6 +164,16 @@ UI-клиенты не должны вызывать `fetch` к backend напр
 - обращение User A к `DELETE /api/v1/privacy/food-photos/{scan_id}/` с UUID scan User B не раскрывает фото metadata и возвращает `404`;
 - food photos не используются для обучения/improvement без отдельного явного `food_photo_training_consent_*`;
 - account deletion требует текущий пароль и не принимает чужой user UUID в path/body.
+- Security-sensitive Privacy Center operations создают internal `audit.AuditLog` events:
+  `data_exported`, `privacy_consent_changed`, `account_deleted`. Audit log не возвращается через
+  public API и доступен только уполномоченным администраторам в read-only Django Admin.
+
+Correlation ID:
+
+- Backend принимает безопасный `X-Request-ID` или `X-Correlation-ID` и возвращает `X-Request-ID` в
+  response.
+- Если клиент не передал валидный correlation ID, backend генерирует новый.
+- Correlation ID используется для internal audit trail; sensitive payload в него не включается.
 
 Nutrition profile не реализует диагнозы. Аллергии, intolerance и medical restrictions хранятся отдельно от обычных dietary preferences.
 

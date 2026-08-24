@@ -12,6 +12,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import User
+from audit.models import AuditLog
+from audit.services import record_audit_event
 from privacy.permissions import CanUsePrivacyCenter
 from privacy.serializers import (
     PrivacyAccountDeletionRequestSerializer,
@@ -54,6 +56,14 @@ class PrivacyDataExportView(APIView):
             content_type="application/json; charset=utf-8",
         )
         response["Content-Disposition"] = 'attachment; filename="foodai-user-data-export.json"'
+        record_audit_event(
+            actor=user,
+            action=AuditLog.Action.DATA_EXPORTED,
+            target_type="accounts.user",
+            target_id=user.id,
+            metadata={"source": "privacy_center", "export_format": "json"},
+            request=request._request,
+        )
         return response
 
 
@@ -80,6 +90,17 @@ class PrivacyConsentView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        record_audit_event(
+            actor=cast(User, request.user),
+            action=AuditLog.Action.PRIVACY_CONSENT_CHANGED,
+            target_type="privacy.privacysettings",
+            target_id=privacy_settings.id,
+            metadata={
+                "source": "privacy_center",
+                "requested_changes": sorted(serializer.validated_data.keys()),
+            },
+            request=request._request,
+        )
         return Response(serializer.data)
 
 

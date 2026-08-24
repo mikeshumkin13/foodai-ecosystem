@@ -1338,3 +1338,69 @@ Consequences / Последствия:
 - Новые внешние HTTP clients требуют SSRF review и не должны строиться из пользовательских URL.
 - Подключение S3-compatible storage, CSP, dependency audit gate, service-to-service auth и structured
   log redaction остаются отдельными production-readiness задачами.
+
+## ADR-0028: Security Audit Trail Boundary
+
+Date / Дата: 2026-08-24
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Security audit trail реализуется отдельным Django app `audit`.
+
+`accounts.AdminAuditLog` остаётся совместимым read-only mirror стандартного `django_admin_log` для
+административного журнала Django Admin. Новый `audit.AuditLog` используется как продуктовый
+security audit trail для значимых событий:
+
+- административное изменение пользователя;
+- изменение роли или role group;
+- support access foundation;
+- удаление аккаунта;
+- export data;
+- изменение privacy consent.
+
+`AuditLog` хранит:
+
+- `actor` как nullable FK на пользователя;
+- `actor_id_snapshot`, чтобы сохранить UUID actor после удаления аккаунта;
+- `action`;
+- `target_type`;
+- `target_id`;
+- `metadata`;
+- `request_correlation_id`;
+- `created_at`.
+
+`AuditLog.metadata` проходит sanitizer и не должен содержать password, token, secret, food photo,
+object key, AI conversation/message payload, detailed health/medical profile, cookie/session/CSRF
+payload. Metadata должна описывать только безопасные технические факты, например источник операции,
+формат экспорта, список изменённых consent flags или счётчик удалённых private objects.
+
+Correlation ID задаётся middleware `audit.middleware.CorrelationIdMiddleware`: backend принимает
+валидный `X-Request-ID`/`X-Correlation-ID` или генерирует новый UUID-like ID и возвращает
+`X-Request-ID` в ответе.
+
+`audit.AuditLog` доступен в Django Admin только на чтение. Default permissions ограничены `view`;
+business role `admin` получает `audit.view_auditlog`, остальные business roles не получают это право
+по умолчанию. `superuser` остаётся техническим override-механизмом Django.
+
+Rationale / Обоснование:
+
+- Security audit trail должен покрывать не только Django Admin, но и privacy/account/support
+  операции.
+- Аудит должен переживать удаление пользователя, но не хранить email, health profile, фото,
+  AI-диалоги или secrets.
+- Отдельный app отделяет security audit records от account-domain моделей и упрощает будущую
+  отправку событий в append-only хранилище.
+- Correlation ID нужен для расследования событий без включения чувствительного payload в логи.
+
+Consequences / Последствия:
+
+- Новые sensitive/admin/privacy операции должны явно вызывать `audit.services.record_audit_event`
+  или специализированный wrapper.
+- Future support tooling обязан использовать `record_support_access` при доступе к пользовательским
+  данным по процедуре поддержки.
+- Для production остаётся отдельная задача: append-only/immutable audit storage или database-level
+  controls, потому что текущая защита read-only обеспечивается на уровне Django Admin/app code.
+- Structured log redaction и централизованная observability policy остаются production-readiness
+  задачами.

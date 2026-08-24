@@ -40,6 +40,7 @@ package-dir = {"" = "backend"}
 where = ["backend"]
 include = [
   "accounts*",
+  "audit*",
   "ai_coach*",
   "config*",
   "core*",

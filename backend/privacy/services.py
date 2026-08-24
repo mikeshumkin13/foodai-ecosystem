@@ -17,6 +17,8 @@ from django.utils import timezone
 
 from accounts.models import NutritionSensitiveRestriction, User
 from ai_coach.models import AICoachMessage
+from audit.models import AuditLog
+from audit.services import record_audit_event
 from diary.models import Meal
 from fitness.models import WorkoutLog, WorkoutPlan
 from food_scans.models import FoodScan
@@ -257,6 +259,7 @@ def delete_user_account(
     if not user.check_password(current_password):
         raise PrivacyAuthenticationError("invalid_current_password")
 
+    user_id = user.id
     deleted_photo_count = _delete_food_scan_objects_for_user(user=user)
     _delete_user_sessions(user=user)
 
@@ -264,6 +267,17 @@ def delete_user_account(
         locked_user = User.objects.select_for_update().get(id=user.id)
         locked_user.is_active = False
         locked_user.save(update_fields=["is_active", "updated_at"])
+        record_audit_event(
+            actor=locked_user,
+            action=AuditLog.Action.ACCOUNT_DELETED,
+            target_type="accounts.user",
+            target_id=user_id,
+            metadata={
+                "source": "privacy_center",
+                "deleted_private_object_count": deleted_photo_count,
+            },
+            request=request,
+        )
         deleted_total, deleted_by_model = locked_user.delete()
 
     if request is not None:

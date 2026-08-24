@@ -24,6 +24,7 @@ from accounts.rbac import (
 )
 from accounts.tests.factories import make_nutrition_profile, make_user, make_user_profile
 from ai_coach.models import AICoachMessage
+from audit.models import AuditLog
 from diary.models import Meal
 from food_scans.models import FoodScan
 from food_scans.storage import get_private_object_storage
@@ -110,6 +111,12 @@ def test_user_can_grant_and_revoke_model_improvement_and_photo_training_consent(
     assert revoke_response.status_code == status.HTTP_200_OK
     assert revoke_response.json()["model_improvement_enabled"] is False
     assert revoke_response.json()["food_photo_training_enabled"] is False
+    assert AuditLog.objects.filter(
+        action=AuditLog.Action.PRIVACY_CONSENT_CHANGED,
+        target_type="privacy.privacysettings",
+        target_id=str(PrivacySettings.objects.get(user=user).id),
+        actor=user,
+    ).count() == 2
 
 
 def test_food_photo_training_consent_requires_model_improvement_consent(
@@ -150,6 +157,15 @@ def test_data_export_downloads_own_data_without_password_or_private_object_key(
     assert "password" not in body.lower()
     assert scan.object_key not in body
     assert "has_private_photo" in body
+
+    audit_log = AuditLog.objects.get(
+        action=AuditLog.Action.DATA_EXPORTED,
+        target_type="accounts.user",
+        target_id=str(user.id),
+    )
+    assert audit_log.actor == user
+    assert audit_log.metadata == {"export_format": "json", "source": "privacy_center"}
+    assert scan.object_key not in str(audit_log.metadata)
 
 
 def test_user_can_delete_own_food_photo_from_postgresql_and_private_storage(
@@ -284,6 +300,20 @@ def test_account_deletion_removes_database_rows_storage_sessions_and_cache(
     assert storage.exists(food_scan.object_key) is False
     assert Session.objects.filter(session_key=session_key).exists() is False
     assert cache.get(cache_key) is None
+
+    audit_log = AuditLog.objects.get(
+        action=AuditLog.Action.ACCOUNT_DELETED,
+        target_type="accounts.user",
+        target_id=str(user.id),
+    )
+    assert audit_log.actor_id is None
+    assert audit_log.actor_id_snapshot == str(user.id)
+    assert audit_log.metadata == {
+        "deleted_private_object_count": 1,
+        "source": "privacy_center",
+    }
+    assert "SafePassword123!" not in str(audit_log.metadata)
+    assert food_scan.object_key not in str(audit_log.metadata)
 
 
 def _make_food_scan(

@@ -45,6 +45,7 @@ DEBUG = get_env_bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = get_env_list("DJANGO_ALLOWED_HOSTS")
 
 INSTALLED_APPS = [
+    "audit",
     "accounts",
     "nutrition",
     "diary",
@@ -67,6 +68,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "audit.middleware.CorrelationIdMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
