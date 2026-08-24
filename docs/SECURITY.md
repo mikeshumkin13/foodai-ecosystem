@@ -215,7 +215,7 @@ RBAC foundation использует Django Groups/Permissions:
 | Роль | Разрешено | Запрещено по умолчанию |
 | --- | --- | --- |
 | `anonymous` | Только явно публичные endpoint-ы, например `GET /api/v1/health/`. | Любые приватные профили, дневники, фото, health data, AI-диалоги, admin/support/content endpoints. |
-| `user` | Читать и изменять только собственные `UserProfile`, `NutritionProfile`, `NutritionSensitiveRestriction`, meals/diary, food scans, workout plans/logs, AI coach settings и Wellbeing Assistant settings; пользоваться AI nutrition/fitness/wellbeing assistants; читать nutrition и exercise catalog; будущие цели только в пределах собственных объектов. | Доступ к чужим UUID-ресурсам, чужим дневникам, чужим фото, AI-диалогам, wellbeing history, workout plans/logs, изменение nutrition/exercise catalog, support/admin/content-management функциям. |
+| `user` | Читать и изменять только собственные `UserProfile`, `NutritionProfile`, `NutritionSensitiveRestriction`, meals/diary, food scans, workout plans/logs, AI coach settings, Wellbeing Assistant settings и Privacy Center settings; пользоваться AI nutrition/fitness/wellbeing assistants; читать nutrition и exercise catalog; экспортировать/удалять только собственные данные. | Доступ к чужим UUID-ресурсам, чужим дневникам, чужим фото, AI-диалогам, wellbeing history, workout plans/logs, изменение nutrition/exercise catalog, support/admin/content-management функциям. |
 | `support` | Support tooling и support admin foundation без приватных пользовательских данных. | Health data, nutrition profile, allergies/medical restrictions, фото еды, дневники, workout plans/logs, AI coach, Wellbeing Assistant и AI/wellbeing-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
 | `content_manager` | Управление каталогом продуктов, exercise catalog, nutrients, справочниками и контентом через catalog/reference permissions. | Приватные дневники пользователей, фото, health data, nutrition profile, workout plans/logs, allergies/medical restrictions, AI coach, Wellbeing Assistant и AI/wellbeing-диалоги, пользовательские профили, role groups и audit log по умолчанию. |
 | `admin` | Административные permissions для управления users/profiles, nutrition/exercise catalog, role groups и просмотра read-only admin audit log согласно Django permissions. | Nutrition profile, sensitive restrictions, workout plans/logs, AI coach, Wellbeing Assistant и AI/wellbeing-диалоги без отдельной процедуры; автоматический обход object-level policy без выданных permissions; использование как замена `superuser`; изменение audit log. |
@@ -223,7 +223,7 @@ RBAC foundation использует Django Groups/Permissions:
 
 Текущие permission groups:
 
-- `user`: `accounts.view_own_userprofile`, `accounts.change_own_userprofile`, `accounts.view_own_nutritionprofile`, `accounts.change_own_nutritionprofile`, `accounts.view_own_nutritionsensitiverestriction`, `accounts.change_own_nutritionsensitiverestriction`, `diary.view_own_meal`, `diary.change_own_meal`, `food_scans.view_own_foodscan`, `food_scans.change_own_foodscan`, `ai_coach.use_ai_nutrition_coach`, `ai_coach.view_own_aicoachsettings`, `ai_coach.change_own_aicoachsettings`, `wellbeing.use_wellbeing_assistant`, `wellbeing.view_own_wellbeingassistantsettings`, `wellbeing.change_own_wellbeingassistantsettings`, `fitness.use_ai_fitness_coach`, `fitness.view_own_workoutplan`, `fitness.change_own_workoutplan`, `fitness.view_own_workoutlog`, `fitness.change_own_workoutlog`.
+- `user`: `accounts.view_own_userprofile`, `accounts.change_own_userprofile`, `accounts.view_own_nutritionprofile`, `accounts.change_own_nutritionprofile`, `accounts.view_own_nutritionsensitiverestriction`, `accounts.change_own_nutritionsensitiverestriction`, `diary.view_own_meal`, `diary.change_own_meal`, `food_scans.view_own_foodscan`, `food_scans.change_own_foodscan`, `ai_coach.use_ai_nutrition_coach`, `ai_coach.view_own_aicoachsettings`, `ai_coach.change_own_aicoachsettings`, `wellbeing.use_wellbeing_assistant`, `wellbeing.view_own_wellbeingassistantsettings`, `wellbeing.change_own_wellbeingassistantsettings`, `fitness.use_ai_fitness_coach`, `fitness.view_own_workoutplan`, `fitness.change_own_workoutplan`, `fitness.view_own_workoutlog`, `fitness.change_own_workoutlog`, `privacy.view_own_privacysettings`, `privacy.change_own_privacysettings`, `privacy.export_own_data`, `privacy.delete_own_data`.
 - `support`: `accounts.access_support_tools`, `accounts.view_support_admin`.
 - `content_manager`: `accounts.manage_catalog_content`, `accounts.manage_reference_data`, `accounts.manage_food_catalog`, `accounts.manage_fitness_catalog`, `nutrition` model permissions для `FoodCategory`, `FoodDataSource`, `Nutrient`, `FoodItem`, `FoodNutrient` и `fitness` model permissions для `Exercise`.
 - `admin`: `accounts.administer_accounts`, account model permissions, `auth.view_group`, `auth.change_group`, `accounts.view_adminauditlog`, support/content/reference/catalog foundation permissions, `nutrition` model permissions и `fitness` model permissions для `Exercise`.
@@ -277,6 +277,21 @@ AI не должен:
 - давать опасные extreme diet рекомендации.
 
 Потенциально опасные ситуации требуют отдельной safety-логики до production.
+
+## Privacy Center security
+
+- Privacy Center реализован в backend app `privacy` и доступен только authenticated owner.
+- `PrivacySettings` хранит consent/version metadata, но не хранит фото, AI payload, дневник или health/nutrition values.
+- Общий `model_improvement_consent` и отдельный `food_photo_training_consent` выключены по умолчанию.
+- Food photos не используются для обучения/improvement без отдельного явного `food_photo_training_consent`.
+- Food photo training consent требует активного общего model improvement consent, но общий consent сам по себе не разрешает использовать фотографии.
+- Privacy Center permissions `privacy.view_own_privacysettings`, `privacy.change_own_privacysettings`, `privacy.export_own_data`, `privacy.delete_own_data` выдаются только роли `user`.
+- `support`, `content_manager` и business `admin` не получают Privacy Center API-доступ к приватным пользовательским данным по умолчанию.
+- Data export отдаётся только текущему пользователю, не включает password hash, auth/reset/email tokens и private `object_key`.
+- Удаление отдельного food photo проверяет owner по `FoodScan.user`, удаляет PostgreSQL row/derived detected items и private object через `PrivateObjectStorage`.
+- Удаление food photo делает stale Celery task безопасным: после удаления DB row task возвращает skipped и не вызывает Vision/orchestration.
+- Account deletion требует текущий пароль, удаляет private food photo objects, связанные PostgreSQL rows, DB sessions и user-scoped cache keys.
+- Deletion workflows не логируют фото, private object key, AI payload, health/nutrition profile или содержимое дневника.
 
 ## Права пользователя
 

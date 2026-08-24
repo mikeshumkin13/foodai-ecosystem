@@ -71,6 +71,10 @@ VIEW_OWN_WORKOUT_PLAN_PERMISSION = "fitness.view_own_workoutplan"
 CHANGE_OWN_WORKOUT_PLAN_PERMISSION = "fitness.change_own_workoutplan"
 VIEW_OWN_WORKOUT_LOG_PERMISSION = "fitness.view_own_workoutlog"
 CHANGE_OWN_WORKOUT_LOG_PERMISSION = "fitness.change_own_workoutlog"
+VIEW_OWN_PRIVACY_SETTINGS_PERMISSION = "privacy.view_own_privacysettings"
+CHANGE_OWN_PRIVACY_SETTINGS_PERMISSION = "privacy.change_own_privacysettings"
+EXPORT_OWN_DATA_PERMISSION = "privacy.export_own_data"
+DELETE_OWN_DATA_PERMISSION = "privacy.delete_own_data"
 NUTRITION_CATALOG_MODEL_PERMISSIONS = frozenset(
     {
         "nutrition.add_foodcategory",
@@ -461,6 +465,30 @@ PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
         name="Can change own workout log",
         app_label="fitness",
     ),
+    PermissionDefinition(
+        codename="view_own_privacysettings",
+        model="privacysettings",
+        name="Can view own privacy settings",
+        app_label="privacy",
+    ),
+    PermissionDefinition(
+        codename="change_own_privacysettings",
+        model="privacysettings",
+        name="Can change own privacy settings",
+        app_label="privacy",
+    ),
+    PermissionDefinition(
+        codename="export_own_data",
+        model="privacysettings",
+        name="Can export own data",
+        app_label="privacy",
+    ),
+    PermissionDefinition(
+        codename="delete_own_data",
+        model="privacysettings",
+        name="Can delete own data",
+        app_label="privacy",
+    ),
 )
 
 ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
@@ -490,6 +518,10 @@ ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
                 CHANGE_OWN_WORKOUT_PLAN_PERMISSION,
                 VIEW_OWN_WORKOUT_LOG_PERMISSION,
                 CHANGE_OWN_WORKOUT_LOG_PERMISSION,
+                VIEW_OWN_PRIVACY_SETTINGS_PERMISSION,
+                CHANGE_OWN_PRIVACY_SETTINGS_PERMISSION,
+                EXPORT_OWN_DATA_PERMISSION,
+                DELETE_OWN_DATA_PERMISSION,
             }
         ),
     ),

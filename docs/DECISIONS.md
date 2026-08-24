@@ -1199,3 +1199,88 @@ Consequences / Последствия:
   sensitive message text и с отдельным privacy review.
 - Расширение context данными sleep, mood, wearable, medical history или support notes требует
   отдельного privacy/safety решения.
+
+## ADR-0026: Privacy Center And User Data Deletion Boundary
+
+Date / Дата: 2026-08-24
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Privacy Center реализуется внутри backend-монолита отдельным Django app `privacy`.
+
+Он отвечает за:
+
+- summary основных категорий пользовательских данных;
+- export собственных данных пользователя;
+- управление consent для model improvement;
+- отдельное explicit consent для использования food photos в training/improvement dataset;
+- удаление отдельных food photos;
+- удаление AI chat history;
+- удаление аккаунта и связанных данных.
+
+`PrivacySettings` хранит только consent/version metadata:
+
+- `model_improvement_consent_*`;
+- `food_photo_training_consent_*`.
+
+Оба consent выключены по умолчанию. Food photos не используются для обучения моделей без отдельного
+явного `food_photo_training_consent_*`, даже если пользователь включил общий model improvement
+consent.
+
+API работает owner-only и использует centralized permissions:
+
+- `privacy.view_own_privacysettings`;
+- `privacy.change_own_privacysettings`;
+- `privacy.export_own_data`;
+- `privacy.delete_own_data`.
+
+Эти permissions выдаются только роли `user`. `support`, `content_manager` и business `admin` не
+получают Privacy Center API-доступ к приватным данным по умолчанию.
+
+Deletion/export orchestration находится в `privacy.services`, а не во views.
+
+Удаление food photo:
+
+- проверяет owner-only доступ по `FoodScan.user`;
+- удаляет `FoodScan` и derived detected items из PostgreSQL;
+- удаляет private object через `PrivateObjectStorage`;
+- не возвращает private `object_key` в API;
+- делает stale Celery task safe за счёт удаления DB row: task при `DoesNotExist` возвращает skipped.
+
+Удаление аккаунта:
+
+- требует текущий пароль;
+- удаляет private food photo objects через storage boundary;
+- инвалидирует связанные DB session rows;
+- очищает user-scoped cache keys;
+- удаляет пользователя и связанные PostgreSQL rows через существующие `on_delete` правила;
+- не пытается логировать фото, AI payload или health/nutrition data.
+
+AI chat history deletion удаляет `AICoachMessage` и `WellbeingAssistantMessage` текущего
+пользователя, не меняя consent settings.
+
+Frontend добавляет route `/privacy` и использует только centralized API client. Access tokens не
+хранятся в browser storage; unsafe privacy requests проходят через текущую CSRF/session-cookie
+схему.
+
+Rationale / Обоснование:
+
+- Privacy controls нужны до расширения AI/vision workflows и model improvement механик.
+- Consent для model improvement и consent для food photos должны быть разделены, потому что фото еды
+  являются чувствительными пользовательскими данными и могут содержать extra metadata/context.
+- Storage deletion не может быть атомарной транзакцией вместе с PostgreSQL, поэтому операции
+  проходят через явный service boundary и тестируются отдельно.
+- Owner-only Privacy Center снижает риск support/content/admin доступа к приватным данным без
+  отдельной процедуры и audit trail.
+
+Consequences / Последствия:
+
+- Future model improvement pipeline должен проверять `PrivacySettings` и не брать food photos без
+  отдельного photo training consent.
+- Future S3-compatible storage backend обязан реализовать тот же `PrivateObjectStorage.delete`
+  контракт.
+- Если появятся async deletion jobs, API должен сохранять idempotency key/status и не возвращать
+  sensitive payload в task/logs.
+- Legal review перед production должна проверить retention/export/delete требования целевых стран.

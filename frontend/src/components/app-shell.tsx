@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, BookOpenText, Camera, UserRound } from "lucide-react";
+import { BarChart3, BookOpenText, Camera, ShieldCheck, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/diary", label: copy.nav.diary, icon: BookOpenText },
   { href: "/scan", label: copy.nav.scan, icon: Camera },
   { href: "/profile", label: copy.nav.profile, icon: UserRound },
+  { href: "/privacy", label: copy.nav.privacy, icon: ShieldCheck },
 ];
 
 type AppShellProps = {

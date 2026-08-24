@@ -90,6 +90,13 @@ API не должен привязывать клиентов к одному ч
 - `GET /api/v1/wellbeing/settings/` — чтение собственных Wellbeing Assistant settings без `user_id`; возвращает consent state для хранения истории wellbeing-чата.
 - `PATCH /api/v1/wellbeing/settings/` — принять или отозвать consent на историю Wellbeing Assistant через `history_consent_accepted=true` или `history_consent_revoked=true`.
 - `POST /api/v1/wellbeing/ask/` — запрос к AI Wellbeing Assistant. Тело: `message`, optional `date`, optional `store_response`. Backend передаёт provider только минимальный context: locale, дату, разрешённые focus areas и текущий запрос. Ответ использует schema `ai_wellbeing_assistant_response_v1`: `answer`, `focus_area`, `small_actions`, `reflection_prompts`, `adherence_strategy`, `warnings`, `safety`, `provider`, `stored`, `storage_reason`. `stored=true` возможен только при явном consent и только если request/response не заблокированы safety layer и не содержат sensitive wellbeing content.
+- `GET /api/v1/privacy/data-summary/` — Privacy & Data summary текущего пользователя: категории данных, counts, storage/deletion type и privacy consent settings. Owner-only.
+- `GET /api/v1/privacy/export/` — скачать JSON export собственных данных. Response `application/json` с `Content-Disposition: attachment`; private `object_key`, password hash и tokens не включаются.
+- `GET /api/v1/privacy/consent/` — чтение `PrivacySettings`: общий model improvement consent и отдельный food photo training consent. Оба выключены по умолчанию.
+- `PATCH /api/v1/privacy/consent/` — принять/отозвать consent через `model_improvement_consent_accepted`, `model_improvement_consent_revoked`, `food_photo_training_consent_accepted`, `food_photo_training_consent_revoked`. Food photo training consent требует активного общего model improvement consent.
+- `DELETE /api/v1/privacy/food-photos/{scan_id}/` — удалить собственное food photo и связанные scan results из PostgreSQL, а private object удалить через storage boundary. Чужой UUID возвращает `404`.
+- `DELETE /api/v1/privacy/ai-chat-history/` — удалить сохранённые `AICoachMessage` и `WellbeingAssistantMessage` текущего пользователя без изменения consent settings.
+- `DELETE /api/v1/privacy/account/` — удалить аккаунт и связанные данные. Тело: `current_password`. Учитываются private photo objects, PostgreSQL rows, DB sessions, user-scoped cache keys и stale background tasks.
 - Internal Vision API:
   - `GET /health` — health check Vision service. Ответ: `{"status": "ok"}`.
   - `POST /v1/analyze` — internal endpoint Vision service. Принимает `object_reference` на приватный backend-controlled объект: `scan_id`, `storage_backend`, `object_key`, `content_type`, `checksum_sha256`. Vision v1 читает подготовленное изображение из private local storage, проверяет checksum и возвращает результат real food classifier как `{"items": [{"label": "...", "confidence": 0.0-1.0}]}`. Contract также допускает optional future geometry fields `segment_area_px` и `portion_reference`, но текущая модель обычно возвращает один dish-level top prediction без bounding boxes и portion estimate.
@@ -152,6 +159,11 @@ UI-клиенты не должны вызывать `fetch` к backend напр
 - Wellbeing Assistant provider не получает email, display name, UUID, фотографии, private object keys, health profile, дневник питания, workout logs или полную историю аккаунта;
 - self-harm, harm-to-others, immediate danger, medical/clinical decision и unsafe behavior planning возвращают structured safety response до provider call;
 - safety-blocked и sensitive wellbeing messages не сохраняются в history/analytics даже при consent.
+- обычный `user` может читать собственный Privacy Center summary, управлять собственными privacy consent settings, экспортировать собственные данные и запускать deletion workflows только для своих данных;
+- `support`, `content_manager` и business `admin` не получают Privacy Center API-доступ к приватным пользовательским данным по умолчанию;
+- обращение User A к `DELETE /api/v1/privacy/food-photos/{scan_id}/` с UUID scan User B не раскрывает фото metadata и возвращает `404`;
+- food photos не используются для обучения/improvement без отдельного явного `food_photo_training_consent_*`;
+- account deletion требует текущий пароль и не принимает чужой user UUID в path/body.
 
 Nutrition profile не реализует диагнозы. Аллергии, intolerance и medical restrictions хранятся отдельно от обычных dietary preferences.
 

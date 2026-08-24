@@ -127,6 +127,11 @@ foodai-ecosystem/
 - Safety layer `wellbeing.safety` блокирует self-harm, harm-to-others, immediate danger, medical/clinical decision и unsafe behavior planning до provider call и проверяет provider output.
 - `WellbeingAssistantSettings` хранит consent/version metadata для истории; `WellbeingAssistantMessage` сохраняется только при явном consent и только если вход/выход не содержит safety или sensitive wellbeing content.
 - Wellbeing Assistant не создаёт analytics events с чувствительными сообщениями; sensitive wellbeing content возвращает response без persistence.
+- Приложение `privacy` содержит Privacy Center foundation.
+- `PrivacySettings` хранит consent/version metadata для общего model improvement и отдельного food photo training consent; оба consent выключены по умолчанию.
+- Privacy API предоставляет owner-only summary категорий данных, JSON export, consent management, удаление отдельных food photos, удаление AI chat history и удаление аккаунта с проверкой текущего пароля.
+- Privacy deletion workflow учитывает PostgreSQL, private object storage, stale background tasks, DB sessions и user-scoped cache keys через service layer `privacy.services`.
+- Future model improvement pipeline должен проверять `PrivacySettings`; food photos запрещено использовать для training/improvement без отдельного явного согласия пользователя.
 - Health endpoint: `GET /api/v1/health/`.
 - Swagger UI: `GET /api/v1/docs/`.
 
@@ -183,7 +188,7 @@ Vision не владеет пользователями, дневниками, �
 
 - Frontend расположен в `frontend`.
 - Используется Next.js App Router + TypeScript.
-- Реализованы базовые маршруты `/login`, `/register`, `/dashboard`, `/diary`, `/scan`, `/profile`.
+- Реализованы базовые маршруты `/login`, `/register`, `/dashboard`, `/diary`, `/scan`, `/profile`, `/privacy`.
 - UI shell responsive: sidebar на desktop и нижняя навигация на mobile.
 - Приложение PWA-ready: добавлены manifest, icon и service worker registration для production build.
 - Централизованный API client расположен в `frontend/src/lib/api`.
@@ -198,6 +203,7 @@ Vision не владеет пользователями, дневниками, �
 - Calorie target на dashboard является MVP-ориентиром из текущего nutrition profile; при отсутствии данных или `under_18` target не рассчитывается.
 - `/diary` поддерживает ручное добавление еды из nutrition catalog, редактирование и удаление собственных meals через Meals API.
 - Ручной diary flow не зависит от AI Scan, поэтому пользователь может вести питание при недоступном Vision/Celery/AI.
+- `/privacy` реализует Privacy & Data controls: summary категорий данных, consent toggles для model improvement/food photos, JSON export, удаление отдельных food photos, удаление AI chat history и удаление аккаунта через текущую CSRF/session-cookie схему.
 - Component tests для scan review components выполняются через Vitest и `react-dom/server`, без добавления browser token storage или прямых API-вызовов вне centralized API client.
 - Frontend quality gate: custom project linter, TypeScript typecheck, Vitest unit tests и `next build`.
 
