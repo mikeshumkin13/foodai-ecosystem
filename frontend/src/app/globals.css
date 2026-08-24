@@ -1044,6 +1044,95 @@ button:disabled {
   line-height: 1.5;
 }
 
+.privacy-layout {
+  display: grid;
+  gap: 18px;
+}
+
+.privacy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.privacy-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.privacy-panel--wide {
+  grid-column: 1 / -1;
+}
+
+.privacy-category-list,
+.consent-list,
+.privacy-scan-list,
+.privacy-account-form {
+  display: grid;
+  gap: 10px;
+}
+
+.privacy-category-row,
+.privacy-scan-row,
+.consent-row {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fbfcfb;
+  padding: 12px;
+}
+
+.privacy-category-row strong,
+.privacy-category-row small,
+.privacy-scan-row strong,
+.privacy-scan-row small,
+.consent-row strong,
+.consent-row small {
+  display: block;
+}
+
+.privacy-category-row small,
+.privacy-scan-row small,
+.consent-row small,
+.privacy-copy {
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.privacy-category-row span {
+  min-width: 44px;
+  border-radius: 8px;
+  background: #edf5f1;
+  color: var(--color-primary);
+  padding: 6px 9px;
+  text-align: center;
+  font-weight: 900;
+}
+
+.consent-row {
+  justify-content: start;
+}
+
+.consent-row input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-accent);
+}
+
+.privacy-copy {
+  margin: 0;
+}
+
+.privacy-danger {
+  border-color: rgb(199 101 78 / 32%);
+}
+
 .auth-page {
   min-height: 100vh;
   display: grid;
@@ -1107,6 +1196,16 @@ button:disabled {
   font-weight: 700;
 }
 
+.form-success {
+  margin: 0;
+  border-radius: 8px;
+  background: #edf5f1;
+  color: var(--color-primary);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .mobile-nav {
   display: none;
 }
@@ -1138,8 +1237,13 @@ button:disabled {
   .scan-steps,
   .scan-review-layout,
   .profile-grid,
+  .privacy-grid,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .privacy-panel--wide {
+    grid-column: auto;
   }
 
   .toolbar {
@@ -1173,7 +1277,7 @@ button:disabled {
     left: 12px;
     z-index: 20;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
     border: 1px solid var(--color-border);
     border-radius: 8px;
@@ -1222,8 +1326,16 @@ button:disabled {
   .meal-card__item,
   .manual-food-search__row,
   .draft-item,
-  .dashboard-meal-row {
+  .dashboard-meal-row,
+  .privacy-category-row,
+  .privacy-scan-row {
     grid-template-columns: 1fr;
+  }
+
+  .privacy-category-row,
+  .privacy-scan-row {
+    display: grid;
+    justify-items: start;
   }
 
   .confidence-badge {

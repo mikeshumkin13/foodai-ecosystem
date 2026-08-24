@@ -59,6 +59,40 @@ export async function apiRequest<TResponse>(
   return payload as TResponse;
 }
 
+export async function apiBlobRequest(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<Blob> {
+  const method = options.method ?? "GET";
+  const headers = new Headers(options.headers);
+  let body: BodyInit | undefined;
+
+  if (options.body instanceof FormData) {
+    body = options.body;
+  } else if (options.body !== undefined && options.body !== null) {
+    headers.set("Content-Type", "application/json");
+    body = JSON.stringify(options.body);
+  }
+
+  if (UNSAFE_METHODS.has(method) && !options.skipCsrf) {
+    headers.set("X-CSRFToken", await ensureCsrfToken());
+  }
+
+  const response = await fetch(buildUrl(path), {
+    method,
+    headers,
+    body,
+    signal: options.signal,
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw createApiError(response.status, await parseJson(response));
+  }
+
+  return response.blob();
+}
+
 export async function ensureCsrfToken(): Promise<string> {
   const cachedToken = getCachedCsrfToken();
   if (cachedToken) {

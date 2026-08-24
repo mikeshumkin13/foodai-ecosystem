@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "ai_coach",
     "fitness",
     "wellbeing",
+    "privacy",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

@@ -1,10 +1,10 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-08-21
+Last updated / Обновлено: 2026-08-24
 
 ## Текущий завершённый этап
 
-ЭТАП 23, PROMPT 23 — AI Wellbeing Assistant завершён.
+ЭТАП 24, PROMPT 24 — Privacy Center завершён.
 
 ## Состояние
 
@@ -227,6 +227,20 @@ Last updated / Обновлено: 2026-08-21
 - RBAC расширен permissions `wellbeing.use_wellbeing_assistant`, `wellbeing.view_own_wellbeingassistantsettings`, `wellbeing.change_own_wellbeingassistantsettings` только для роли `user`.
 - `support`, `content_manager` и business `admin` не получают API-доступ к Wellbeing Assistant и wellbeing-диалогам по умолчанию.
 - Добавлены tests с mocked provider для минимального context, permissions, consent-only storage, sensitive-not-stored policy и safety scenarios.
+- Создана ветка `feature/privacy-center` от актуального `develop`.
+- Добавлено Django-приложение `privacy` для Privacy Center foundation.
+- Добавлена модель `PrivacySettings` с consent/version metadata для общего model improvement consent и отдельного food photo training consent.
+- Оба consent выключены по умолчанию; food photos не используются для обучения/improvement без отдельного явного consent.
+- Добавлены owner-only API endpoint-ы `GET /api/v1/privacy/data-summary/`, `GET /api/v1/privacy/export/`, `GET/PATCH /api/v1/privacy/consent/`, `DELETE /api/v1/privacy/food-photos/{scan_id}/`, `DELETE /api/v1/privacy/ai-chat-history/`, `DELETE /api/v1/privacy/account/`.
+- Privacy deletion/export orchestration вынесен в `privacy.services`, а не во views.
+- Deletion workflow учитывает PostgreSQL, private object storage, stale Celery tasks, DB sessions и user-scoped cache keys.
+- Account deletion требует текущий пароль.
+- RBAC расширен permissions `privacy.view_own_privacysettings`, `privacy.change_own_privacysettings`, `privacy.export_own_data`, `privacy.delete_own_data` только для роли `user`.
+- `support`, `content_manager` и business `admin` не получают Privacy Center API-доступ к приватным данным по умолчанию.
+- Frontend получил страницу `/privacy` и пункт навигации Data/Данные.
+- `/privacy` показывает категории данных, consent toggles, JSON export, список собственных food photos для удаления, удаление AI chat history и удаление аккаунта.
+- Frontend privacy actions используют centralized API client с текущей CSRF/session-cookie схемой; access token в browser storage не добавлялся.
+- Добавлены backend deletion workflow tests для consent defaults, export, food photo deletion, cross-user/IDOR, stale background task, AI history deletion и account deletion.
 
 ## Проверки
 
@@ -407,7 +421,17 @@ Last updated / Обновлено: 2026-08-21
 - `docker compose --env-file .env config --quiet` — passed.
 - `docker compose --env-file .env build backend vision celery_worker` — первый запуск был заблокирован Codex sandbox из-за Docker buildx permissions; повтор с разрешением на Docker Desktop passed, backend, vision и celery_worker images собраны.
 - `git diff --check` — passed.
+- `pytest --no-cov backend/privacy/tests/test_privacy_center_api.py backend/accounts/tests/test_rbac.py` — passed для PROMPT 24, 28 tests passed.
+- `ruff check backend/privacy backend/accounts/rbac.py backend/accounts/tests/test_rbac.py backend/config/settings/base.py backend/config/urls.py` — passed для изменённой backend-зоны PROMPT 24.
+- `mypy backend/privacy backend/accounts/rbac.py backend/accounts/tests/test_rbac.py backend/config/settings/base.py backend/config/urls.py` с тестовыми env — passed для изменённой backend-зоны PROMPT 24.
+- `frontend/pnpm lint` — passed для PROMPT 24, frontend linter прошёл 55 files.
+- `frontend/pnpm typecheck` — passed для PROMPT 24.
+- `make check` — passed для PROMPT 24: Ruff без ошибок, mypy без ошибок в 156 source files, Django system check без ошибок, pytest: 229 passed, coverage 89.05%; frontend linter passed, TypeScript typecheck passed, Vitest: 7 test files / 10 tests passed, Next.js production build passed для маршрута `/privacy`. Есть одно стороннее `StarletteDeprecationWarning` из FastAPI TestClient.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными локальными env — passed, no changes detected.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage24.yml` с безопасными локальными env — passed, OpenAPI schema валидируется без ошибок.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — первый запуск показал, что Docker daemon не был запущен; после запуска Docker Desktop повтор passed, backend, vision и celery_worker images собраны.
 
 ## Следующий этап
 
-Остановиться после PROMPT 23. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 24. Следующую задачу начинать только после явной команды пользователя.

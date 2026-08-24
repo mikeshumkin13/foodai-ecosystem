@@ -2,6 +2,7 @@ import { apiRequest } from "./client";
 import type {
   FoodScanConfirmResponse,
   FoodScanDetectedItem,
+  FoodScanMetadata,
   FoodScanResult,
   FoodScanUploadResponse,
 } from "./types";
@@ -26,6 +27,9 @@ export const scansApi = {
       method: "POST",
       body: formData,
     });
+  },
+  list() {
+    return apiRequest<FoodScanMetadata[]>("/api/v1/food-scans/");
   },
   result(scanId: string) {
     return apiRequest<FoodScanResult>(`/api/v1/food-scans/${scanId}/results/`);

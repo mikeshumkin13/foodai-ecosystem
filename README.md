@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов, нутриентов и calculation engine для КБЖУ/micronutrients, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery, estimator оценки порции v1 и FastAPI `services/vision` с real food recognition model v1. Frontend foundation расположен в `frontend`: Next.js + TypeScript App Router, responsive PWA-ready shell, базовые страницы `/login`, `/register`, `/dashboard`, `/diary`, `/scan`, `/profile`, централизованный API client и CSRF/session-cookie flow без access token в `localStorage`.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов, нутриентов и calculation engine для КБЖУ/micronutrients, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery, estimator оценки порции v1, AI Nutrition/Fitness/Wellbeing foundations и Privacy Center для export/consent/deletion controls. FastAPI `services/vision` содержит real food recognition model v1. Frontend foundation расположен в `frontend`: Next.js + TypeScript App Router, responsive PWA-ready shell, страницы `/login`, `/register`, `/dashboard`, `/diary`, `/scan`, `/profile`, `/privacy`, централизованный API client и CSRF/session-cookie flow без access token в `localStorage`.
 
 ## Backend: локальная установка
 
@@ -128,6 +128,12 @@ Backend endpoints:
 - `POST /api/v1/food-scans/{id}/retry/` — повторно поставить scan в обработку, если он не confirmed и не processing.
 - `PATCH /api/v1/food-scans/{id}/items/{item_id}/` — исправить продукт и/или массу; ручная масса сохраняется отдельно от initial portion estimate.
 - `POST /api/v1/food-scans/{id}/confirm/` — подтвердить results и создать `Meal`/`MealItem`; endpoint идемпотентен.
+- `GET /api/v1/privacy/data-summary/` — summary категорий собственных данных.
+- `GET /api/v1/privacy/export/` — скачать JSON export собственных данных.
+- `GET/PATCH /api/v1/privacy/consent/` — чтение и изменение consent для model improvement и отдельного food photo training consent.
+- `DELETE /api/v1/privacy/food-photos/{scan_id}/` — удалить собственное food photo из PostgreSQL/private storage.
+- `DELETE /api/v1/privacy/ai-chat-history/` — удалить сохранённую AI chat history текущего пользователя.
+- `DELETE /api/v1/privacy/account/` — удалить аккаунт и связанные данные после проверки текущего пароля.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 

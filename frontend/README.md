@@ -64,3 +64,16 @@ API-вызовы должны идти через `src/lib/api`, а презен
 `/diary` поддерживает календарную дату, список приёмов пищи, ручное создание еды из nutrition catalog, редактирование и удаление собственных meals.
 
 Ручной diary flow обязателен: пользователь должен иметь возможность вести питание даже при недоступном AI Scan, Vision service или Celery.
+
+## Privacy & Data
+
+`/privacy` реализует owner-only Privacy Center:
+
+- summary категорий данных;
+- consent toggles для model improvement и отдельного food photo training consent;
+- JSON export собственных данных;
+- удаление отдельных food photos;
+- удаление AI chat history;
+- удаление аккаунта с текущим паролем.
+
+Privacy UI использует `src/lib/api/privacy.ts`; unsafe requests проходят через общий CSRF/session-cookie client.

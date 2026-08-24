@@ -195,3 +195,46 @@ export type FoodScanConfirmResponse = {
   food_scan: FoodScanResult;
   meal: Meal;
 };
+
+export type FoodScanMetadata = Omit<FoodScanResult, "detected_items">;
+
+export type PrivacySettings = {
+  id: string;
+  model_improvement_enabled: boolean;
+  model_improvement_consent_version: string;
+  model_improvement_consent_granted_at: string | null;
+  model_improvement_consent_revoked_at: string | null;
+  food_photo_training_enabled: boolean;
+  food_photo_training_consent_version: string;
+  food_photo_training_consent_granted_at: string | null;
+  food_photo_training_consent_revoked_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PrivacyDataCategory = {
+  code: string;
+  label: string;
+  count: number;
+  contains_sensitive_data: boolean;
+  storage: string;
+  deletion: string;
+};
+
+export type PrivacyDataSummary = {
+  code: string;
+  categories: PrivacyDataCategory[];
+  privacy_settings: PrivacySettings;
+};
+
+export type PrivacyConsentPayload = {
+  model_improvement_consent_accepted?: boolean;
+  model_improvement_consent_revoked?: boolean;
+  food_photo_training_consent_accepted?: boolean;
+  food_photo_training_consent_revoked?: boolean;
+};
+
+export type PrivacyDeletionResponse = {
+  code: string;
+  deleted: Record<string, number>;
+};
