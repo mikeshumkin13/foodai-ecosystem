@@ -33,6 +33,7 @@ from accounts.rbac import (
     VIEW_OWN_WORKOUT_LOG_PERMISSION,
     VIEW_OWN_WORKOUT_PLAN_PERMISSION,
     VIEW_ROLE_GROUP_PERMISSION,
+    VIEW_SECURITY_AUDIT_LOG_PERMISSION,
     Role,
     assign_role,
     user_has_role,
@@ -89,6 +90,7 @@ def test_regular_user_receives_user_role_by_default() -> None:
     assert user.has_perm(EXPORT_OWN_DATA_PERMISSION) is True
     assert user.has_perm(DELETE_OWN_DATA_PERMISSION) is True
     assert user.has_perm(ADMINISTER_ACCOUNTS_PERMISSION) is False
+    assert user.has_perm(VIEW_SECURITY_AUDIT_LOG_PERMISSION) is False
 
 
 def test_superuser_does_not_receive_business_role_by_default() -> None:
@@ -135,6 +137,7 @@ def test_support_and_content_manager_do_not_get_private_user_permissions() -> No
         EXPORT_OWN_DATA_PERMISSION,
         DELETE_OWN_DATA_PERMISSION,
         VIEW_ADMIN_AUDIT_LOG_PERMISSION,
+        VIEW_SECURITY_AUDIT_LOG_PERMISSION,
         VIEW_ROLE_GROUP_PERMISSION,
         CHANGE_ROLE_GROUP_PERMISSION,
         ADMINISTER_ACCOUNTS_PERMISSION,
@@ -231,6 +234,7 @@ def test_admin_role_can_read_user_profile(api_client: APIClient) -> None:
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["id"] == str(target_profile.id)
+    assert admin_user.has_perm(VIEW_SECURITY_AUDIT_LOG_PERMISSION) is True
 
 
 def test_superuser_can_read_user_profile_without_business_role(api_client: APIClient) -> None:

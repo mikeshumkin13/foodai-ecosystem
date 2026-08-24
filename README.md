@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов, нутриентов и calculation engine для КБЖУ/micronutrients, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery, estimator оценки порции v1, AI Nutrition/Fitness/Wellbeing foundations и Privacy Center для export/consent/deletion controls. FastAPI `services/vision` содержит real food recognition model v1. Frontend foundation расположен в `frontend`: Next.js + TypeScript App Router, responsive PWA-ready shell, страницы `/login`, `/register`, `/dashboard`, `/diary`, `/scan`, `/profile`, `/privacy`, централизованный API client и CSRF/session-cookie flow без access token в `localStorage`.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов, нутриентов и calculation engine для КБЖУ/micronutrients, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery, estimator оценки порции v1, AI Nutrition/Fitness/Wellbeing foundations, Privacy Center для export/consent/deletion controls и `audit` security audit trail. FastAPI `services/vision` содержит real food recognition model v1. Frontend foundation расположен в `frontend`: Next.js + TypeScript App Router, responsive PWA-ready shell, страницы `/login`, `/register`, `/dashboard`, `/diary`, `/scan`, `/profile`, `/privacy`, централизованный API client и CSRF/session-cookie flow без access token в `localStorage`.
 
 ## Backend: локальная установка
 
@@ -94,7 +94,7 @@ celery -A config worker --loglevel=INFO --concurrency=1
 
 Backend endpoints:
 
-- `GET /admin/` — Django Admin для внутренних ролей, пользователей и read-only audit foundation.
+- `GET /admin/` — Django Admin для внутренних ролей, пользователей, read-only admin audit mirror и read-only security audit trail.
 - `GET /api/v1/health/` — health check.
 - `GET /api/v1/auth/csrf/` — выдаёт CSRF cookie/token для web-клиента.
 - `POST /api/v1/auth/register/` — регистрация, создаёт inactive user и email verification token.

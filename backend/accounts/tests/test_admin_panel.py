@@ -22,6 +22,7 @@ from accounts.models import (
 )
 from accounts.rbac import Role, assign_role
 from accounts.tests.factories import make_superuser, make_user
+from audit.models import AuditLog
 
 pytestmark = pytest.mark.django_db
 
@@ -29,6 +30,7 @@ SENSITIVE_ADMIN_MODELS = {
     "accounts.user",
     "accounts.userprofile",
     "accounts.adminauditlog",
+    "audit.auditlog",
 }
 
 
@@ -62,6 +64,7 @@ def test_admin_role_sees_user_roles_and_audit_models_in_admin_index() -> None:
         "accounts.user",
         "accounts.userprofile",
         "accounts.adminauditlog",
+        "audit.auditlog",
         "auth.group",
     }.issubset(visible_models)
 
@@ -84,6 +87,7 @@ def test_admin_role_can_open_user_profile_roles_and_audit_changelists(client: Cl
         "admin:accounts_user_changelist",
         "admin:accounts_userprofile_changelist",
         "admin:accounts_adminauditlog_changelist",
+        "admin:audit_auditlog_changelist",
         "admin:auth_group_changelist",
     ):
         response = client.get(reverse(url_name))
@@ -98,6 +102,7 @@ def test_admin_role_can_open_user_profile_roles_and_audit_changelists(client: Cl
         "admin:accounts_user_changelist",
         "admin:accounts_userprofile_changelist",
         "admin:accounts_adminauditlog_changelist",
+        "admin:audit_auditlog_changelist",
         "admin:auth_group_changelist",
     ],
 )
@@ -119,6 +124,7 @@ def test_admin_bulk_actions_are_disabled_and_security_tokens_are_hidden() -> Non
     assert admin.site._registry[UserProfile].actions is None
     assert admin.site._registry[Group].actions is None
     assert admin.site._registry[AdminAuditLog].actions is None
+    assert admin.site._registry[AuditLog].actions is None
     assert EmailVerificationToken not in admin.site._registry
     assert NutritionProfile not in admin.site._registry
     assert NutritionSensitiveRestriction not in admin.site._registry
@@ -128,10 +134,14 @@ def test_admin_bulk_actions_are_disabled_and_security_tokens_are_hidden() -> Non
 def test_admin_audit_log_is_read_only() -> None:
     request = _admin_request(make_superuser())
     audit_admin = admin.site._registry[AdminAuditLog]
+    security_audit_admin = admin.site._registry[AuditLog]
 
     assert audit_admin.has_add_permission(request) is False
     assert audit_admin.has_change_permission(request) is False
     assert audit_admin.has_delete_permission(request) is False
+    assert security_audit_admin.has_add_permission(request) is False
+    assert security_audit_admin.has_change_permission(request) is False
+    assert security_audit_admin.has_delete_permission(request) is False
 
 
 def test_admin_log_entry_creates_sanitized_audit_log() -> None:

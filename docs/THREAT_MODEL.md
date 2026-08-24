@@ -66,7 +66,8 @@ FoodAI Ecosystem находится на MVP/Beta foundation-стадии. Эт�
 | Password reset | Account enumeration and reset token leakage. | Generic request response, hashed DB token, expiry, single-use tokens, old token revocation on new issue. |
 | Secrets | Secrets committed or weak production env. | `.env` ignored, `.env.example` contains local-only placeholders, settings read from env; new system checks block weak production secret and dangerous production settings. |
 | Logs | Sensitive data in logs. | Current app logging is minimal; Celery task payload excludes photo/object key/health data. Remaining work: structured redaction middleware/filter before production observability. |
-| Django Admin | Excessive staff access or audit tampering. | Staff-only admin, token models not registered, dangerous bulk actions disabled, read-only sanitized `AdminAuditLog`, role-based model visibility tests. |
+| Django Admin | Excessive staff access or audit tampering. | Staff-only admin, token models not registered, dangerous bulk actions disabled, read-only sanitized `AdminAuditLog`, read-only `audit.AuditLog`, role-based model visibility tests. |
+| Security audit trail | Missing evidence for sensitive operations or accidental sensitive payload retention. | `audit.AuditLog` stores actor, target, action, timestamp, safe metadata and request correlation ID; metadata sanitizer redacts password/token/photo/object-key/AI/health-like keys; Privacy Center and admin role changes write audit events. Remaining work: append-only/immutable storage controls. |
 | Signed URLs | Long-lived public access to photos. | Current API does not issue signed URLs. Future signed URLs must be short-lived, owner-authorized and audited. |
 | Object storage | Public buckets or object-key disclosure. | `PrivateObjectStorage` boundary; local MVP storage uses safe permissions and API hides keys. Production S3-compatible private backend still required. |
 | Containers | Running as root, exposed internal ports. | Backend/Vision run as non-root `foodai`; PostgreSQL/Redis/Vision/Celery are not published to host by default. Remaining work: image digest pinning, read-only FS/capabilities/resource limits. |
@@ -90,4 +91,3 @@ FoodAI Ecosystem находится на MVP/Beta foundation-стадии. Эт�
   только для local/dev foundation.
 - Legal/privacy review для стран запуска не проведён.
 - Backup, disaster recovery, incident response и breach notification process пока не реализованы.
-

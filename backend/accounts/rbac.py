@@ -46,6 +46,7 @@ VIEW_OWN_NUTRITION_RESTRICTION_PERMISSION = "accounts.view_own_nutritionsensitiv
 CHANGE_OWN_NUTRITION_RESTRICTION_PERMISSION = "accounts.change_own_nutritionsensitiverestriction"
 ADMINISTER_ACCOUNTS_PERMISSION = "accounts.administer_accounts"
 VIEW_ADMIN_AUDIT_LOG_PERMISSION = "accounts.view_adminauditlog"
+VIEW_SECURITY_AUDIT_LOG_PERMISSION = "audit.view_auditlog"
 VIEW_SUPPORT_ADMIN_PERMISSION = "accounts.view_support_admin"
 MANAGE_REFERENCE_DATA_PERMISSION = "accounts.manage_reference_data"
 MANAGE_FOOD_CATALOG_PERMISSION = "accounts.manage_food_catalog"
@@ -109,6 +110,12 @@ FITNESS_CATALOG_MODEL_PERMISSIONS = frozenset(
 )
 
 PERMISSION_DEFINITIONS: tuple[PermissionDefinition, ...] = (
+    PermissionDefinition(
+        codename="view_auditlog",
+        model="auditlog",
+        name="Can view security audit log",
+        app_label="audit",
+    ),
     PermissionDefinition(
         codename="view_group",
         model="group",
@@ -565,6 +572,7 @@ ROLE_DEFINITIONS: dict[Role, RoleDefinition] = {
                 "accounts.change_userprofile",
                 "accounts.delete_userprofile",
                 VIEW_ADMIN_AUDIT_LOG_PERMISSION,
+                VIEW_SECURITY_AUDIT_LOG_PERMISSION,
                 "accounts.access_support_tools",
                 "accounts.manage_catalog_content",
                 VIEW_SUPPORT_ADMIN_PERMISSION,

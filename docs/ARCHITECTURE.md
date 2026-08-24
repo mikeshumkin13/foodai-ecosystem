@@ -70,6 +70,7 @@ foodai-ecosystem/
 - Login, registration, email verification и password reset endpoints имеют scoped rate limiting.
 - Django Admin используется как внутренний protected admin foundation для users/profiles/role groups и read-only admin audit log.
 - `accounts.AdminAuditLog` зеркалирует `django_admin_log` и хранит минимальные sanitized metadata административных действий.
+- `audit.AuditLog` реализует security audit trail для admin user changes, role changes, support access foundation, Privacy Center export/consent/account deletion events и хранит безопасные metadata с request correlation ID.
 - Support/content-manager admin visibility строится через Django model permissions; без явных permissions они не видят чувствительные account/audit/role models.
 - Security hardening baseline включает `docs/THREAT_MODEL.md`, production security headers и custom
   Django system checks `core.security_checks`, которые блокируют опасные production settings для
