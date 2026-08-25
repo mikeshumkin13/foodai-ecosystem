@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import uuid
+from time import time
 
 from django.db import transaction
 
 from food_scans.models import FoodScan
 from food_scans.tasks import process_food_scan_analysis_task
+from observability.metrics import CELERY_ENQUEUED_AT_HEADER
 
 
 class FoodScanJobError(ValueError):
@@ -46,6 +48,7 @@ def enqueue_food_scan_analysis(*, food_scan: FoodScan, force: bool = False) -> F
     process_food_scan_analysis_task.apply_async(
         args=[str(food_scan.id), str(run_id)],
         task_id=task_id,
+        headers={CELERY_ENQUEUED_AT_HEADER: time()},
     )
     food_scan.refresh_from_db()
     return food_scan

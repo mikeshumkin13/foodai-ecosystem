@@ -11,6 +11,7 @@ from django.http import HttpRequest
 from accounts.models import User
 from audit.middleware import resolve_correlation_id
 from audit.models import AuditLog
+from observability.events import log_security_event
 
 REDACTED_VALUE = "[redacted]"
 
@@ -55,7 +56,7 @@ def record_audit_event(
     actor_id_snapshot = str(actor.pk) if actor is not None and actor.pk is not None else ""
     correlation_id = request_correlation_id or get_request_correlation_id(request)
 
-    return AuditLog.objects.create(
+    audit_log = AuditLog.objects.create(
         actor=actor,
         actor_id_snapshot=actor_id_snapshot[:255],
         action=str(action),
@@ -64,6 +65,12 @@ def record_audit_event(
         metadata=sanitize_audit_metadata(metadata),
         request_correlation_id=correlation_id[:64],
     )
+    log_security_event(
+        event_name=str(action),
+        metadata={"target_type": str(target_type)[:120]},
+        correlation_id=correlation_id,
+    )
+    return audit_log
 
 
 def record_support_access(

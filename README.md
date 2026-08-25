@@ -46,7 +46,7 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
-Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов, нутриентов и calculation engine для КБЖУ/micronutrients, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery, estimator оценки порции v1, AI Nutrition/Fitness/Wellbeing foundations, Privacy Center для export/consent/deletion controls и `audit` security audit trail. FastAPI `services/vision` содержит real food recognition model v1. Frontend foundation расположен в `frontend`: Next.js + TypeScript App Router, responsive PWA-ready shell, страницы `/login`, `/register`, `/dashboard`, `/diary`, `/scan`, `/profile`, `/privacy`, централизованный API client и CSRF/session-cookie flow без access token в `localStorage`.
+Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов, нутриентов и calculation engine для КБЖУ/micronutrients, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery, estimator оценки порции v1, AI Nutrition/Fitness/Wellbeing foundations, Privacy Center для export/consent/deletion controls, `audit` security audit trail и безопасный structured observability foundation. FastAPI `services/vision` содержит real food recognition model v1. Frontend foundation расположен в `frontend`: Next.js + TypeScript App Router, responsive PWA-ready shell, страницы `/login`, `/register`, `/dashboard`, `/diary`, `/scan`, `/profile`, `/privacy`, централизованный API client и CSRF/session-cookie flow без access token в `localStorage`.
 
 ## Backend: локальная установка
 
@@ -99,6 +99,11 @@ Celery worker локально без Docker, если Redis доступен ч
 ```bash
 celery -A config worker --loglevel=INFO --concurrency=1
 ```
+
+Observability настраивается через `LOG_LEVEL`, `OBSERVABILITY_METRICS_BACKEND` и
+`ERROR_MONITORING_BACKEND`. По умолчанию backend пишет безопасные JSON-события и metric events в
+console, а внешний error monitoring отключён. API-ответы содержат `X-Request-ID`; этот ID можно
+передать во входном `X-Request-ID` или `X-Correlation-ID` в безопасном формате.
 
 Backend endpoints:
 

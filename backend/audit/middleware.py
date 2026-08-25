@@ -7,6 +7,8 @@ from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 
+from observability.context import bind_correlation_id, reset_correlation_id
+
 CORRELATION_ID_HEADER = "X-Request-ID"
 ALTERNATE_CORRELATION_ID_HEADER = "X-Correlation-ID"
 
@@ -23,7 +25,11 @@ class CorrelationIdMiddleware:
             or request.headers.get(ALTERNATE_CORRELATION_ID_HEADER)
         )
         request.correlation_id = correlation_id  # type: ignore[attr-defined]
-        response = self.get_response(request)
+        context_token = bind_correlation_id(correlation_id)
+        try:
+            response = self.get_response(request)
+        finally:
+            reset_correlation_id(context_token)
         response[CORRELATION_ID_HEADER] = correlation_id
         return response
 

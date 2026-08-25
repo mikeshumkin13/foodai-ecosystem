@@ -4,7 +4,7 @@ Last updated / Обновлено: 2026-08-25
 
 ## Текущий завершённый этап
 
-ЭТАП 27, PROMPT 27 — GitHub Actions CI завершён.
+ЭТАП 28, PROMPT 28 — logging и monitoring завершены.
 
 ## Состояние
 
@@ -277,6 +277,23 @@ Last updated / Обновлено: 2026-08-25
   запуски одной PR-ветки через concurrency group.
 - PostgreSQL/Redis service containers не добавлены: текущие tests используют SQLite и in-memory
   Celery backend; будущие DB/Redis-specific integration tests должны получить отдельный job.
+- Создана ветка `feature/observability` от актуального `develop`.
+- Добавлен отдельный backend-модуль `observability` с vendor-neutral abstractions для metrics и
+  error monitoring.
+- Backend logs переведены на безопасный JSON formatter с correlation/request ID и раздельными
+  categories `application_error`, `security_event`, `business_metric`.
+- HTTP instrumentation использует имена Django routes вместо raw URL/query и измеряет API latency,
+  request count и HTTP error rate.
+- Добавлены метрики scan processing time, Vision requests/failures, AI provider latency и Celery
+  queue latency.
+- Metric names/tags ограничены allowlist и low-cardinality validation; user IDs, email, фото,
+  object keys, AI prompts/history и health/medical data запрещены в telemetry.
+- Error monitoring boundary получает только тип ошибки, event name, correlation ID и безопасные
+  metadata; exception message, traceback и request payload не передаются.
+- Существующий `audit.middleware.CorrelationIdMiddleware` связан с request-local observability
+  context; `audit.AuditLog` остаётся отдельным authoritative security trail.
+- Добавлены automated tests для redaction, correlation ID, HTTP metrics, error-monitoring boundary,
+  security event separation, tag allowlist, AI latency и Vision/Celery/scan metrics.
 
 ## Проверки
 
@@ -514,7 +531,27 @@ Last updated / Обновлено: 2026-08-25
 - `git diff --check` — passed.
 - `docker compose --env-file .env build backend vision celery_worker` — passed после запуска Docker
   Desktop; backend, Vision и Celery worker images собраны.
+- `pytest --no-cov backend/observability/tests/test_observability.py backend/food_scans/tests/test_background_jobs.py backend/audit/tests/test_audit_log.py backend/ai_coach/tests/test_ai_coach_api.py backend/fitness/tests/test_fitness_coach_api.py backend/wellbeing/tests/test_wellbeing_assistant_api.py` — passed для PROMPT 28, 68 tests passed.
+- Повторный узкий observability/background gate после fail-open hardening — passed, 17 tests passed.
+- `make check` — passed для PROMPT 28: Ruff без ошибок, mypy без ошибок в 177 source files,
+  Django system check без ошибок, pytest 249 passed, coverage 88.66%; frontend lint прошёл 55
+  files, TypeScript typecheck passed, Vitest 7 test files / 10 tests passed, Next.js production
+  build passed. Есть одно стороннее `StarletteDeprecationWarning` из FastAPI TestClient.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными test env — passed, no changes
+  detected.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage28.yml` — passed,
+  OpenAPI schema валидируется без ошибок.
+- `backend/manage.py check --deploy --settings=config.settings.production` с production-like
+  конфигурацией — passed без errors; остаётся документированный warning `foodai_security.W002` о
+  local filesystem storage до внедрения production S3-compatible backend.
+- `docker compose --env-file .env config --quiet` — passed.
+- `.venv/bin/python -m pip check` — passed, broken requirements не найдены; pip сообщил только
+  локальное cache permission warning.
+- `git diff --check` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — первый запуск был
+  заблокирован sandbox-доступом к Docker buildx activity; повтор с разрешённым Docker Desktop
+  доступом passed, backend, Vision и Celery worker images собраны.
 
 ## Следующий этап
 
-Остановиться после PROMPT 27. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 28. Следующую задачу начинать только после явной команды пользователя.

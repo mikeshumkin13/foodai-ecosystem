@@ -22,6 +22,7 @@ from ai_coach.safety import (
     moderate_user_request,
     safety_refusal_message,
 )
+from observability.metrics import call_with_ai_provider_metrics
 
 AI_COACH_OUTPUT_SCHEMA_VERSION = "ai_nutrition_coach_response_v1"
 
@@ -84,7 +85,11 @@ def ask_nutrition_coach(
         context=context,
         output_schema_version=AI_COACH_OUTPUT_SCHEMA_VERSION,
     )
-    provider_response = resolved_provider.generate(provider_request)
+    provider_response = call_with_ai_provider_metrics(
+        assistant="nutrition",
+        provider=resolved_provider.name,
+        operation=lambda: resolved_provider.generate(provider_request),
+    )
     output_safety = moderate_provider_text(_provider_response_text(provider_response))
     if output_safety.blocked:
         return _safety_result(

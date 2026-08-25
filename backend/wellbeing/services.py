@@ -8,6 +8,7 @@ from typing import Any
 from django.utils import timezone
 
 from accounts.models import User
+from observability.metrics import call_with_ai_provider_metrics
 from wellbeing.context import WellbeingAssistantContext, build_wellbeing_context
 from wellbeing.models import WellbeingAssistantMessage, WellbeingAssistantSettings
 from wellbeing.providers import (
@@ -96,7 +97,11 @@ def ask_wellbeing_assistant(
         context=context,
         output_schema_version=WELLBEING_ASSISTANT_OUTPUT_SCHEMA_VERSION,
     )
-    provider_response = resolved_provider.generate(provider_request)
+    provider_response = call_with_ai_provider_metrics(
+        assistant="wellbeing",
+        provider=resolved_provider.name,
+        operation=lambda: resolved_provider.generate(provider_request),
+    )
     output_safety = moderate_provider_text(_provider_response_text(provider_response))
     if output_safety.blocked:
         return _safety_result(

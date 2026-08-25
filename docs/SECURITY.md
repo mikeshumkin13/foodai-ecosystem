@@ -332,7 +332,9 @@ headers.
 - Backend dependency lock/audit gate ещё не принят; Dependabot не заменяет vulnerability scanning.
 - Docker image digest pinning, SBOM/provenance и container hardening beyond non-root user остаются
   production-readiness задачами.
-- Structured log redaction и observability policy требуют отдельной реализации перед production.
+- Текущий structured logging foundation редактирует sensitive metadata и не передаёт exception
+  message во внешний error-monitoring adapter; перед production нужен review конфигурации
+  выбранного telemetry transport/vendor и retention policy.
 - Service-to-service authentication для Vision не реализована; local compose network не является
   достаточной production boundary.
 
@@ -362,6 +364,24 @@ headers.
 - Service containers не запускаются без необходимости, что уменьшает CI surface и исключает
   появление лишних test credentials. Реальные PostgreSQL/Redis integration tests должны получить
   отдельный изолированный job, если будут добавлены.
+
+## Observability security
+
+- JSON logs разделены на `application_error`, `security_event` и `business_metric`.
+- Correlation/request ID ограничен безопасным форматом и длиной; невалидное клиентское значение
+  заменяется случайным ID.
+- Metadata проходит централизованный sanitizer с redaction ключей для password/token/cookie/CSRF,
+  email, user/actor/target IDs, photo/image/object key, AI conversation/prompt и health/medical
+  данных.
+- Error monitoring boundary не получает исходное сообщение исключения, traceback, request body,
+  response body или пользовательский объект.
+- Metric names и tags используют allowlist. Raw URL/query, UUID пользователя, имена файлов,
+  private object keys и AI payload запрещены; неизвестные теги отклоняются.
+- Пользовательские фотографии, их bytes и object references не собираются как telemetry.
+- Security events дополняют, но не заменяют `audit.AuditLog`: telemetry предназначена для
+  наблюдаемости, а DB audit trail — для значимых security-sensitive операций.
+- Значения `OBSERVABILITY_METRICS_BACKEND`, `ERROR_MONITORING_BACKEND` и `LOG_LEVEL` задаются через
+  environment variables; подключение production vendor требует отдельной privacy/security оценки.
 
 ## Права пользователя
 

@@ -250,6 +250,30 @@ SQLite и in-memory Celery backend, поэтому PostgreSQL/Redis service cont
 запускаются. При появлении integration tests, которым действительно нужны эти сервисы, они должны
 быть добавлены отдельным job с безопасными test-only credentials.
 
+## Observability
+
+Backend observability реализована отдельным модулем `observability` и не связана с конкретным
+внешним monitoring vendor.
+
+- `audit.middleware.CorrelationIdMiddleware` валидирует входной `X-Request-ID`/
+  `X-Correlation-ID`, при необходимости генерирует идентификатор и возвращает `X-Request-ID`.
+- Correlation ID хранится в request-local `ContextVar` и автоматически добавляется в JSON-события.
+- `RequestObservabilityMiddleware` измеряет API latency, количество запросов и HTTP errors по
+  именам маршрутов. Raw URL, query string и request/response body в теги не попадают.
+- Application errors, security events и business metrics используют отдельные logger categories:
+  `foodai.application`, `foodai.security`, `foodai.business_metrics`.
+- Метрики отправляются через `MetricsBackend`; текущий `StructuredLogMetricsBackend` пишет
+  структурированные metric events, а tests используют `InMemoryMetricsBackend`/noop backend.
+- Внешний error monitoring подключается через `ErrorMonitoringBackend`. По умолчанию используется
+  `NoopErrorMonitoringBackend`; adapter получает только тип ошибки, event name, correlation ID и
+  санитизированные metadata, но не exception message или request payload.
+- Ошибка metrics/error-monitoring adapter работает fail-open: telemetry failure фиксируется
+  безопасным application event и не меняет результат бизнес-операции.
+
+Текущий набор метрик: API latency, HTTP error rate, scan processing time, Vision request/failure
+rate, AI provider latency и Celery queue latency. Все теги имеют явный allowlist и ограниченную
+кардинальность; user UUID, email, фото, object keys, AI prompts и health data в telemetry запрещены.
+
 ## API и i18n
 
 Стабильного публичного API пока нет.
