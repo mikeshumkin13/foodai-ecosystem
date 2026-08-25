@@ -80,6 +80,14 @@ make check
 python backend/manage.py runserver 0.0.0.0:8000 --settings=config.settings.local
 ```
 
+## CI для pull request
+
+GitHub Actions запускает независимые обязательные проверки Backend, Vision и Frontend для pull
+request в `develop` и `main`. Workflow выполняет lint, type checks, migration/Django checks, tests,
+coverage и production frontend build; dependency caches используют Python manifests и
+`frontend/pnpm-lock.yaml`. Production secrets и постоянные внешние service credentials в CI не
+используются.
+
 Vision service локально без Docker:
 
 ```bash

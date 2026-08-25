@@ -232,6 +232,24 @@ Production-окружение должно использовать deny-by-defa
 - migrations выполняются при старте backend через `migrate --noinput`, если `DJANGO_RUN_MIGRATIONS=true`;
 - один понятный запуск для разработки: `make dev-up`.
 
+## Continuous Integration
+
+GitHub Actions workflow `.github/workflows/ci.yml` является обязательным quality gate для pull
+request в `develop` и `main`, а также повторно запускается после push в эти ветки.
+
+Проверки разделены на независимые job:
+
+- `Backend checks`: install, Ruff, mypy, migration drift check, Django system checks, pytest с
+  coverage gate и OpenAPI validation;
+- `Vision checks`: install CPU inference dependencies, Ruff, mypy, Vision tests и backend/Vision
+  contract tests с отдельным coverage gate;
+- `Frontend checks`: frozen pnpm install, lint, TypeScript typecheck, Vitest и production build.
+
+Python и pnpm dependency caches привязаны к соответствующим manifests/lock-file. Тесты используют
+SQLite и in-memory Celery backend, поэтому PostgreSQL/Redis service containers в текущем CI не
+запускаются. При появлении integration tests, которым действительно нужны эти сервисы, они должны
+быть добавлены отдельным job с безопасными test-only credentials.
+
 ## API и i18n
 
 Стабильного публичного API пока нет.

@@ -1,10 +1,10 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-08-24
+Last updated / Обновлено: 2026-08-25
 
 ## Текущий завершённый этап
 
-ЭТАП 26, PROMPT 26 — Security audit trail / Audit Log завершён.
+ЭТАП 27, PROMPT 27 — GitHub Actions CI завершён.
 
 ## Состояние
 
@@ -262,6 +262,21 @@ Last updated / Обновлено: 2026-08-24
 - `audit.AuditLog` зарегистрирован в Django Admin как read-only модель без add/change/delete actions.
 - Право `audit.view_auditlog` выдано только роли `admin`; `user`, `support` и `content_manager` остаются deny-by-default.
 - Добавлены тесты audit sanitizer, admin audit integration, support access foundation, admin read-only permissions, RBAC и Privacy Center audit events.
+- Создана ветка `feature/ci` от актуального `develop`.
+- GitHub Actions workflow для pull request разделён на независимые blocking jobs `Backend checks`,
+  `Vision checks` и `Frontend checks`.
+- Backend CI выполняет install, Ruff, mypy, migration drift check, Django system checks, pytest с
+  coverage threshold 80% и OpenAPI validation.
+- Vision CI выполняет отдельный install CPU ML dependencies, Ruff, mypy, Vision tests и
+  backend/Vision contract tests с coverage threshold 80%.
+- Frontend CI выполняет frozen pnpm install, lint, TypeScript typecheck, Vitest и Next.js production
+  build отдельными шагами.
+- Python dependency caches привязаны к соответствующим `pyproject.toml`, frontend pnpm cache — к
+  `frontend/pnpm-lock.yaml`.
+- Workflow использует только `contents: read`, не получает production secrets и отменяет устаревшие
+  запуски одной PR-ветки через concurrency group.
+- PostgreSQL/Redis service containers не добавлены: текущие tests используют SQLite и in-memory
+  Celery backend; будущие DB/Redis-specific integration tests должны получить отдельный job.
 
 ## Проверки
 
@@ -472,7 +487,34 @@ Last updated / Обновлено: 2026-08-24
 - `pip check` — passed, broken requirements не найдены; pip сообщил только локальное cache permission warning.
 - `git diff --check` — passed.
 - `docker compose --env-file .env build backend vision celery_worker` — первый запуск был заблокирован Codex sandbox из-за Docker buildx activity permissions; повтор с разрешением на Docker Desktop passed, backend, vision и celery_worker images собраны.
+- Workflow YAML validation через PyYAML и проверка структуры `backend`/`vision`/`frontend` jobs —
+  passed после исправления quoting для test-only Celery URL.
+- Команды `Backend checks` выполнены локально: Ruff passed, mypy passed для 156 source files,
+  migration check/Django check passed, 217 backend tests passed, coverage 88.69%.
+- Команды `Vision checks` выполнены локально: Ruff passed, mypy passed для 14 source files, 25
+  Vision/contract tests passed, coverage 89.94%; остаётся одно стороннее
+  `StarletteDeprecationWarning` из FastAPI TestClient.
+- Frontend CI-команды выполнены локально: frozen install passed, lint прошёл 55 files, TypeScript
+  typecheck passed, Vitest 7 test files / 10 tests passed, Next.js production build passed.
+- Первый локальный frontend typecheck обнаружил generated duplicate `.next/types/routes.d 2.ts`;
+  штатный `next build` регенерировал `.next`, после чего typecheck и полный frontend gate прошли.
+- `make check` — passed для PROMPT 27: Ruff без ошибок, mypy без ошибок в 166 source files, Django
+  system check без ошибок, pytest 242 passed, coverage 88.73%; frontend lint/typecheck/Vitest 10
+  tests/Next.js production build passed.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными test env — passed, no changes
+  detected.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-schema-stage27.yml` — passed,
+  OpenAPI schema валидируется без ошибок.
+- `backend/manage.py check --deploy --settings=config.settings.production` с полной production-like
+  test конфигурацией — passed без errors; остаётся документированный warning о local filesystem
+  food photo storage до внедрения production S3-compatible backend.
+- `docker compose --env-file .env config --quiet` — passed.
+- `pip check` — passed, broken requirements не найдены; pip сообщил только локальное cache
+  permission warning.
+- `git diff --check` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — passed после запуска Docker
+  Desktop; backend, Vision и Celery worker images собраны.
 
 ## Следующий этап
 
-Остановиться после PROMPT 26. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 27. Следующую задачу начинать только после явной команды пользователя.
