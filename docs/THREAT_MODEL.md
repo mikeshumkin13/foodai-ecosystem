@@ -65,7 +65,7 @@ FoodAI Ecosystem находится на MVP/Beta foundation-стадии. Эт�
 | Rate limits | Abuse of auth/AI endpoints. | Scoped throttles for auth, AI nutrition, fitness and wellbeing endpoints; shared cache/Redis required for production multi-instance deployment. |
 | Password reset | Account enumeration and reset token leakage. | Generic request response, hashed DB token, expiry, single-use tokens, old token revocation on new issue. |
 | Secrets | Secrets committed or weak production env. | `.env` ignored, `.env.example` contains local-only placeholders, settings read from env; new system checks block weak production secret and dangerous production settings. |
-| Logs | Sensitive data in logs. | Current app logging is minimal; Celery task payload excludes photo/object key/health data. Remaining work: structured redaction middleware/filter before production observability. |
+| Logs/telemetry | Sensitive data, photos, identifiers or unbounded-cardinality values leak to logs/monitoring. | Safe JSON formatter and centralized metadata sanitizer; separate application/security/metric categories; metric name/tag allowlists; route names instead of raw URLs; error adapter receives no exception message or payload; photo bytes/object keys/user IDs are forbidden telemetry fields. |
 | Django Admin | Excessive staff access or audit tampering. | Staff-only admin, token models not registered, dangerous bulk actions disabled, read-only sanitized `AdminAuditLog`, read-only `audit.AuditLog`, role-based model visibility tests. |
 | Security audit trail | Missing evidence for sensitive operations or accidental sensitive payload retention. | `audit.AuditLog` stores actor, target, action, timestamp, safe metadata and request correlation ID; metadata sanitizer redacts password/token/photo/object-key/AI/health-like keys; Privacy Center and admin role changes write audit events. Remaining work: append-only/immutable storage controls. |
 | Signed URLs | Long-lived public access to photos. | Current API does not issue signed URLs. Future signed URLs must be short-lived, owner-authorized and audited. |
@@ -85,8 +85,9 @@ FoodAI Ecosystem находится на MVP/Beta foundation-стадии. Эт�
   (`pip-audit`/аналог) требует отдельного решения, чтобы не ломать CI transient registry-сбоями.
 - Docker base images и PyTorch/Hugging Face supply chain требуют регулярной проверки, digest pinning
   и provenance review перед production.
-- Structured logging/redaction policy ещё foundation-level; перед production нужно добавить фильтры
-  секретов/токенов и проверить observability pipeline.
+- Structured logging/redaction остаётся defense-in-depth, а не математической гарантией. Перед
+  production нужно проверить фактический collector/exporter, retention, access controls и
+  провести тесты на утечки с конфигурацией выбранного monitoring vendor.
 - Service-to-service authentication для Vision пока отсутствует; Docker network boundary достаточен
   только для local/dev foundation.
 - Legal/privacy review для стран запуска не проведён.

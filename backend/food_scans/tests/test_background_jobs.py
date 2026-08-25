@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from decimal import Decimal
+from time import time
 from typing import Any
 
 import pytest
@@ -20,6 +21,15 @@ from food_scans.tasks import process_food_scan_analysis_task
 from integrations.vision.client import VisionAnalyzeResult, VisionDetectedItem, VisionTimeoutError
 from nutrition.models import FoodItem, FoodNutrient, Nutrient
 from nutrition.tests.factories import make_food_category, make_food_data_source, make_food_item
+from observability.metrics import (
+    CELERY_ENQUEUED_AT_HEADER,
+    CELERY_QUEUE_LATENCY_SECONDS,
+    SCAN_PROCESSING_SECONDS,
+    VISION_FAILURES_TOTAL,
+    VISION_REQUESTS_TOTAL,
+    InMemoryMetricsBackend,
+    override_metrics_backend,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -42,8 +52,13 @@ def test_enqueue_food_scan_analysis_sets_idempotency_metadata(
     food_scan = _make_food_scan()
     scheduled_tasks: list[dict[str, object]] = []
 
-    def fake_apply_async(*, args: list[str], task_id: str) -> None:
-        scheduled_tasks.append({"args": args, "task_id": task_id})
+    def fake_apply_async(
+        *,
+        args: list[str],
+        task_id: str,
+        headers: dict[str, float],
+    ) -> None:
+        scheduled_tasks.append({"args": args, "task_id": task_id, "headers": headers})
 
     monkeypatch.setattr(
         "food_scans.jobs.process_food_scan_analysis_task.apply_async",
@@ -56,12 +71,13 @@ def test_enqueue_food_scan_analysis_sets_idempotency_metadata(
     assert enqueued_scan.failure_code == ""
     assert enqueued_scan.analysis_run_id is not None
     assert enqueued_scan.analysis_attempt_count == 0
-    assert scheduled_tasks == [
-        {
-            "args": [str(food_scan.id), str(enqueued_scan.analysis_run_id)],
-            "task_id": enqueued_scan.analysis_task_id,
-        }
-    ]
+    assert len(scheduled_tasks) == 1
+    scheduled_task = scheduled_tasks[0]
+    assert scheduled_task["args"] == [str(food_scan.id), str(enqueued_scan.analysis_run_id)]
+    assert scheduled_task["task_id"] == enqueued_scan.analysis_task_id
+    headers = scheduled_task["headers"]
+    assert isinstance(headers, dict)
+    assert isinstance(headers[CELERY_ENQUEUED_AT_HEADER], float)
     assert food_scan.object_key not in str(scheduled_tasks)
 
 
@@ -75,8 +91,13 @@ def test_retry_endpoint_requeues_failed_scan_and_clears_failure(
     food_scan.save(update_fields=["failure_code", "updated_at"])
     scheduled_tasks: list[dict[str, object]] = []
 
-    def fake_apply_async(*, args: list[str], task_id: str) -> None:
-        scheduled_tasks.append({"args": args, "task_id": task_id})
+    def fake_apply_async(
+        *,
+        args: list[str],
+        task_id: str,
+        headers: dict[str, float],
+    ) -> None:
+        scheduled_tasks.append({"args": args, "task_id": task_id, "headers": headers})
 
     monkeypatch.setattr(
         "food_scans.jobs.process_food_scan_analysis_task.apply_async",
@@ -112,7 +133,12 @@ def test_retry_hides_previous_detected_items_while_new_analysis_is_pending(
         label="rice",
     )
 
-    def fake_apply_async(*, args: list[str], task_id: str) -> None:
+    def fake_apply_async(
+        *,
+        args: list[str],
+        task_id: str,
+        headers: dict[str, float],
+    ) -> None:
         return None
 
     monkeypatch.setattr(
@@ -176,10 +202,13 @@ def test_food_scan_analysis_task_processes_current_run(
 
     monkeypatch.setattr("food_scans.orchestration.analyze_food_scan", fake_analyze_food_scan)
 
-    result = process_food_scan_analysis_task.apply(
-        args=[str(food_scan.id), str(run_id)],
-        task_id=task_id,
-    ).get()
+    metrics_backend = InMemoryMetricsBackend()
+    with override_metrics_backend(metrics_backend):
+        result = process_food_scan_analysis_task.apply(
+            args=[str(food_scan.id), str(run_id)],
+            task_id=task_id,
+            headers={CELERY_ENQUEUED_AT_HEADER: time() - 0.25},
+        ).get()
 
     food_scan.refresh_from_db()
     assert result == {"status": FoodScan.Status.NEEDS_CONFIRMATION, "scan_id": str(food_scan.id)}
@@ -190,6 +219,11 @@ def test_food_scan_analysis_task_processes_current_run(
     assert detected_item.matched_food == rice
     assert detected_item.estimated_mass_g == Decimal("144.00")
     assert detected_item.calories_kcal == Decimal("187.2000")
+    metric_names = {measurement.name for measurement in metrics_backend.measurements}
+    assert CELERY_QUEUE_LATENCY_SECONDS in metric_names
+    assert SCAN_PROCESSING_SECONDS in metric_names
+    assert VISION_REQUESTS_TOTAL in metric_names
+    assert food_scan.object_key not in str(metrics_backend.measurements)
 
 
 def test_food_scan_analysis_task_skips_stale_run(
@@ -259,11 +293,13 @@ def test_food_scan_analysis_task_marks_scan_failed_after_max_retries(
 
     monkeypatch.setattr("food_scans.orchestration.analyze_food_scan", fake_analyze_food_scan)
 
-    result = process_food_scan_analysis_task.apply(
-        args=[str(food_scan.id), str(run_id)],
-        task_id=task_id,
-        retries=1,
-    ).get()
+    metrics_backend = InMemoryMetricsBackend()
+    with override_metrics_backend(metrics_backend):
+        result = process_food_scan_analysis_task.apply(
+            args=[str(food_scan.id), str(run_id)],
+            task_id=task_id,
+            retries=1,
+        ).get()
 
     food_scan.refresh_from_db()
     assert result == {
@@ -274,6 +310,12 @@ def test_food_scan_analysis_task_marks_scan_failed_after_max_retries(
     assert food_scan.status == FoodScan.Status.FAILED
     assert food_scan.failure_code == "vision_timeout"
     assert food_scan.analysis_attempt_count == 2
+    metrics_by_name = {
+        measurement.name: measurement for measurement in metrics_backend.measurements
+    }
+    assert metrics_by_name[VISION_REQUESTS_TOTAL].tags == {"outcome": "failure"}
+    assert metrics_by_name[VISION_FAILURES_TOTAL].tags == {"failure_code": "vision_timeout"}
+    assert metrics_by_name[SCAN_PROCESSING_SECONDS].tags == {"outcome": "failed"}
 
 
 def test_scan_confirmation_remains_idempotent_and_does_not_duplicate_meal_items(

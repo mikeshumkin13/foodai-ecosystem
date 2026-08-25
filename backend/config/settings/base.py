@@ -45,6 +45,7 @@ DEBUG = get_env_bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = get_env_list("DJANGO_ALLOWED_HOSTS")
 
 INSTALLED_APPS = [
+    "observability",
     "audit",
     "accounts",
     "nutrition",
@@ -69,6 +70,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "audit.middleware.CorrelationIdMiddleware",
+    "observability.middleware.RequestObservabilityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -119,6 +121,47 @@ FOOD_SCAN_ANALYSIS_RETRY_BACKOFF_SECONDS = get_env_int(
     "FOOD_SCAN_ANALYSIS_RETRY_BACKOFF_SECONDS",
     default=5,
 )
+
+OBSERVABILITY_METRICS_BACKEND = get_env(
+    "OBSERVABILITY_METRICS_BACKEND",
+    default="observability.metrics.StructuredLogMetricsBackend",
+)
+ERROR_MONITORING_BACKEND = get_env(
+    "ERROR_MONITORING_BACKEND",
+    default="observability.error_monitoring.NoopErrorMonitoringBackend",
+)
+LOG_LEVEL = get_env("LOG_LEVEL", default="INFO").upper()
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "safe_json": {"()": "observability.logging.SafeJsonFormatter"},
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "safe_json",
+        },
+    },
+    "root": {"handlers": ["console"], "level": LOG_LEVEL},
+    "loggers": {
+        "foodai.application": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "foodai.security": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "foodai.business_metrics": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+    },
+}
 
 AUTH_USER_MODEL = "accounts.User"
 AUTH_EMAIL_VERIFICATION_TOKEN_MAX_AGE_SECONDS = get_env_int(

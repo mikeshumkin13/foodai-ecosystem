@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import logging
 import uuid
+from time import monotonic, time
 from typing import Any, cast
 
 from celery import shared_task
@@ -11,8 +11,13 @@ from django.utils import timezone
 
 from food_scans.models import FoodScan
 from food_scans.orchestration import RetryableFoodScanAnalysisError, process_scan_analysis
-
-logger = logging.getLogger(__name__)
+from observability.events import report_application_error
+from observability.metrics import (
+    CELERY_ENQUEUED_AT_HEADER,
+    CELERY_QUEUE_LATENCY_SECONDS,
+    SCAN_PROCESSING_SECONDS,
+    observe_metric,
+)
 
 SCAN_TASK_FAILURE_CODE = "scan_task_failed"
 
@@ -27,6 +32,7 @@ def process_food_scan_analysis_task(
     run_uuid = uuid.UUID(analysis_run_id)
     retry_count = int(getattr(self.request, "retries", 0) or 0)
     task_id = str(getattr(self.request, "id", "") or "")
+    _record_queue_latency(request=self.request, retry_count=retry_count)
 
     food_scan = _claim_scan_for_analysis(
         food_scan_id=scan_uuid,
@@ -37,6 +43,8 @@ def process_food_scan_analysis_task(
     if food_scan is None:
         return {"status": "skipped", "reason": "stale_or_confirmed_scan"}
 
+    processing_started_at = monotonic()
+    processing_outcome = "success"
     try:
         processed_scan = process_scan_analysis(
             food_scan,
@@ -45,6 +53,7 @@ def process_food_scan_analysis_task(
         )
     except RetryableFoodScanAnalysisError as exc:
         if retry_count >= settings.FOOD_SCAN_ANALYSIS_MAX_RETRIES:
+            processing_outcome = "failed"
             _mark_scan_failed_if_current(
                 food_scan_id=scan_uuid,
                 analysis_run_id=run_uuid,
@@ -57,27 +66,31 @@ def process_food_scan_analysis_task(
             }
 
         countdown = _retry_countdown(retry_count=retry_count)
-        logger.info(
-            "food_scan_analysis_retry_scheduled",
-            extra={
-                "food_scan_id": food_scan_id,
-                "failure_code": exc.failure_code,
-                "retry_count": retry_count + 1,
-            },
-        )
+        processing_outcome = "retry"
         raise self.retry(
             exc=exc,
             countdown=countdown,
             max_retries=settings.FOOD_SCAN_ANALYSIS_MAX_RETRIES,
         ) from exc
-    except Exception:
+    except Exception as exc:
+        processing_outcome = "error"
         _mark_scan_failed_if_current(
             food_scan_id=scan_uuid,
             analysis_run_id=run_uuid,
             failure_code=SCAN_TASK_FAILURE_CODE,
         )
-        logger.exception("food_scan_analysis_task_failed", extra={"food_scan_id": food_scan_id})
+        report_application_error(
+            event_name="food_scan_analysis_task_failed",
+            error=exc,
+            metadata={"component": "celery", "task": "food_scan_analysis"},
+        )
         raise
+    finally:
+        observe_metric(
+            SCAN_PROCESSING_SECONDS,
+            monotonic() - processing_started_at,
+            tags={"outcome": processing_outcome},
+        )
 
     return {
         "status": processed_scan.status,
@@ -142,3 +155,22 @@ def _retry_countdown(*, retry_count: int) -> int:
     raw_base_seconds = cast(int | str, settings.FOOD_SCAN_ANALYSIS_RETRY_BACKOFF_SECONDS)
     base_seconds = max(1, int(raw_base_seconds))
     return int(base_seconds * (2**retry_count))
+
+
+def _record_queue_latency(*, request: Any, retry_count: int) -> None:
+    if retry_count != 0:
+        return
+    headers = getattr(request, "headers", None)
+    if not isinstance(headers, dict):
+        return
+    raw_enqueued_at = headers.get(CELERY_ENQUEUED_AT_HEADER)
+    if isinstance(raw_enqueued_at, bool) or not isinstance(raw_enqueued_at, int | float):
+        return
+    queue_latency = time() - float(raw_enqueued_at)
+    if queue_latency < 0 or queue_latency > 86_400:
+        return
+    observe_metric(
+        CELERY_QUEUE_LATENCY_SECONDS,
+        queue_latency,
+        tags={"task": "food_scan_analysis", "outcome": "started"},
+    )

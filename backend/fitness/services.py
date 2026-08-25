@@ -19,6 +19,7 @@ from fitness.safety import (
     moderate_fitness_request,
     moderate_provider_text,
 )
+from observability.metrics import call_with_ai_provider_metrics
 
 FITNESS_COACH_OUTPUT_SCHEMA_VERSION = "ai_fitness_coach_plan_response_v1"
 
@@ -207,13 +208,16 @@ def _safe_provider_explanation(
     provider: FitnessCoachProvider | None,
 ) -> _SafeExplanation:
     resolved_provider = provider or get_fitness_coach_provider()
-    provider_response = resolved_provider.explain(
-        FitnessCoachProviderRequest(
-            plan_payload=plan_draft,
-            locale=locale,
-            user_request=message,
-            output_schema_version=FITNESS_COACH_OUTPUT_SCHEMA_VERSION,
-        )
+    provider_request = FitnessCoachProviderRequest(
+        plan_payload=plan_draft,
+        locale=locale,
+        user_request=message,
+        output_schema_version=FITNESS_COACH_OUTPUT_SCHEMA_VERSION,
+    )
+    provider_response = call_with_ai_provider_metrics(
+        assistant="fitness",
+        provider=resolved_provider.name,
+        operation=lambda: resolved_provider.explain(provider_request),
     )
     output_safety = moderate_provider_text(_provider_response_text(provider_response))
     if output_safety.blocked:

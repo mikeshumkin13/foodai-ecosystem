@@ -1450,3 +1450,61 @@ Consequences / Последствия:
 - Если появятся PostgreSQL/Redis-specific integration tests, для них нужен отдельный CI job с
   минимальными service containers и test-only credentials.
 - Изменение dependency manifests/lock-file инвалидирует соответствующий dependency cache.
+
+## ADR-0030: Vendor-Neutral Privacy-Safe Observability Boundary
+
+Date / Дата: 2026-08-25
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Backend observability реализуется отдельным модулем `observability` с тремя независимыми
+категориями событий:
+
+- `application_error` для ошибок приложения;
+- `security_event` для безопасных operational security signals;
+- `business_metric` для технических и продуктовых измерений без пользовательского payload.
+
+Все события используют JSON formatter и request-local correlation ID. HTTP-метрики маркируются
+именем Django route, методом и классом/status code, но не raw URL или query string. Business metrics
+принимают только заранее зарегистрированные имена и allowlisted low-cardinality tags.
+
+Текущие метрики:
+
+- `api_latency_seconds` и `api_requests_total`;
+- `http_errors_total`, из которого рассчитывается HTTP error rate;
+- `scan_processing_seconds`;
+- `vision_requests_total` и `vision_failures_total`, из которых рассчитывается Vision failure rate;
+- `ai_provider_latency_seconds`;
+- `celery_queue_latency_seconds`.
+
+Metrics transport подключается через `MetricsBackend`. Для local/runtime по умолчанию используется
+`StructuredLogMetricsBackend`; tests могут использовать in-memory/noop backend. Error monitoring
+подключается через отдельный `ErrorMonitoringBackend`; default adapter является noop.
+
+Error report содержит только event name, тип исключения, correlation ID и санитизированные metadata.
+Исходный exception message, traceback, request/response body, фотографии, object references, email,
+UUID пользователей, AI prompts/history и health/medical data во внешний adapter не передаются.
+
+Rationale / Обоснование:
+
+- Бизнес-логика не должна зависеть от Sentry, OpenTelemetry, Prometheus или другого конкретного
+  vendor.
+- Явные схемы событий и allowlist тегов уменьшают риск утечки и cardinality explosion.
+- Correlation ID позволяет связывать HTTP, audit и application events без пользовательского payload.
+- Отдельные categories позволяют применять разные retention/access policies к ошибкам, security
+  events и метрикам.
+
+Consequences / Последствия:
+
+- Новые метрики должны быть зарегистрированы с минимальным allowlist тегов; dynamic user/content
+  identifiers в tags запрещены.
+- `audit.AuditLog` остаётся authoritative security audit trail; operational security logs не
+  заменяют append-only audit requirements.
+- Подключение production collector/vendor требует отдельного adapter, privacy review, access and
+  retention policy и проверки на утечки в реальном pipeline.
+- Metrics/error-monitoring adapters работают fail-open: отказ telemetry не должен нарушать API,
+  Celery task или скрывать исходную provider error.
+- Текущий structured-log metrics backend является foundation, а не полноценным time-series
+  хранилищем, dashboard или alerting system.

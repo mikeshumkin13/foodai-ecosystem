@@ -22,6 +22,11 @@ from integrations.vision.client import (
 )
 from nutrition.calculation import build_food_nutrition_snapshot
 from nutrition.models import FoodItem
+from observability.metrics import (
+    VISION_FAILURES_TOTAL,
+    VISION_REQUESTS_TOTAL,
+    increment_metric,
+)
 
 NUTRIENT_QUANT = Decimal("0.0001")
 MASS_QUANT = Decimal("0.01")
@@ -64,11 +69,15 @@ def process_scan_analysis(
     try:
         analysis_result = analyze_food_scan(food_scan, vision_client=vision_client)
     except (VisionTimeoutError, VisionUnavailableError) as exc:
+        _record_vision_failure(exc.code)
         if retry_transient_errors:
             raise RetryableFoodScanAnalysisError(exc.code) from exc
         return _mark_scan_failed(food_scan, failure_code=exc.code, analysis_run_id=analysis_run_id)
     except VisionClientError as exc:
+        _record_vision_failure(exc.code)
         return _mark_scan_failed(food_scan, failure_code=exc.code, analysis_run_id=analysis_run_id)
+    else:
+        increment_metric(VISION_REQUESTS_TOTAL, tags={"outcome": "success"})
 
     with transaction.atomic():
         locked_scan = FoodScan.objects.select_for_update().get(id=food_scan.id)
@@ -94,6 +103,11 @@ def process_scan_analysis(
 
     food_scan.refresh_from_db()
     return food_scan
+
+
+def _record_vision_failure(failure_code: str) -> None:
+    increment_metric(VISION_REQUESTS_TOTAL, tags={"outcome": "failure"})
+    increment_metric(VISION_FAILURES_TOTAL, tags={"failure_code": failure_code})
 
 
 def update_scan_detected_item(
