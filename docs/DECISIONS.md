@@ -1404,3 +1404,49 @@ Consequences / Последствия:
   controls, потому что текущая защита read-only обеспечивается на уровне Django Admin/app code.
 - Structured log redaction и централизованная observability policy остаются production-readiness
   задачами.
+
+## ADR-0029: Pull Request CI Quality Gate
+
+Date / Дата: 2026-08-25
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+GitHub Actions workflow `.github/workflows/ci.yml` является pull request quality gate для веток
+`develop` и `main`. Workflow также запускается после push в эти ветки, чтобы проверить фактическое
+состояние интеграционных веток.
+
+CI разделён на три независимых job:
+
+- `Backend checks`: Ruff, mypy, migration drift check, Django system checks, backend pytest с
+  coverage не ниже 80% и OpenAPI validation;
+- `Vision checks`: Ruff, mypy, Vision pytest с coverage не ниже 80% и backend/Vision contract tests;
+- `Frontend checks`: frozen pnpm install, lint, TypeScript typecheck, Vitest и Next.js production
+  build.
+
+Backend job не устанавливает тяжёлые Vision/ML dependencies. Backend/Vision contract tests
+перенесены в Vision job, где эти зависимости уже необходимы. Python dependency caches используют
+соответствующие `pyproject.toml`, frontend cache использует `pnpm-lock.yaml`.
+
+Текущий test profile использует SQLite, in-memory Celery broker/result backend и не требует
+PostgreSQL/Redis service containers. Workflow имеет только `contents: read`; production secrets в CI
+не передаются. Одновременные устаревшие запуски одной PR-ветки отменяются через concurrency group.
+
+Rationale / Обоснование:
+
+- Отдельные job дают точный required-check status для каждого слоя monorepo.
+- Разделение уменьшает лишнюю установку ML dependencies в backend job и позволяет выполнять jobs
+  параллельно.
+- Явные coverage thresholds превращают coverage в блокирующую проверку, а не только отчёт.
+- Test-only SQLite/in-memory конфигурация достаточна текущему набору unit/API/contract tests и не
+  требует лишних сервисов или credentials.
+
+Consequences / Последствия:
+
+- Merge разрешается проектным процессом только при успешных Backend, Vision и Frontend jobs.
+- Branch protection в GitHub должна использовать эти три job как required status checks; это
+  проверяется вручную в настройках репозитория.
+- Если появятся PostgreSQL/Redis-specific integration tests, для них нужен отдельный CI job с
+  минимальными service containers и test-only credentials.
+- Изменение dependency manifests/lock-file инвалидирует соответствующий dependency cache.

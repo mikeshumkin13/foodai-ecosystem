@@ -350,6 +350,19 @@ headers.
 - Перед production требуется отдельное решение об append-only/immutable audit storage или
   database-level controls.
 
+## CI security
+
+- GitHub Actions использует минимальное permission `contents: read` и не получает production
+  secrets.
+- Значения environment variables в workflow являются только test-only конфигурацией для SQLite и
+  in-memory Celery; они не должны переиспользоваться в production.
+- Dependency cache keys строятся из `pyproject.toml`, Vision `pyproject.toml` и frontend lock-file.
+- PR quality gate разделён на Backend, Vision и Frontend jobs; падение любой обязательной проверки
+  блокирует чистый CI-result и merge по проектному процессу.
+- Service containers не запускаются без необходимости, что уменьшает CI surface и исключает
+  появление лишних test credentials. Реальные PostgreSQL/Redis integration tests должны получить
+  отдельный изолированный job, если будут добавлены.
+
 ## Права пользователя
 
 Система должна поддерживать:
