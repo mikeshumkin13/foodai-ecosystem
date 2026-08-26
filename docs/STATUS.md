@@ -20,6 +20,9 @@ feature-ветками; merge в `develop` и `main` не выполнялся.
 - В `feature/mvp-frontend-flow` устранён MVP-QA-003: добавлен `/coach`, typed AI coach API client,
   structured response/safety UI и управление consent на историю; сохранение отдельного ответа
   остаётся выключенным по умолчанию.
+- В `feature/mvp-frontend-flow` устранён MVP-QA-009: Playwright Chromium проверяет onboarding,
+  protected dashboard, profile, AI summary и scan confirmation/diary flow; browser tests добавлены
+  в обязательный frontend CI job без production secrets.
 - Создан каталог `foodai-ecosystem`.
 - Внутри каталога инициализирован Git-репозиторий.
 - Основная ветка: `main`.

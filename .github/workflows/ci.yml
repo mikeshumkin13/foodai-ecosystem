@@ -160,3 +160,11 @@ jobs:
       - name: Frontend production build
         working-directory: frontend
         run: pnpm build
+
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Frontend browser tests
+        working-directory: frontend
+        run: pnpm test:e2e:run

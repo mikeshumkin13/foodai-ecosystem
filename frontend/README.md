@@ -21,9 +21,16 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 pnpm dev
 ```bash
 pnpm lint
 pnpm typecheck
+pnpm test
+pnpm test:e2e
 pnpm build
 pnpm check
 ```
+
+`pnpm test:e2e` выполняет production build, запускает Playwright Chromium и локальный Next.js
+server на `127.0.0.1:3100`.
+Browser tests используют детерминированный mock API и проверяют onboarding, profile/AI summary и
+scan confirmation/diary flow. Установить browser runtime: `pnpm exec playwright install chromium`.
 
 ## Auth и CSRF
 

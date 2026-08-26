@@ -37,6 +37,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 *.tsbuildinfo
+playwright-report/
+test-results/
+blob-report/
 
 # IDE and OS
 .DS_Store

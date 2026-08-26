@@ -177,6 +177,12 @@ low-confidence typical-volume fallback. Ограничение честно до
 dashboard. Текущие BLOCKER-разрывы не обнаруживаются CI, потому что страницы проверяются отдельно и
 production build не проверяет поведение.
 
+**Исправление (PROMPT 30):** устранено в `feature/mvp-frontend-flow`. Добавлен Playwright Chromium
+gate с browser-сценариями registration → email verification → login → dashboard,
+profile → AI nutrition summary и upload → detected food → confirmation → diary. E2E использует
+контролируемый mock API, не требует production secrets/LLM/Vision weights и запускается отдельным
+обязательным шагом frontend CI.
+
 ### MVP-QA-010 — существующий local PostgreSQL volume не запускается после custom User migration
 
 Обычный `docker compose up` на сохранённом `foodai-ecosystem_postgres_data` завершается
