@@ -30,7 +30,7 @@ const nutritionProfile: NutritionProfile = {
   id: "profile-1",
   user_id: "user-1",
   goal: "maintain_weight",
-  height_cm: "181",
+  height_cm: 181,
   mass_kg: "80.00",
   age_category: "30_39",
   activity_level: "moderate",

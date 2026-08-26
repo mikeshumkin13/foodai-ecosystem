@@ -32,7 +32,7 @@ export type NutritionProfile = {
   id: string;
   user_id: string;
   goal: string;
-  height_cm: string | null;
+  height_cm: number | null;
   mass_kg: string | null;
   age_category: string;
   activity_level: string;

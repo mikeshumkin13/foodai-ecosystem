@@ -109,6 +109,11 @@ controls и обработку ошибок. Имена визуальных п�
 
 **Impact:** шаг profile не работает; dashboard target и AI context остаются неполными.
 
+**Исправление (PROMPT 30):** устранено в `feature/mvp-frontend-flow`. `/profile` загружает только
+собственный nutrition profile через endpoint `me`, сохраняет его по UUID через centralized API
+client и поддерживает loading/error/saved states. Первое изменение требует явного consent; точный
+возраст не собирается, а sensitive restrictions не смешиваются с обычными preferences.
+
 ### MVP-QA-003 — AI nutrition summary отсутствует во frontend
 
 **Evidence:** список `frontend/src/app/*/page.tsx`, `frontend/src/components/app-shell.tsx`,

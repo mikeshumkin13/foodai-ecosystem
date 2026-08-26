@@ -72,6 +72,14 @@ API-вызовы должны идти через `src/lib/api`, а презен
 
 Ручной diary flow обязателен: пользователь должен иметь возможность вести питание даже при недоступном AI Scan, Vision service или Celery.
 
+## Nutrition Profile
+
+`/profile` загружает профиль через owner-only `GET /api/v1/accounts/nutrition-profiles/me/` и
+сохраняет изменения через detail `PATCH`. Первое сохранение требует явного consent. UI использует
+privacy-friendly age category и не смешивает dietary preferences с аллергиями или медицинскими
+ограничениями. Backend хранит рост и массу в `cm/kg`; при выборе imperial units форма преобразует
+значения на API boundary.
+
 ## Privacy & Data
 
 `/privacy` реализует owner-only Privacy Center:
