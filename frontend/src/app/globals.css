@@ -119,6 +119,20 @@ button:disabled {
   gap: 8px;
 }
 
+.sidebar__account {
+  margin-top: auto;
+  display: grid;
+  gap: 10px;
+  color: rgb(248 250 247 / 78%);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.sidebar__account .button {
+  justify-content: start;
+  color: var(--color-primary-contrast);
+}
+
 .nav-link {
   display: flex;
   align-items: center;
@@ -1184,6 +1198,28 @@ button:disabled {
 .auth-form__footer a {
   color: var(--color-accent);
   font-weight: 700;
+}
+
+.auth-status {
+  justify-items: start;
+}
+
+.auth-status > svg {
+  color: var(--color-accent);
+}
+
+.auth-status__email {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.session-state {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 16px;
+  padding: 24px;
 }
 
 .form-error {

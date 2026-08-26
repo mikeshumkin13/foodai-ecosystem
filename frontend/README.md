@@ -34,6 +34,13 @@ Web-клиент использует backend session-cookie схему:
 - перед unsafe request frontend получает CSRF через `GET /api/v1/auth/csrf/`;
 - CSRF отправляется в заголовке `X-CSRFToken`.
 
+Регистрация не открывает защищённые страницы до активации аккаунта. Пользователь получает экран
+ожидания письма и может повторить отправку; route `/auth/email/verify` подтверждает одноразовую
+ссылку backend. `AuthSessionProvider` проверяет текущего пользователя, продлевает активную Django
+session через `/auth/refresh/`, централизованно обрабатывает истёкшую сессию и предоставляет logout.
+После ротации session/CSRF frontend очищает только in-memory CSRF cache и получает актуальный token
+перед следующим unsafe request.
+
 API-вызовы должны идти через `src/lib/api`, а презентационные UI components не должны содержать бизнес-логику API.
 
 ## Food Scan UI

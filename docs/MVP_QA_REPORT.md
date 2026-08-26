@@ -94,6 +94,11 @@ Backend создаёт `is_active=False`, а login до email verification ож�
 
 **Impact:** новый пользователь не может завершить регистрацию и основной MVP flow через web client.
 
+**Исправление (PROMPT 30):** устранено в `feature/mvp-frontend-flow`. После регистрации UI показывает
+состояние ожидания подтверждения и позволяет повторно отправить письмо. Добавлен route
+`/auth/email/verify`, который обрабатывает одноразовую ссылку и не пропускает неактивного
+пользователя в защищённую часть приложения.
+
 ### MVP-QA-002 — nutrition profile нельзя загрузить или сохранить через UI
 
 **Evidence:** `frontend/src/app/profile/page.tsx`, `frontend/src/lib/api/profile.ts`.
@@ -125,6 +130,11 @@ controls и обработку ошибок. Имена визуальных п�
 `authApi.me()`, `authApi.logout()` и `authApi.refresh()` не используются UI. Protected pages не имеют
 route guard, logout control и централизованной реакции на 401/403. Anonymous user видит shell и
 получает разрозненные API errors вместо перехода на login.
+
+**Исправление (PROMPT 30):** устранено в `feature/mvp-frontend-flow`. Добавлен единый session
+provider, owner pages закрыты проверкой `/auth/me/`, 401/unauthenticated 403 переводят пользователя
+на login с безопасным same-site `next`, в shell добавлен logout. Активная Django session продлевается
+через `/auth/refresh/`; после login/refresh очищается устаревший in-memory CSRF token.
 
 ### MVP-QA-005 — Celery broker failure оставляет scan без задачи
 

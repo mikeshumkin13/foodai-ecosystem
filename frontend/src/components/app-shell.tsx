@@ -1,10 +1,23 @@
 "use client";
 
-import { BarChart3, BookOpenText, Camera, ShieldCheck, UserRound } from "lucide-react";
+import {
+  BarChart3,
+  BookOpenText,
+  Camera,
+  LogOut,
+  RefreshCw,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
+import { useAuthSession } from "@/components/auth-session-provider";
+import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
+import { getCurrentPathWithQuery } from "@/lib/auth/redirects";
 import { messages } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +37,49 @@ type AppShellProps = {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout, reload, status, user } = useAuthSession();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  useEffect(() => {
+    if (status === "anonymous") {
+      const nextPath = encodeURIComponent(getCurrentPathWithQuery());
+      router.replace(`/login?next=${nextPath}`);
+    }
+  }, [router, status]);
+
+  async function handleLogout() {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      router.replace("/login");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }
+
+  if (status === "loading" || status === "anonymous") {
+    return (
+      <main className="session-state">
+        <LoadingState label={copy.auth.sessionChecking} />
+      </main>
+    );
+  }
+
+  if (status === "unavailable") {
+    return (
+      <main className="session-state">
+        <p className="form-error" role="alert">{copy.auth.sessionUnavailable}</p>
+        <Button
+          icon={<RefreshCw aria-hidden="true" size={18} />}
+          onClick={() => void reload()}
+          variant="secondary"
+        >
+          {copy.common.retry}
+        </Button>
+      </main>
+    );
+  }
 
   return (
     <div className="app-shell">
@@ -54,6 +110,18 @@ export function AppShell({ children }: AppShellProps) {
             );
           })}
         </nav>
+
+        <div className="sidebar__account">
+          <span>{user?.email}</span>
+          <Button
+            disabled={isLoggingOut}
+            icon={<LogOut aria-hidden="true" size={18} />}
+            onClick={() => void handleLogout()}
+            variant="ghost"
+          >
+            {isLoggingOut ? copy.common.loading : copy.auth.logoutAction}
+          </Button>
+        </div>
       </aside>
 
       <main className="app-main">{children}</main>

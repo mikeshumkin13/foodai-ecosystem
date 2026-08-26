@@ -6,8 +6,14 @@ Last updated / Обновлено: 2026-08-26
 
 ЭТАП 29, PROMPT 29 — полный технический аудит MVP завершён.
 
+ЭТАП 30, PROMPT 30 — исправление BLOCKER/CRITICAL/HIGH проблем выполняется отдельными
+feature-ветками; merge в `develop` и `main` не выполнялся.
+
 ## Состояние
 
+- В `feature/mvp-frontend-flow` устранены MVP-QA-001 и MVP-QA-004: web onboarding ожидает email
+  verification, добавлен verification/resend UI, единый session provider, protected route guard,
+  logout, session refresh и корректная очистка CSRF cache после ротации token.
 - Создан каталог `foodai-ecosystem`.
 - Внутри каталога инициализирован Git-репозиторий.
 - Основная ветка: `main`.
