@@ -28,6 +28,36 @@ export type AuthUserResponse = {
   user: UserSummary;
 };
 
+export type AICoachSettings = {
+  id: string;
+  chat_history_enabled: boolean;
+  chat_history_consent_version: string;
+  chat_history_consent_granted_at: string | null;
+  chat_history_consent_revoked_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AICoachSafety = {
+  blocked: boolean;
+  code: string;
+  categories: string[];
+  reason: string;
+};
+
+export type AICoachResponse = {
+  code: string;
+  schema_version: "ai_nutrition_coach_response_v1";
+  context_date: string;
+  answer: string;
+  suggestions: string[];
+  nutrition_notes: Array<{ code: string; message: string }>;
+  warnings: string[];
+  safety: AICoachSafety;
+  provider: string;
+  stored: boolean;
+};
+
 export type NutritionProfile = {
   id: string;
   user_id: string;

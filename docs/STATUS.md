@@ -17,6 +17,9 @@ feature-ветками; merge в `develop` и `main` не выполнялся.
 - В `feature/mvp-frontend-flow` устранён MVP-QA-002: nutrition profile загружается и сохраняется
   через owner-only API, форма использует backend enum/field contract, требует consent и преобразует
   выбранные imperial units в единую внутреннюю систему `cm/kg` на API boundary.
+- В `feature/mvp-frontend-flow` устранён MVP-QA-003: добавлен `/coach`, typed AI coach API client,
+  structured response/safety UI и управление consent на историю; сохранение отдельного ответа
+  остаётся выключенным по умолчанию.
 - Создан каталог `foodai-ecosystem`.
 - Внутри каталога инициализирован Git-репозиторий.
 - Основная ветка: `main`.

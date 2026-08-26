@@ -123,6 +123,12 @@ client и поддерживает loading/error/saved states. Первое из
 
 **Impact:** обязательный заключительный шаг основного сценария недоступен пользователю.
 
+**Исправление (PROMPT 30):** устранено в `feature/mvp-frontend-flow`. Добавлен protected route
+`/coach`, пункт навигации и centralized client для settings/ask endpoints. UI отображает только
+структурированные части schema `ai_nutrition_coach_response_v1`, отдельно показывает safety result
+и не сохраняет конкретный запрос/ответ без включённого history consent и отдельного выбора
+`store_response`.
+
 ## CRITICAL
 
 Подтверждённых CRITICAL проблем в границах этого аудита не найдено. Это не означает, что система

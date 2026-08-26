@@ -80,6 +80,14 @@ privacy-friendly age category и не смешивает dietary preferences с 
 ограничениями. Backend хранит рост и массу в `cm/kg`; при выборе imperial units форма преобразует
 значения на API boundary.
 
+## AI Nutrition Coach
+
+`/coach` использует `GET/PATCH /api/v1/ai/coach/settings/` и
+`POST /api/v1/ai/coach/ask/`. Ответ отображается по schema
+`ai_nutrition_coach_response_v1`: answer, suggestions, nutrition notes, warnings и safety state.
+История выключена по умолчанию. Даже после consent пользователь отдельно выбирает сохранение
+конкретного запроса и ответа; frontend не передаёт email, UUID, фотографии или полную историю.
+
 ## Privacy & Data
 
 `/privacy` реализует owner-only Privacy Center:

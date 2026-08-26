@@ -5,6 +5,7 @@ import {
   BookOpenText,
   Camera,
   LogOut,
+  MessageCircle,
   RefreshCw,
   ShieldCheck,
   UserRound,
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/dashboard", label: copy.nav.dashboard, icon: BarChart3 },
   { href: "/diary", label: copy.nav.diary, icon: BookOpenText },
   { href: "/scan", label: copy.nav.scan, icon: Camera },
+  { href: "/coach", label: copy.nav.coach, icon: MessageCircle },
   { href: "/profile", label: copy.nav.profile, icon: UserRound },
   { href: "/privacy", label: copy.nav.privacy, icon: ShieldCheck },
 ];
