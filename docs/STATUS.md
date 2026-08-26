@@ -1,10 +1,10 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-08-25
+Last updated / Обновлено: 2026-08-26
 
 ## Текущий завершённый этап
 
-ЭТАП 28, PROMPT 28 — logging и monitoring завершены.
+ЭТАП 29, PROMPT 29 — полный технический аудит MVP завершён.
 
 ## Состояние
 
@@ -294,6 +294,20 @@ Last updated / Обновлено: 2026-08-25
   context; `audit.AuditLog` остаётся отдельным authoritative security trail.
 - Добавлены automated tests для redaction, correlation ID, HTTP metrics, error-monitoring boundary,
   security event separation, tag allowlist, AI latency и Vision/Celery/scan metrics.
+- PROMPT 29 выполнен как аудит на `develop` без автоматического создания feature-ветки и без
+  изменения application code.
+- Создан `docs/MVP_QA_REPORT.md` с матрицей основного MVP flow, ролей, IDOR, privacy и отказных
+  сценариев.
+- Аудит выявил 3 BLOCKER, 0 CRITICAL, 7 HIGH, 5 MEDIUM и 2 LOW findings; MVP пока не готов к
+  пользовательскому release.
+- Подтверждены frontend-разрывы onboarding/email verification, nutrition profile и AI nutrition
+  summary.
+- Временными failure probes подтверждены HTTP 500 при runtime exception AI provider и при отказе
+  Celery broker во время enqueue; probe-файлы находились в `/tmp` и репозиторий не изменяли.
+- Compose smoke-test выявил несовместимую migration history в существующем local PostgreSQL volume;
+  fresh isolated database успешно применила все migrations, после чего все пять сервисов стали
+  healthy и backend health endpoint вернул `ok`.
+- Сформирован упорядоченный список будущих feature-веток для исправлений; сами ветки не создавались.
 
 ## Проверки
 
@@ -551,7 +565,31 @@ Last updated / Обновлено: 2026-08-25
 - `docker compose --env-file .env build backend vision celery_worker` — первый запуск был
   заблокирован sandbox-доступом к Docker buildx activity; повтор с разрешённым Docker Desktop
   доступом passed, backend, Vision и Celery worker images собраны.
+- `make check` — passed для PROMPT 29: Ruff без ошибок, mypy без ошибок в 177 source files, Django
+  system check без ошибок, pytest 249 passed, coverage 88.66%; frontend lint прошёл 55 files,
+  TypeScript typecheck passed, Vitest 7 test files / 10 tests passed, Next.js production build
+  сгенерировал 11 routes.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными test env — passed, no changes
+  detected.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-mvp-qa-openapi.yml` — passed,
+  OpenAPI schema валидируется без ошибок.
+- `backend/manage.py check --deploy --settings=config.settings.production` с production-like
+  конфигурацией — passed; остаётся известный warning `foodai_security.W002` о local filesystem
+  storage до production S3-compatible backend.
+- `.venv/bin/python -m pip check` — passed, broken requirements не найдены; pip сообщил только
+  локальное cache permission warning.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — passed после запуска Docker
+  Desktop; backend, Vision и Celery worker images собраны.
+- Два временных pytest failure probe — passed и подтвердили текущие дефекты: AI provider runtime
+  failure возвращает HTTP 500; Celery enqueue failure возвращает HTTP 500 и оставляет scan в
+  `uploaded` без реально поставленной задачи.
+- `docker compose up` на существующем default volume — failed: backend получил
+  `InconsistentMigrationHistory` для `admin.0001_initial`/`accounts.0001_initial`.
+- Isolated Compose startup на свежих volumes — passed: PostgreSQL, Redis, Vision, backend и Celery
+  worker healthy, все Django migrations применены, `/api/v1/health/` вернул `{"status":"ok"}`.
 
 ## Следующий этап
 
-Остановиться после PROMPT 28. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 29. Feature-ветки из QA report создавать только после явной команды
+пользователя.
