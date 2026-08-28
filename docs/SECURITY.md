@@ -263,11 +263,16 @@ AI получает только минимально необходимый к�
 Текущий AI Nutrition Coach foundation:
 
 - реализован в backend app `ai_coach` через provider abstraction, без привязки бизнес-логики к конкретному LLM-провайдеру;
+- production adapter использует OpenAI Responses API только через HTTPS, с ограниченным timeout,
+  output budget, без automatic retry и с `store=false`; local/tests сохраняют `mock` provider;
+- API key поступает только через `OPENAI_API_KEY`, не возвращается клиенту и не попадает в логи;
 - получает только цель, дневные агрегаты, разрешённые dietary preferences и текущий запрос пользователя;
 - не получает email, display name, UUID пользователя, фотографии, private object keys, sensitive restrictions или полную историю аккаунта;
 - использует moderation/safety layer до и после provider call;
 - хранит AI response/history только при явном chat history consent пользователя;
 - unsafe user requests и unsafe provider outputs не сохраняются как `AICoachMessage`;
+- timeout/runtime/invalid provider response возвращают generic HTTP 503; raw provider response,
+  prompt и пользовательский context не включаются в error telemetry;
 - AI-диалоги не регистрируются в Django Admin на этом этапе.
 
 AI не должен:

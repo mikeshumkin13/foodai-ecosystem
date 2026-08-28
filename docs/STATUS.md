@@ -1,6 +1,6 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-08-26
+Last updated / Обновлено: 2026-08-28
 
 ## Текущий завершённый этап
 
@@ -8,6 +8,10 @@ Last updated / Обновлено: 2026-08-26
 
 ## Состояние
 
+- ЭТАП 30 выполняется отдельными feature-ветками; merge в `develop`/`main` не выполнялся.
+- В `feature/ai-provider-production` устранены MVP-QA-006/007: добавлен production OpenAI Responses
+  adapter с `gpt-5.6-luna`, strict output schema, real timeout, generic HTTP 503 и безопасной
+  telemetry; provider abstraction, минимизация context и pre/post safety layer сохранены.
 - Создан каталог `foodai-ecosystem`.
 - Внутри каталога инициализирован Git-репозиторий.
 - Основная ветка: `main`.
@@ -588,6 +592,16 @@ Last updated / Обновлено: 2026-08-26
   `InconsistentMigrationHistory` для `admin.0001_initial`/`accounts.0001_initial`.
 - Isolated Compose startup на свежих volumes — passed: PostgreSQL, Redis, Vision, backend и Celery
   worker healthy, все Django migrations применены, `/api/v1/health/` вернул `{"status":"ok"}`.
+- Проверки `feature/ai-provider-production`: targeted Ruff и mypy passed; 23 AI coach tests passed.
+- Полный Python/Vision gate для AI provider группы: Ruff passed, mypy passed для 178 source files,
+  Django system check passed, 259 tests passed, coverage 88.17%; остаётся одно стороннее
+  `StarletteDeprecationWarning` из FastAPI TestClient.
+- Frontend regression gate после синхронизации frozen lockfile: lint 55 files, TypeScript typecheck,
+  Vitest 7 files / 10 tests и Next.js production build — passed.
+- Migration dry-run и OpenAPI validation для AI provider группы — passed; production deploy check
+  passed с известным `foodai_security.W002` о local photo storage.
+- `pip check`, `docker compose config --quiet`, `git diff --check` и Docker backend image build —
+  passed.
 
 ## Следующий этап
 

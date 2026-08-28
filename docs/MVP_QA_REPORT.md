@@ -138,10 +138,21 @@ route guard, logout control и централизованной реакции �
 timeout provider проходит как HTTP 500. Настройка `AI_COACH_PROVIDER_TIMEOUT_SECONDS` объявлена, но
 не используется в provider call boundary. Временный probe подтвердил HTTP 500.
 
+**Исправление (PROMPT 30):** устранено в `feature/ai-provider-production`. Provider-specific и
+неожиданные runtime errors преобразуются в typed boundary errors; API возвращает generic HTTP 503.
+OpenAI adapter использует реальный timeout, а telemetry содержит только безопасные operation/provider
+metadata. Добавлены regression tests для timeout и произвольного runtime exception.
+
 ### MVP-QA-007 — production AI provider не реализован
 
 `get_ai_coach_provider()` поддерживает только `mock`. Это корректно для foundation/tests, но текущая
 AI summary является детерминированным шаблоном, а не интеграцией с production provider.
+
+**Исправление (PROMPT 30):** устранено в `feature/ai-provider-production`. Добавлен production
+adapter OpenAI Responses API с конфигурируемой `gpt-5.6-luna`, `store=false`, strict Structured
+Outputs и повторной локальной валидацией недоверенного ответа. `mock` сохранён только для local/tests;
+production settings требуют секрет через environment. Live provider quality всё ещё требует
+отдельного RU/EN eval dataset и не заявляется как доказанная.
 
 ### MVP-QA-008 — Vision v1 не покрывает основной multi-food use case
 

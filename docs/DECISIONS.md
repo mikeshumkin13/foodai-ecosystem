@@ -1508,3 +1508,69 @@ Consequences / Последствия:
   Celery task или скрывать исходную provider error.
 - Текущий structured-log metrics backend является foundation, а не полноценным time-series
   хранилищем, dashboard или alerting system.
+
+## ADR-0031: OpenAI Responses Provider For AI Nutrition Coach
+
+Date / Дата: 2026-08-28
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Production adapter AI Nutrition Coach реализуется как `OpenAIAICoachProvider` за существующей
+границей `AICoachProvider`. Бизнес-логика, context builder, safety layer и API schema не зависят от
+OpenAI и сохраняют возможность заменить provider.
+
+Provider использует OpenAI Responses API `POST /v1/responses` и Structured Outputs с strict JSON
+Schema. Текущий конфигурируемый default model: `gpt-5.6-luna`. На дату решения официальный каталог
+OpenAI рекомендует эту модель для cost-sensitive/high-volume workloads; model ID задаётся через
+`AI_COACH_OPENAI_MODEL`, поэтому замена модели не требует изменения domain service.
+
+Источники:
+
+- модель и назначение: <https://developers.openai.com/api/docs/models>;
+- Responses API и structured JSON output: <https://developers.openai.com/api/reference/cli/resources/responses/methods/create>.
+
+Provider boundary:
+
+- API key читается только из `OPENAI_API_KEY`; секрет не коммитится и не логируется;
+- endpoint должен использовать HTTPS и по умолчанию равен
+  `https://api.openai.com/v1/responses`;
+- наружу передаётся только уже минимизированный `AICoachContext`, без email, имени, UUID,
+  фотографий, private object keys или chat history;
+- request использует `store=false`, не создаёт conversation и не передаёт provider metadata;
+- timeout задаётся `AI_COACH_PROVIDER_TIMEOUT_SECONDS`, output budget —
+  `AI_COACH_PROVIDER_MAX_OUTPUT_TOKENS`;
+- automatic retry отсутствует, чтобы не создавать retry storm, повторную стоимость или
+  неоднозначные дубли при сетевой ошибке;
+- HTTP/runtime/timeout/invalid response нормализуются в typed provider errors и generic HTTP 503;
+- error monitoring получает только provider/operation/error type, без prompt, context или raw
+  provider response;
+- Structured Output повторно валидируется локально: provider response остаётся недоверенным вводом;
+- existing pre/post safety layer продолжает блокировать medical decisions и extreme diets.
+
+`mock` остаётся default только для local development и tests. Production settings выбирают
+`openai` по умолчанию и fail fast требуют `OPENAI_API_KEY`. Реальный model availability, расходы,
+rate limits, provider data controls и юридические условия должны проверяться для конкретного
+production project перед запуском; это решение не обещает качество или медицинскую пригодность
+ответов.
+
+Rationale / Обоснование:
+
+- Responses API предоставляет официальный structured-output контракт вместо парсинга свободного
+  текста.
+- `gpt-5.6-luna` соответствует короткому multilingual nutrition-summary сценарию, где важны
+  latency и cost, но выбор должен подтверждаться продуктовым eval dataset.
+- Raw HTTP adapter поверх уже используемого `httpx` сохраняет малый dependency surface и не
+  протаскивает provider SDK в domain layer.
+- Generic 503 предотвращает утечку provider error details клиенту и устраняет необработанный HTTP
+  500 из MVP-QA-006.
+
+Consequences / Последствия:
+
+- Production deployment должен предоставить отдельный project-scoped API key и настроить spend/rate
+  limits на стороне OpenAI Platform.
+- Перед production нужны AI response evals на русском и английском, cost/latency budget и legal
+  review provider terms/data controls.
+- Смена provider должна реализовываться новым adapter, а не условными HTTP-вызовами во views.
+- Live provider smoke tests не входят в обычный CI и не должны использовать production secrets.
