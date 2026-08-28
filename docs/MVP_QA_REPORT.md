@@ -132,6 +132,12 @@ route guard, logout control и централизованной реакции �
 вызывает `apply_async()` без обработки ошибки. Временный probe подтвердил HTTP 500 и оставшийся
 `FoodScan(status="uploaded", failure_code="")`, хотя задача не поставлена в очередь.
 
+**Исправление (PROMPT 30):** устранено в `feature/celery-enqueue-resilience`. Ошибка enqueue
+переводит ещё не начавшийся run в `failed/task_enqueue_failed`, очищает task metadata и возвращает
+стабильный `scan_id/status` вместо HTTP 500. Уже начавшийся `processing` run не перезаписывается;
+автоматический retry не выполняется. Добавлены regression tests upload, retry и sanitization
+error-monitoring metadata.
+
 ### MVP-QA-006 — runtime failure и timeout AI provider не нормализованы
 
 `AICoachAskView` обрабатывает только `AICoachProviderConfigurationError`. Runtime exception или

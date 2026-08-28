@@ -8,6 +8,9 @@ Last updated / Обновлено: 2026-08-26
 
 ## Состояние
 
+- В `feature/celery-enqueue-resilience` устранён MVP-QA-005: broker enqueue failure больше не даёт
+  HTTP 500 и не оставляет ложный `uploaded`; scan получает `failed/task_enqueue_failed`, task/run
+  metadata инвалидируются безопасно, user retry остаётся доступен без automatic retry storm.
 - Создан каталог `foodai-ecosystem`.
 - Внутри каталога инициализирован Git-репозиторий.
 - Основная ветка: `main`.

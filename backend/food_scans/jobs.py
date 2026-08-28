@@ -7,7 +7,10 @@ from django.db import transaction
 
 from food_scans.models import FoodScan
 from food_scans.tasks import process_food_scan_analysis_task
+from observability.events import report_application_error
 from observability.metrics import CELERY_ENQUEUED_AT_HEADER
+
+SCAN_TASK_ENQUEUE_FAILURE_CODE = "task_enqueue_failed"
 
 
 class FoodScanJobError(ValueError):
@@ -45,13 +48,45 @@ def enqueue_food_scan_analysis(*, food_scan: FoodScan, force: bool = False) -> F
             ],
         )
 
-    process_food_scan_analysis_task.apply_async(
-        args=[str(food_scan.id), str(run_id)],
-        task_id=task_id,
-        headers={CELERY_ENQUEUED_AT_HEADER: time()},
-    )
+    try:
+        process_food_scan_analysis_task.apply_async(
+            args=[str(food_scan.id), str(run_id)],
+            task_id=task_id,
+            headers={CELERY_ENQUEUED_AT_HEADER: time()},
+        )
+    except Exception as exc:
+        _mark_enqueue_failed(food_scan_id=food_scan.id, run_id=run_id)
+        report_application_error(
+            event_name="food_scan_task_enqueue_failed",
+            error=exc,
+            metadata={"operation": "food_scan_analysis_enqueue"},
+        )
     food_scan.refresh_from_db()
     return food_scan
+
+
+def _mark_enqueue_failed(*, food_scan_id: uuid.UUID, run_id: uuid.UUID) -> None:
+    with transaction.atomic():
+        locked_scan = FoodScan.objects.select_for_update().get(id=food_scan_id)
+        if (
+            locked_scan.analysis_run_id != run_id
+            or locked_scan.status != FoodScan.Status.UPLOADED
+        ):
+            return
+
+        locked_scan.status = FoodScan.Status.FAILED
+        locked_scan.failure_code = SCAN_TASK_ENQUEUE_FAILURE_CODE
+        locked_scan.analysis_run_id = None
+        locked_scan.analysis_task_id = ""
+        locked_scan.save(
+            update_fields=[
+                "status",
+                "failure_code",
+                "analysis_run_id",
+                "analysis_task_id",
+                "updated_at",
+            ],
+        )
 
 
 def _build_food_scan_analysis_task_id(*, food_scan_id: uuid.UUID, run_id: uuid.UUID) -> str:

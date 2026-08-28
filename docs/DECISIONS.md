@@ -629,6 +629,18 @@ Idempotency:
 - подтверждение scan остаётся единственным местом создания `Meal`/`MealItem` и уже идемпотентно
   возвращает существующий meal для confirmed scan.
 
+Broker enqueue failure:
+
+- ошибка `apply_async` не должна оставлять scan в ложном `uploaded` без поставленной задачи;
+- если текущий run всё ещё `uploaded`, он инвалидируется, task metadata очищается, scan переходит в
+  `failed` с безопасным кодом `task_enqueue_failed` и может быть повторно запущен пользователем;
+- если scan уже перешёл в `processing`, enqueue error не перезаписывает его: broker мог принять
+  задачу до возврата ошибки;
+- ошибка отправляется в error monitoring только с безопасной operation metadata, без фотографии,
+  object key или пользовательского payload;
+- автоматический повтор enqueue в HTTP request не выполняется, чтобы не создать retry storm или
+  duplicate task при неопределённом результате отправки.
+
 Rationale / Обоснование:
 
 - Vision processing может быть медленным и не должен держать HTTP request открытым.
@@ -644,6 +656,8 @@ Consequences / Последствия:
 - Локальный `make dev-up` запускает дополнительный worker container.
 - Production deployment должен запускать минимум один Celery worker рядом с backend и Redis.
 - API clients должны после upload polling-ом ждать `needs_confirmation` или `failed`.
+- Upload/retry могут сразу вернуть `status=failed`, если broker недоступен; клиент предлагает
+  контролируемый пользовательский retry по сохранённому `scan_id`.
 - Future queue routing, task observability, dead-letter policy и signed object access требуют
   отдельного решения перед production.
 - Любые новые background tasks должны сохранять правило: в task payload только минимальные IDs, без
