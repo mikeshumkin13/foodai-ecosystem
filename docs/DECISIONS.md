@@ -1508,3 +1508,62 @@ Consequences / Последствия:
   Celery task или скрывать исходную provider error.
 - Текущий structured-log metrics backend является foundation, а не полноценным time-series
   хранилищем, dashboard или alerting system.
+
+## ADR-0031: Multi-Region Food Recognition Pipeline
+
+Date / Дата: 2026-08-31
+
+Status / Статус: Accepted for MVP validation / принято для MVP-валидации
+
+Decision / Решение:
+
+Vision inference становится двухступенчатым и остаётся сменяемым через существующий
+`FoodRecognitionModel` boundary:
+
+1. `IDEA-Research/grounding-dino-tiny`, revision
+   `a2bb814dd30d776dcf7e30523b00659f4f141c71`, находит несколько food regions по одному
+   объединённому open-vocabulary prompt;
+2. detector output нормализуется к одной канонической метке из настроенного allowlist, чтобы
+   составные token phrases не попадали в Nutrition matching;
+3. существующий `nateraw/food`, revision
+   `ddbd0f9ed493f03fc6a45527e5e52904161d3e09`, классифицирует crop только для общих detector labels
+   `food`/`dish`/`meal`/`ingredient`;
+4. для classifier path итоговый confidence равен минимуму detector и classifier confidence;
+5. overlapping boxes дедуплицируются через NMS, число regions ограничено;
+6. если detector не вернул region, применяется прежний full-image classifier fallback.
+
+Grounding DINO source: `https://huggingface.co/IDEA-Research/grounding-dino-tiny`; официальный
+implementation: `https://github.com/IDEA-Research/GroundingDINO`; license модели и official
+repository: Apache-2.0. Загружается только `model.safetensors`. Прямой
+`AutoProcessor`/`AutoModelForZeroShotObjectDetection` вызов выбран вместо high-level pipeline,
+потому что он выполняет один forward pass с объединённым prompt.
+
+`bounding_box` в internal Vision response обозначает прямоугольную область detector. Это не
+segmentation mask и не `segment_area_px`; backend не использует площадь bounding box как точную
+площадь еды или основание для точной массы.
+
+Validation fixture содержит восемь crop из официальной FoodSeg103 demonstration figure. Проект
+FoodSeg103 указывает Apache-2.0 и требует сохранения copyright notice. Fixture не содержит
+пользовательские фотографии FoodAI и не используется для обучения. Отдельный legal review прав на
+исходные изображения, training datasets и model artifacts остаётся обязательным до коммерческого
+production launch.
+
+Rationale / Обоснование:
+
+- dish-level classifier не мог представить несколько продуктов на одном фото;
+- open-vocabulary detector добавляет multi-region capability без переноса CV-логики в Django;
+- classifier fallback сохраняет совместимость для одиночного блюда и detector miss;
+- пользователь по-прежнему подтверждает, исправляет или удаляет каждый proposal до дневника;
+- pinned revisions и safetensors обеспечивают воспроизводимую supply-chain baseline.
+
+Consequences / Последствия:
+
+- два checkpoint увеличивают cold start, RAM, CPU latency и размер model cache; production требует
+  warm worker и вероятно GPU либо более лёгкий проверенный detector;
+- bounding boxes дают локализацию, но не ingredient segmentation и не точную portion geometry;
+- Food-101 vocabulary остаётся ограничением label quality, особенно для ингредиентов, локальных блюд
+  и смешанных тарелок;
+- exploratory baseline на восьми multi-food crop дал expected label recall `0.48`; ложные и
+  повторные detections остаются, поэтому результат нельзя выдавать за точный;
+- threshold/prompt/checkpoint можно менять только вместе с повторным licensed validation benchmark;
+- точность не обещается пользователю; low-confidence и любой scan result требуют подтверждения.

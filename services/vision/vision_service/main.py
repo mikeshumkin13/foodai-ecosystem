@@ -6,7 +6,13 @@ from fastapi import Depends, FastAPI, HTTPException, status
 
 from vision_service.image_loading import VisionImageLoadError, load_prepared_image
 from vision_service.inference import FoodRecognitionModel, get_food_recognition_model
-from vision_service.schemas import AnalyzeRequest, AnalyzeResponse, DetectedItem, HealthResponse
+from vision_service.schemas import (
+    AnalyzeRequest,
+    AnalyzeResponse,
+    BoundingBox,
+    DetectedItem,
+    HealthResponse,
+)
 
 app = FastAPI(
     title="FoodAI Vision Service",
@@ -41,7 +47,20 @@ def analyze(
 
     return AnalyzeResponse(
         items=[
-            DetectedItem(label=prediction.label, confidence=prediction.confidence)
+            DetectedItem(
+                label=prediction.label,
+                confidence=prediction.confidence,
+                bounding_box=(
+                    BoundingBox(
+                        left=prediction.bounding_box.left,
+                        top=prediction.bounding_box.top,
+                        right=prediction.bounding_box.right,
+                        bottom=prediction.bounding_box.bottom,
+                    )
+                    if prediction.bounding_box is not None
+                    else None
+                ),
+            )
             for prediction in predictions
         ],
     )

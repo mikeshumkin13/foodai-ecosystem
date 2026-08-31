@@ -153,12 +153,18 @@ Backend endpoints:
 Internal Vision endpoints:
 
 - `GET /health` — health check Vision service.
-- `POST /v1/analyze` — internal food recognition v1 для подготовленного private food scan object reference. Возвращает `{"items": [{"label": "...", "confidence": 0.0-1.0}]}`; текущая модель является dish-level classifier без bounding boxes и оценки порции.
+- `POST /v1/analyze` — internal multi-region food recognition для подготовленного private food
+  scan object reference. Возвращает несколько `label`/`confidence` и optional detector
+  `bounding_box`; box не является segmentation mask или точной оценкой порции.
 
 Benchmark Vision model v1:
 
 ```bash
 python services/vision/scripts/benchmark_food_model.py --synthetic
+
+python services/vision/scripts/benchmark_food_model.py \
+  --validation-manifest services/vision/fixtures/validation/foodseg103_manifest.json \
+  --enforce-thresholds
 ```
 
 ## Frontend: локальная установка
