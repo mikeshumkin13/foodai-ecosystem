@@ -23,6 +23,7 @@ from ai_coach.providers import (
     AICoachNutritionNote,
     AICoachProviderRequest,
     AICoachProviderResponse,
+    AICoachProviderTimeoutError,
 )
 from ai_coach.services import ask_nutrition_coach, get_ai_coach_settings
 from diary.tests.factories import make_meal, make_meal_item
@@ -58,6 +59,20 @@ class FailingProvider:
 
     def generate(self, request: AICoachProviderRequest) -> AICoachProviderResponse:
         raise AssertionError("provider_must_not_be_called")
+
+
+class RuntimeErrorProvider:
+    name = "runtime_error"
+
+    def generate(self, request: AICoachProviderRequest) -> AICoachProviderResponse:
+        raise RuntimeError("provider internal sensitive detail")
+
+
+class TimeoutProvider:
+    name = "timeout"
+
+    def generate(self, request: AICoachProviderRequest) -> AICoachProviderResponse:
+        raise AICoachProviderTimeoutError("provider_timeout")
 
 
 def _ask_url() -> str:
@@ -240,6 +255,37 @@ def test_user_can_ask_ai_coach_and_response_is_not_stored_by_default(
     assert "suggestions" in payload
     assert "nutrition_notes" in payload
     assert AICoachMessage.objects.count() == 0
+
+
+@pytest.mark.parametrize("provider", [RuntimeErrorProvider(), TimeoutProvider()])
+def test_provider_runtime_failure_returns_generic_503(
+    provider: RuntimeErrorProvider | TimeoutProvider,
+    api_client: APIClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = make_user()
+    api_client.force_authenticate(user=user)
+    error_reports: list[dict[str, object]] = []
+    monkeypatch.setattr("ai_coach.services.get_ai_coach_provider", lambda: provider)
+    monkeypatch.setattr(
+        "ai_coach.views.report_application_error",
+        lambda **kwargs: error_reports.append(kwargs),
+    )
+
+    response = api_client.post(
+        _ask_url(),
+        {"message": "Как улучшить баланс за день?", "date": "2026-08-19"},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+    assert response.json() == {"detail": "ai_coach_provider_unavailable"}
+    assert len(error_reports) == 1
+    assert error_reports[0]["metadata"] == {
+        "operation": "nutrition_coach_generate",
+        "provider": "mock",
+    }
+    assert "provider internal sensitive detail" not in str(response.json())
 
 
 def test_store_response_request_without_consent_does_not_persist_message(

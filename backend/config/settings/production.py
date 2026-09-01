@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from .base import *  # noqa: F403
-from .base import get_env_bool, get_env_int
+from .base import get_env, get_env_bool, get_env_int
+
+AI_COACH_PROVIDER = get_env("AI_COACH_PROVIDER", default="openai")
+if AI_COACH_PROVIDER == "openai":
+    OPENAI_API_KEY = get_env("OPENAI_API_KEY")
 
 SECURE_SSL_REDIRECT = get_env_bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
 SECURE_HSTS_SECONDS = get_env_int("DJANGO_SECURE_HSTS_SECONDS", default=31_536_000)
