@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
+import { AuthSessionProvider } from "@/components/auth-session-provider";
 import { messages } from "@/lib/i18n/messages";
 
 import "./globals.css";
@@ -36,7 +37,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="ru">
       <body>
         <ServiceWorkerRegistration />
-        {children}
+        <AuthSessionProvider>{children}</AuthSessionProvider>
       </body>
     </html>
   );

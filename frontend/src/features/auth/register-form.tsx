@@ -1,6 +1,6 @@
 "use client";
 
-import { UserPlus } from "lucide-react";
+import { MailCheck, RefreshCw, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
@@ -16,6 +16,25 @@ const copy = messages.ru;
 export function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const [isResending, setIsResending] = useState(false);
+  const [resendCompleted, setResendCompleted] = useState(false);
+
+  async function handleResend() {
+    if (!registeredEmail) {
+      return;
+    }
+    setIsResending(true);
+    setError(null);
+    try {
+      await authApi.resendVerification(registeredEmail);
+      setResendCompleted(true);
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
+    } finally {
+      setIsResending(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,18 +44,43 @@ export function RegisterForm() {
     const formData = new FormData(event.currentTarget);
 
     try {
+      const email = String(formData.get("email") ?? "");
       await authApi.register({
-        email: String(formData.get("email") ?? ""),
+        email,
         password: String(formData.get("password") ?? ""),
         display_name: String(formData.get("display_name") ?? ""),
         preferred_language: String(formData.get("preferred_language") ?? "ru") === "en" ? "en" : "ru",
       });
-      window.location.assign("/dashboard");
+      setRegisteredEmail(email);
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (registeredEmail) {
+    return (
+      <section className="auth-form auth-status" aria-live="polite">
+        <MailCheck aria-hidden="true" size={32} />
+        <h1>{copy.auth.registrationPendingTitle}</h1>
+        <p>{copy.auth.registrationPendingDescription}</p>
+        <strong className="auth-status__email">{registeredEmail}</strong>
+        {resendCompleted ? <p className="form-success">{copy.auth.resendCompleted}</p> : null}
+        {error ? <p className="form-error" role="alert">{error}</p> : null}
+        <Button
+          disabled={isResending}
+          icon={<RefreshCw aria-hidden="true" size={18} />}
+          onClick={() => void handleResend()}
+          variant="secondary"
+        >
+          {isResending ? copy.common.loading : copy.auth.resendAction}
+        </Button>
+        <Link className="button button--primary" href="/login">
+          {copy.auth.goToLogin}
+        </Link>
+      </section>
+    );
   }
 
   return (

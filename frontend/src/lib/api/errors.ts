@@ -69,6 +69,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   csrf_failed: "Сессия устарела. Обновите страницу и повторите действие.",
   email_already_registered: "Этот email уже зарегистрирован.",
   invalid_credentials: "Email или пароль указаны неверно.",
+  invalid_or_expired_token: "Ссылка недействительна или срок её действия истёк.",
+  nutrition_profile_consent_required: "Для сохранения профиля нужно подтвердить согласие.",
+  dietary_preferences_none_must_be_alone: "Выберите конкретные предпочтения или оставьте список пустым.",
   request_failed: "Не удалось выполнить запрос. Повторите попытку позже.",
   default: "Что-то пошло не так. Повторите попытку позже.",
 };

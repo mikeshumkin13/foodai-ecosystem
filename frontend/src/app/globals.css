@@ -119,6 +119,20 @@ button:disabled {
   gap: 8px;
 }
 
+.sidebar__account {
+  margin-top: auto;
+  display: grid;
+  gap: 10px;
+  color: rgb(248 250 247 / 78%);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.sidebar__account .button {
+  justify-content: start;
+  color: var(--color-primary-contrast);
+}
+
 .nav-link {
   display: flex;
   align-items: center;
@@ -1031,7 +1045,57 @@ button:disabled {
   gap: 16px;
 }
 
+.profile-form-panel {
+  display: grid;
+  gap: 24px;
+}
+
+.preference-fieldset {
+  display: grid;
+  gap: 12px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.preference-fieldset legend {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.preference-fieldset > p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.preference-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: var(--color-ink);
+  line-height: 1.4;
+}
+
+.checkbox-row input {
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--color-primary);
+}
+
 .consent-panel {
+  align-self: start;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
   padding: 20px;
   display: flex;
   gap: 14px;
@@ -1042,6 +1106,136 @@ button:disabled {
   margin: 8px 0 0;
   color: var(--color-muted);
   line-height: 1.5;
+}
+
+.consent-panel .checkbox-row {
+  margin-top: 16px;
+  color: var(--color-ink);
+}
+
+.profile-form-actions,
+.profile-grid > .form-error,
+.profile-grid > .form-success {
+  grid-column: 1 / -1;
+}
+
+.profile-form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.coach-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.22fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.coach-form,
+.coach-response,
+.coach-empty {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  padding: 20px;
+}
+
+.coach-form {
+  display: grid;
+  gap: 16px;
+}
+
+.coach-textarea {
+  min-height: 140px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.coach-consent {
+  display: flex;
+  gap: 12px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+  color: var(--color-primary);
+}
+
+.coach-consent p {
+  margin: 7px 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.coach-store-response {
+  margin-top: 12px;
+}
+
+.coach-response {
+  display: grid;
+  gap: 18px;
+}
+
+.coach-response--blocked {
+  border-color: rgb(199 101 78 / 48%);
+}
+
+.coach-response > header {
+  display: flex;
+  gap: 12px;
+  color: var(--color-primary);
+}
+
+.coach-response > header span,
+.coach-response > small {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.coach-response h2,
+.coach-response h3,
+.coach-empty h2 {
+  margin: 0;
+}
+
+.coach-response h2 {
+  margin-top: 3px;
+  font-size: 20px;
+}
+
+.coach-answer {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.coach-response__section {
+  display: grid;
+  gap: 8px;
+}
+
+.coach-response__section h3 {
+  font-size: 14px;
+}
+
+.coach-response__section ul {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.coach-empty {
+  display: grid;
+  gap: 10px;
+  color: var(--color-primary);
+}
+
+.coach-empty p {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.55;
 }
 
 .privacy-layout {
@@ -1186,6 +1380,28 @@ button:disabled {
   font-weight: 700;
 }
 
+.auth-status {
+  justify-items: start;
+}
+
+.auth-status > svg {
+  color: var(--color-accent);
+}
+
+.auth-status__email {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.session-state {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 16px;
+  padding: 24px;
+}
+
 .form-error {
   margin: 0;
   border-radius: 8px;
@@ -1237,6 +1453,7 @@ button:disabled {
   .scan-steps,
   .scan-review-layout,
   .profile-grid,
+  .coach-layout,
   .privacy-grid,
   .form-grid {
     grid-template-columns: 1fr;
@@ -1244,6 +1461,10 @@ button:disabled {
 
   .privacy-panel--wide {
     grid-column: auto;
+  }
+
+  .preference-grid {
+    grid-template-columns: 1fr;
   }
 
   .toolbar {
@@ -1277,7 +1498,7 @@ button:disabled {
     left: 12px;
     z-index: 20;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 4px;
     border: 1px solid var(--color-border);
     border-radius: 8px;
