@@ -13,6 +13,7 @@ from rest_framework.test import APIClient
 
 from accounts.tests.factories import make_user
 from food_scans.image_processing import image_has_exif
+from food_scans.jobs import SCAN_TASK_ENQUEUE_FAILURE_CODE, enqueue_food_scan_analysis
 from food_scans.models import FoodScan
 from food_scans.storage import get_private_object_storage
 
@@ -159,6 +160,41 @@ def test_upload_enqueues_background_scan_analysis(
     assert payload["status"] == FoodScan.Status.UPLOADED
     assert enqueued_scan_ids == [payload["scan_id"]]
     assert FoodScan.objects.get(id=payload["scan_id"]).detected_items.count() == 0
+
+
+def test_upload_returns_failed_scan_when_broker_is_unavailable(
+    api_client: APIClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = make_user()
+    api_client.force_authenticate(user=user)
+
+    def fail_apply_async(*args: object, **kwargs: object) -> None:
+        raise ConnectionError("broker unavailable")
+
+    monkeypatch.setattr("food_scans.views.enqueue_food_scan_analysis", enqueue_food_scan_analysis)
+    monkeypatch.setattr(
+        "food_scans.jobs.process_food_scan_analysis_task.apply_async",
+        fail_apply_async,
+    )
+    monkeypatch.setattr("food_scans.jobs.report_application_error", lambda **kwargs: None)
+
+    response = api_client.post(
+        reverse("food-scan-list"),
+        {
+            "photo": _image_upload(
+                image_format="JPEG",
+                filename="meal.jpg",
+                content_type="image/jpeg",
+            )
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["status"] == FoodScan.Status.FAILED
+    food_scan = FoodScan.objects.get(id=response.json()["scan_id"])
+    assert food_scan.failure_code == SCAN_TASK_ENQUEUE_FAILURE_CODE
 
 
 def test_fake_jpeg_is_rejected(api_client: APIClient) -> None:

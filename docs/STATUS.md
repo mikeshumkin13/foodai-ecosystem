@@ -23,6 +23,9 @@ feature-ветками; merge в `develop` и `main` не выполнялся.
 - В `feature/mvp-frontend-flow` устранён MVP-QA-009: Playwright Chromium проверяет onboarding,
   protected dashboard, profile, AI summary и scan confirmation/diary flow; browser tests добавлены
   в обязательный frontend CI job без production secrets.
+- В `feature/celery-enqueue-resilience` устранён MVP-QA-005: broker enqueue failure больше не даёт
+  HTTP 500 и не оставляет ложный `uploaded`; scan получает `failed/task_enqueue_failed`, task/run
+  metadata инвалидируются безопасно, user retry остаётся доступен без automatic retry storm.
 - Создан каталог `foodai-ecosystem`.
 - Внутри каталога инициализирован Git-репозиторий.
 - Основная ветка: `main`.
