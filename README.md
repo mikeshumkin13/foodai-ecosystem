@@ -212,7 +212,8 @@ make dev-down
 
 Что запускается:
 
-- `postgres` — PostgreSQL с volume `postgres_data` и healthcheck.
+- `postgres` — PostgreSQL с versioned volume
+  `POSTGRES_VOLUME_NAME=foodai-ecosystem_postgres_data_v2` и healthcheck.
 - `redis` — Redis с volume `redis_data` и healthcheck.
 - `backend` — Django backend, который ждёт PostgreSQL/Redis, предсказуемо выполняет `migrate --noinput`, затем стартует `runserver`.
 - `celery_worker` — Celery worker для background Vision processing; ждёт PostgreSQL, Redis, Vision и healthy backend, не запускает migrations параллельно с backend.
@@ -224,7 +225,28 @@ Health endpoint после запуска:
 curl http://localhost:8000/api/v1/health/
 ```
 
-Если локальная Docker Compose БД была создана до появления `accounts.User`, Django может сообщить `InconsistentMigrationHistory` из-за старой истории `admin` migrations. Это относится только к локальным dev volumes. Если данные не нужны, после явного подтверждения удаления локальной dev БД можно пересоздать volumes командой `docker compose --env-file .env down -v`, затем снова выполнить `make dev-up`.
+Если локальная Docker Compose БД была создана до появления `accounts.User`, Django может сообщить
+`InconsistentMigrationHistory` из-за старой истории `admin` migrations. Default local configuration
+теперь использует новый versioned volume `foodai-ecosystem_postgres_data_v2`; прежний
+`foodai-ecosystem_postgres_data` не удаляется и не изменяется автоматически.
+
+Безопасная проверка legacy volume выводит только историю migrations и количества строк:
+
+```bash
+scripts/postgres-volume-recovery.sh inspect foodai-ecosystem_postgres_data
+```
+
+Перед любым ручным переносом создайте проверенный PostgreSQL dump с правами только владельца:
+
+```bash
+scripts/postgres-volume-recovery.sh backup foodai-ecosystem_postgres_data
+```
+
+Backup сохраняется по умолчанию в ignored-каталог `.local-backups/`. Скрипт не применяет
+migrations, не восстанавливает dump и не удаляет volumes. Если inspect показывает ценные данные,
+не подключайте старую несовместимую схему к текущему backend: сохраните dump и подготовьте отдельный
+контролируемый data migration в свежую схему. Команды `down -v` и `docker volume rm` не являются
+частью recovery workflow.
 
 Food scan uploads в local development сохраняются в приватный filesystem root `FOOD_SCAN_PRIVATE_MEDIA_ROOT`. API не возвращает постоянный публичный URL; будущий S3-compatible backend должен подключаться через private storage boundary.
 

@@ -1,12 +1,35 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-08-26
+Last updated / Обновлено: 2026-09-01
 
 ## Текущий завершённый этап
 
-ЭТАП 29, PROMPT 29 — полный технический аудит MVP завершён.
+ЭТАП 30, PROMPT 30 — исправление BLOCKER/CRITICAL/HIGH продолжается; PostgreSQL recovery завершён
+в отдельной feature-ветке.
 
 ## Состояние
+
+- Создана ветка `feature/dev-postgres-migration-recovery` от audit baseline этапа 29.
+- Default local PostgreSQL переведён на versioned volume
+  `foodai-ecosystem_postgres_data_v2`; legacy volume не удаляется и не переиспользуется.
+- Добавлен `scripts/postgres-volume-recovery.sh` для non-destructive inspect и custom-format backup
+  legacy volume через отдельный external Compose override.
+- Recovery inspection выводит только migration metadata и row counts; backup создаётся с `0600`,
+  проверяется `pg_restore --list`, не коммитится и не выполняет restore/migrations.
+- Старый local volume проверен: применены только `admin.0001–0003`, `auth_user=0`, FoodAI domain
+  tables отсутствуют; создан и проверен временный backup.
+- Fresh v2 smoke-test прошёл: migrations применены от `accounts.0001` до `admin.0001` в корректном
+  порядке, PostgreSQL/Redis/backend healthy, `migrate --check` и health endpoint прошли.
+- Legacy `foodai-ecosystem_postgres_data` и новый `foodai-ecosystem_postgres_data_v2` сохранены;
+  smoke-test containers остановлены без удаления volumes.
+- Recovery regression tests: `3 passed`; shell syntax и Ruff прошли.
+- `CI=true make check` после очистки только generated `.next` cache прошёл единым повторным
+  запуском: Ruff, mypy по 178 source files, Django check, `252 passed`, coverage `88.66%`, frontend
+  lint 55 files, TypeScript, Vitest `7 files / 10 tests` и Next.js build.
+- Migration drift check, OpenAPI validation, `pip check`, default Compose config и external recovery
+  Compose config прошли.
+- Production deploy check прошёл с известным warning `foodai_security.W002` о local filesystem
+  storage до подключения private S3-compatible adapter.
 
 - Создан каталог `foodai-ecosystem`.
 - Внутри каталога инициализирован Git-репозиторий.
