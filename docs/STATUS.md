@@ -1,12 +1,18 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-08-25
+Last updated / Обновлено: 2026-09-07
 
 ## Текущий завершённый этап
 
 ЭТАП 28, PROMPT 28 — logging и monitoring завершены.
 
 ## Состояние
+
+- Этап 30, `feature/vision-runtime-connectivity`: исправлен HIGH-разрыв local scan между
+  private storage и Vision; добавлены общий read-only mount, persistent model cache,
+  прогрев модели до готовности сервера и согласованные timeout budgets.
+- Добавлены regression tests конфигурации storage, прогрева и времени обработки;
+  окончательная проверка выполняется на интеграционной ветке этапа 30.
 
 - Создан каталог `foodai-ecosystem`.
 - Внутри каталога инициализирован Git-репозиторий.

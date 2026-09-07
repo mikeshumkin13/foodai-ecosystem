@@ -1508,3 +1508,26 @@ Consequences / Последствия:
   Celery task или скрывать исходную provider error.
 - Текущий structured-log metrics backend является foundation, а не полноценным time-series
   хранилищем, dashboard или alerting system.
+
+## ADR-0034: Shared Private Storage And Warm Vision Runtime
+
+Дата: 2026-09-07. Статус: принято в рамках повторной проверки этапа 30.
+
+В local Compose backend и Celery записывают подготовленные изображения в общий bind mount.
+Vision получает тот же каталог только для чтения и использует тот же внутренний путь.
+Весь репозиторий Vision не монтируется; порт сервиса остаётся внутренним.
+
+Кэш pinned моделей сохраняется между перезапусками в `.cache/huggingface` (вне Git).
+Перед запуском HTTP-сервера модель выполняет inference на синтетическом изображении в том же
+процессе. Поэтому успешный healthcheck означает завершённую инициализацию модели; неуспешный
+cold start не расходует короткий timeout пользовательского scan. Первый запуск требует доступа
+к источнику модели и может занимать десятки минут; healthcheck имеет startup grace period 30 минут.
+
+Рекомендуемые local значения: Vision request timeout 60 секунд, Celery soft limit 90 секунд,
+hard limit 120 секунд. Число CPU threads ограничивается `VISION_CPU_THREADS` (default 2).
+Значения являются ресурсным бюджетом для MVP CPU и должны проверяться на целевом оборудовании.
+Controlled retry, max retries и обязательное подтверждение scan сохраняются.
+
+Это исправляет обнаруженный при повторном QA HIGH-разрыв: healthy Vision не видел private objects,
+а прежние 2 секунды timeout были меньше измеренного времени inference. Для production сохраняется
+отдельная задача private S3 adapter, resource sizing и мониторинга готовности модели.
