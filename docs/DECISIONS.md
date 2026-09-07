@@ -1647,3 +1647,45 @@ Consequences / Последствия:
   повторные detections остаются, поэтому результат нельзя выдавать за точный;
 - threshold/prompt/checkpoint можно менять только вместе с повторным licensed validation benchmark;
 - точность не обещается пользователю; low-confidence и любой scan result требуют подтверждения.
+
+## ADR-0033: Versioned Local PostgreSQL Volume And Non-Destructive Recovery
+
+Date / Дата: 2026-09-01
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Physical name local PostgreSQL volume задаётся environment variable `POSTGRES_VOLUME_NAME`.
+Текущий default — `foodai-ecosystem_postgres_data_v2`; старый
+`foodai-ecosystem_postgres_data`, созданный до custom `accounts.User`, не подключается к backend и
+не удаляется автоматически.
+
+Legacy volume можно подключить только через `infra/postgres-recovery.compose.yml` как external к
+изолированному diagnostic project. `scripts/postgres-volume-recovery.sh` поддерживает только:
+
+- `inspect`: schema migration metadata и aggregate row counts без содержимого записей;
+- `backup`: PostgreSQL custom-format dump с owner-only permissions и проверкой
+  `pg_restore --list`.
+
+Recovery tool не выполняет `migrate`, restore, `down -v` или `docker volume rm`. Если legacy volume
+содержит ценные данные, перенос реализуется отдельным reviewed data migration в свежую схему после
+backup.
+
+Rationale / Обоснование:
+
+- custom User migration нельзя безопасно исправить простым fake migration или продолжением работы
+  поверх противоречивой `django_migrations` history;
+- удаление local volume без проверки может уничтожить пользовательские данные;
+- versioned name обеспечивает предсказуемый default startup и одновременно сохраняет возможность
+  forensic inspection/backup старой схемы;
+- external recovery override не меняет обычный service topology и не публикует PostgreSQL port.
+
+Consequences / Последствия:
+
+- при намеренной смене несовместимого local schema baseline physical volume version повышается и
+  решение фиксируется в документации;
+- backup содержит потенциально чувствительные данные, хранится вне Git с ограниченными правами и
+  требует отдельной retention/secure deletion политики;
+- script не является универсальным production migration tool и не переносит данные автоматически;
+- default v2 volume сохраняется между `docker compose down` и повторными запусками.

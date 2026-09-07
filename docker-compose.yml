@@ -136,4 +136,5 @@ services:
 
 volumes:
   postgres_data:
+    name: ${POSTGRES_VOLUME_NAME:-foodai-ecosystem_postgres_data_v2}
   redis_data:

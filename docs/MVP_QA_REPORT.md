@@ -213,7 +213,7 @@ profile → AI nutrition summary и upload → detected food → confirmation �
 контролируемый mock API, не требует production secrets/LLM/Vision weights и запускается отдельным
 обязательным шагом frontend CI.
 
-### MVP-QA-010 — существующий local PostgreSQL volume не запускается после custom User migration
+### MVP-QA-010 — существующий local PostgreSQL volume не запускается после custom User migration — исправлено в этапе 30
 
 Обычный `docker compose up` на сохранённом `foodai-ecosystem_postgres_data` завершается
 `InconsistentMigrationHistory`: `admin.0001_initial` применена раньше зависимости
@@ -223,6 +223,17 @@ profile → AI nutrition summary и upload → detected food → confirmation �
 **Impact:** текущая локальная среда пользователя не запускается без осознанного recovery/reset;
 удалять volume автоматически нельзя, потому что это уничтожит данные. Нужны документированный
 recovery path и проверка, есть ли в старой БД ценные данные.
+
+**Исправление (PROMPT 30):** local Compose использует versioned physical volume
+`foodai-ecosystem_postgres_data_v2`, поэтому обычный запуск больше не подключает несовместимую
+историю. Legacy volume сохраняется. Добавлен non-destructive recovery script для inspect и
+проверенного custom-format backup; migrations, restore и удаление volume скрипт не выполняет.
+
+Фактическая инспекция `foodai-ecosystem_postgres_data` на текущей машине показала только
+`admin.0001–0003`, `auth_user=0` и отсутствие FoodAI domain tables. Backup создан и проверен через
+`pg_restore --list`. На свежем v2 volume все migrations применились в корректном порядке,
+PostgreSQL/Redis/backend стали healthy, `migrate --check` и `/api/v1/health/` прошли. Если на другой
+машине legacy volume содержит данные, остаётся обязательным отдельный контролируемый data migration.
 
 ## MEDIUM
 

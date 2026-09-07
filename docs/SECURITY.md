@@ -185,6 +185,14 @@ Brute-force/rate limiting:
 - Backend публикует только HTTP-порт разработки.
 - Redis включён с паролем даже в локальной инфраструктуре.
 - Celery worker использует Redis внутри Docker Compose network, не публикует отдельные host-порты и не выполняет migrations параллельно с backend.
+- Local PostgreSQL volume имеет versioned physical name; смена migration baseline не переиспользует
+  несовместимый legacy volume и не удаляет его автоматически.
+- `scripts/postgres-volume-recovery.sh` подключает legacy volume как external только к изолированному
+  diagnostic project, не публикует PostgreSQL port, не применяет migrations и удаляет diagnostic
+  containers/network без `-v`.
+- Recovery inspection показывает только migration metadata и aggregate row counts. Backup создаётся
+  с `umask 077`, валидируется через `pg_restore --list` и хранится в ignored `.local-backups/`;
+  dump следует считать чувствительным и не коммитить/не передавать без защищённого канала.
 
 ## Admin security
 

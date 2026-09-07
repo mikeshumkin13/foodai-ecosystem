@@ -233,7 +233,11 @@ Production-окружение должно использовать deny-by-defa
 
 - локальная инфраструктура запускается через Docker Compose;
 - `postgres` и `redis` не публикуют порты наружу и доступны backend только внутри compose-сети;
-- данные PostgreSQL и Redis хранятся в named volumes `postgres_data` и `redis_data`;
+- данные PostgreSQL и Redis хранятся в named volumes `postgres_data` и `redis_data`; physical name
+  PostgreSQL volume задаётся `POSTGRES_VOLUME_NAME`, local default имеет версию
+  `foodai-ecosystem_postgres_data_v2`;
+- несовместимые legacy PostgreSQL volumes подключаются только через external recovery override для
+  inspect/backup; backend migrations и автоматическое удаление в recovery workflow запрещены;
 - backend container ждёт готовности PostgreSQL и Redis через healthchecks и management command `wait_for_dependencies`;
 - vision container имеет собственный healthcheck `GET /health`;
 - `celery_worker` ждёт PostgreSQL, Redis, Vision и healthy backend, использует тот же backend image и не запускает migrations параллельно с backend;

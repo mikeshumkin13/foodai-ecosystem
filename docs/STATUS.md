@@ -48,6 +48,15 @@ feature-ветками и объединяется в `feature/mvp-high-priority
 - Production deploy check прошёл с известным warning `foodai_security.W002` о local filesystem
   storage, который должен быть заменён private S3-compatible adapter до production.
 - Docker images `backend`, `vision` и `celery_worker` успешно пересобраны.
+- В `feature/dev-postgres-migration-recovery` default local PostgreSQL переведён на versioned volume
+  `foodai-ecosystem_postgres_data_v2`; legacy volume не удаляется и не переиспользуется.
+- Добавлен `scripts/postgres-volume-recovery.sh` для non-destructive inspect и custom-format backup
+  legacy volume через отдельный external Compose override.
+- Старый local volume проверен: применены только `admin.0001–0003`, `auth_user=0`, FoodAI domain
+  tables отсутствуют; backup создан и проверен через `pg_restore --list`.
+- Fresh v2 smoke-test прошёл: migrations применены в корректном порядке,
+  PostgreSQL/Redis/backend healthy, `migrate --check` и health endpoint прошли.
+- Recovery regression tests: `3 passed`; shell syntax, Compose recovery config и Ruff прошли.
 
 - Создан каталог `foodai-ecosystem`.
 - Внутри каталога инициализирован Git-репозиторий.
