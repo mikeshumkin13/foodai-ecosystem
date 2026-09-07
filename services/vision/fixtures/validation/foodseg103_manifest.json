@@ -1,0 +1,61 @@
+{
+  "source_image": "foodseg103_examples.png",
+  "source": "https://xiongweiwu.github.io/foodseg103_files/foodseg103.png",
+  "dataset_project": "FoodSeg103-Benchmark-v1",
+  "license": "Apache-2.0",
+  "acceptance": {
+    "multi_region_rate": 0.625,
+    "expected_label_recall": 0.15,
+    "confidence_coverage": 1.0
+  },
+  "samples": [
+    {
+      "name": "bread_and_strawberry",
+      "crop": [11, 22, 243, 186],
+      "expected_min_items": 2,
+      "expected_labels": ["bread", "strawberry"]
+    },
+    {
+      "name": "milkshake_and_pear",
+      "crop": [527, 22, 759, 186],
+      "expected_min_items": 2,
+      "expected_labels": ["milkshake", "pear"]
+    },
+    {
+      "name": "rice_chicken_asparagus",
+      "crop": [1555, 22, 1789, 186],
+      "expected_min_items": 3,
+      "expected_labels": ["rice", "chicken", "asparagus"]
+    },
+    {
+      "name": "broccoli_sausage_noodles",
+      "crop": [1041, 221, 1274, 386],
+      "expected_min_items": 3,
+      "expected_labels": ["broccoli", "sausage", "noodles"]
+    },
+    {
+      "name": "chicken_broccoli_shiitake",
+      "crop": [1041, 419, 1274, 584],
+      "expected_min_items": 3,
+      "expected_labels": ["chicken", "broccoli", "shiitake"]
+    },
+    {
+      "name": "tofu_and_vegetables",
+      "crop": [1041, 616, 1274, 781],
+      "expected_min_items": 4,
+      "expected_labels": ["onion", "carrot", "tofu", "snow peas"]
+    },
+    {
+      "name": "fish_and_vegetables",
+      "crop": [1555, 616, 1789, 781],
+      "expected_min_items": 5,
+      "expected_labels": ["fish", "potato", "broccoli", "cauliflower", "carrot"]
+    },
+    {
+      "name": "steak_rice_spring_onion",
+      "crop": [1555, 815, 1789, 980],
+      "expected_min_items": 3,
+      "expected_labels": ["steak", "rice", "spring onion"]
+    }
+  ]
+}

@@ -1,13 +1,12 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-08-28
+Last updated / Обновлено: 2026-09-07
 
 ## Текущий завершённый этап
 
-ЭТАП 29, PROMPT 29 — полный технический аудит MVP завершён.
-
 ЭТАП 30, PROMPT 30 — исправление BLOCKER/CRITICAL/HIGH проблем выполняется отдельными
-feature-ветками; merge в `develop` и `main` не выполнялся.
+feature-ветками и объединяется в `feature/mvp-high-priority-integration`; merge в `develop` и
+`main` не выполнялся.
 
 ## Состояние
 
@@ -29,6 +28,27 @@ feature-ветками; merge в `develop` и `main` не выполнялся.
 - В `feature/ai-provider-production` устранены MVP-QA-006/007: добавлен production OpenAI Responses
   adapter с `gpt-5.6-luna`, strict output schema, real timeout, generic HTTP 503 и безопасной
   telemetry; provider abstraction, минимизация context и pre/post safety layer сохранены.
+- Создана ветка `feature/vision-mvp-validation` от audit baseline этапа 29.
+- Vision v1 расширен Grounding DINO Tiny multi-region detector с pinned revision, safetensors,
+  bounded NMS и optional bounding boxes в internal contract.
+- Detector labels нормализуются к allowlist; Food-101 classifier используется только для общих
+  regions и full-image fallback.
+- Добавлен разрешённый exploratory fixture FoodSeg103, attribution, benchmark thresholds и
+  отдельный `docs/VISION_VALIDATION.md`.
+- Реальный cached-model benchmark на восьми multi-food crop пройден: multi-region rate `1.0`,
+  expected label recall `0.48`, confidence coverage `1.0`, CPU p50 `12428.854 ms`.
+- Accuracy не обещается: ложные/повторные detections, CPU latency и отсутствие segmentation
+  остаются явно документированными рисками; пользовательское подтверждение обязательно.
+- Узкие Vision/backend contract tests: `54 passed`; Ruff и scoped mypy прошли.
+- Полный Python quality gate: `267 passed`, coverage `88.49%`, Ruff, mypy по 179 source files и
+  Django system check прошли; остаётся одно стороннее `StarletteDeprecationWarning`.
+- Frontend quality gate после frozen offline dependency verification: lint 55 files, TypeScript,
+  Vitest `7 files / 10 tests` и Next.js production build прошли.
+- Migration drift check, OpenAPI validation, `pip check` и `docker compose config --quiet` прошли.
+- Production deploy check прошёл с известным warning `foodai_security.W002` о local filesystem
+  storage, который должен быть заменён private S3-compatible adapter до production.
+- Docker images `backend`, `vision` и `celery_worker` успешно пересобраны.
+
 - Создан каталог `foodai-ecosystem`.
 - Внутри каталога инициализирован Git-репозиторий.
 - Основная ветка: `main`.

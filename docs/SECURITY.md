@@ -147,7 +147,15 @@ Brute-force/rate limiting:
 - Docker Compose не публикует Vision port на host по умолчанию; backend обращается к `vision` внутри compose network.
 - Backend client использует короткий timeout и не делает automatic retries, чтобы не создавать retry storm при деградации Vision.
 - Ошибки Vision нормализуются без включения object key, фото или пользовательских health/nutrition данных в логи/ответы.
-- Vision model v1 (`nateraw/food`) выполняет dish-level classification внутри Vision service и возвращает только label/confidence. Низкий confidence не может создать `MealItem` автоматически: backend сохраняет только proposal results и требует явного подтверждения пользователя.
+- Multi-region Vision pipeline выполняется внутри Vision service: Grounding DINO Tiny находит
+  rectangular food regions, а `nateraw/food` классифицирует подготовленные crops. Internal response
+  содержит label/confidence и optional bounding box, но не пользовательские идентификаторы,
+  object key или фото bytes.
+- Bounding box не является segmentation mask и не используется как точная площадь еды. Низкий
+  confidence и несколько найденных regions не могут создать `MealItem` автоматически: backend
+  сохраняет только proposal results и требует явного подтверждения пользователя.
+- Detector/classifier revisions pinned; model adapters загружают safetensors. Изменение model,
+  prompt или thresholds требует повторного validation и supply-chain review.
 - Перед production требуется отдельная legal/supply-chain проверка выбранной модели, weights artifact и training data provenance; Food-101 dataset metadata указывает unknown license.
 
 ## Scan orchestration security

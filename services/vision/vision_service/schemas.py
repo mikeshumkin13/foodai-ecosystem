@@ -36,11 +36,19 @@ class PortionReference(BaseModel):
     area_px: float | None = Field(default=None, gt=0)
 
 
+class BoundingBox(BaseModel):
+    left: float = Field(ge=0)
+    top: float = Field(ge=0)
+    right: float = Field(gt=0)
+    bottom: float = Field(gt=0)
+
+
 class DetectedItem(BaseModel):
     label: str = Field(min_length=1, max_length=128)
     confidence: float = Field(ge=0, le=1)
     segment_area_px: float | None = Field(default=None, gt=0)
     portion_reference: PortionReference | None = None
+    bounding_box: BoundingBox | None = None
 
 
 class AnalyzeResponse(BaseModel):

@@ -181,12 +181,25 @@ Outputs и повторной локальной валидацией недов
 production settings требуют секрет через environment. Live provider quality всё ещё требует
 отдельного RU/EN eval dataset и не заявляется как доказанная.
 
-### MVP-QA-008 — Vision v1 не покрывает основной multi-food use case
+### MVP-QA-008 — Vision v1 не покрывает основной multi-food use case — исправлено в этапе 30
 
 Модель `nateraw/food` является Food-101 dish classifier: один top label, без object detection,
 segmentation и plate reference. На обычном фото portion estimator обычно использует
 low-confidence typical-volume fallback. Ограничение честно документировано, но качество основного
 ценностного сценария не валидировано на representative MVP dataset.
+
+**Исправление:** в `feature/vision-mvp-validation` добавлен сменяемый multi-region pipeline на
+Grounding DINO Tiny с pinned revision, NMS и ограничением regions. Конкретные detector labels
+нормализуются к allowlist; для общих regions сохраняется Food-101 classifier fallback. Internal
+contract расширен optional `bounding_box`, который намеренно не используется как segmentation area
+для расчёта массы.
+
+Добавлен лицензированный exploratory fixture из официальной FoodSeg103 demonstration figure и
+воспроизводимый acceptance benchmark. Результат на восьми crop: `multi_region_rate=1.0`,
+`expected_label_recall=0.48`, `confidence_coverage=1.0`, CPU p50 `12428.854 ms`. HIGH-дефект
+отсутствия multi-food capability и validation gate закрыт. Низкая label accuracy, semantic
+duplicates, CPU latency и отсутствие segmentation остаются рисками Beta; все detections требуют
+подтверждения пользователя.
 
 ### MVP-QA-009 — отсутствует browser E2E quality gate
 

@@ -99,7 +99,13 @@ API не должен привязывать клиентов к одному ч
 - `DELETE /api/v1/privacy/account/` — удалить аккаунт и связанные данные. Тело: `current_password`. Учитываются private photo objects, PostgreSQL rows, DB sessions, user-scoped cache keys и stale background tasks.
 - Internal Vision API:
   - `GET /health` — health check Vision service. Ответ: `{"status": "ok"}`.
-  - `POST /v1/analyze` — internal endpoint Vision service. Принимает `object_reference` на приватный backend-controlled объект: `scan_id`, `storage_backend`, `object_key`, `content_type`, `checksum_sha256`. Vision v1 читает подготовленное изображение из private local storage, проверяет checksum и возвращает результат real food classifier как `{"items": [{"label": "...", "confidence": 0.0-1.0}]}`. Contract также допускает optional future geometry fields `segment_area_px` и `portion_reference`, но текущая модель обычно возвращает один dish-level top prediction без bounding boxes и portion estimate.
+  - `POST /v1/analyze` — internal endpoint Vision service. Принимает `object_reference` на
+    приватный backend-controlled объект: `scan_id`, `storage_backend`, `object_key`,
+    `content_type`, `checksum_sha256`. Multi-region pipeline возвращает один или несколько items:
+    `{"items": [{"label": "...", "confidence": 0.0-1.0, "bounding_box": {"left": 0, "top": 0, "right": 100, "bottom": 100}}]}`.
+    `bounding_box` optional и обозначает detector rectangle, не segmentation mask. Contract также
+    допускает `segment_area_px` и `portion_reference`, только если их вернёт отдельная
+    segmentation/reference система.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 

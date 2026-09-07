@@ -20,14 +20,20 @@ from integrations.vision.client import (
     VisionTimeoutError,
     VisionUnavailableError,
 )
-from vision_service.inference import FoodRecognition, get_food_recognition_model
+from vision_service.inference import BoundingBox, FoodRecognition, get_food_recognition_model
 from vision_service.main import app as vision_app
 
 
 class _StubFoodRecognitionModel:
     def predict(self, image: Image.Image) -> tuple[FoodRecognition, ...]:
         assert image.mode == "RGB"
-        return (FoodRecognition(label="fried rice", confidence=0.73),)
+        return (
+            FoodRecognition(
+                label="fried rice",
+                confidence=0.73,
+                bounding_box=BoundingBox(left=10, top=20, right=110, bottom=120),
+            ),
+        )
 
 
 def _reference(*, checksum_sha256: str = "a" * 64) -> VisionObjectReference:
@@ -77,6 +83,9 @@ def test_backend_client_contract_matches_fastapi_vision_service(
     assert isinstance(result, VisionAnalyzeResult)
     assert result.items[0].label == "fried rice"
     assert result.items[0].confidence == 0.73
+    assert result.items[0].bounding_box is not None
+    assert result.items[0].bounding_box.left == 10
+    assert result.items[0].bounding_box.bottom == 120
     assert bridge.last_timeout == 2.5
     assert bridge.last_payload == {
         "object_reference": {
@@ -131,6 +140,12 @@ def test_backend_client_parses_optional_portion_geometry() -> None:
                             "diameter_cm": 26.0,
                             "area_px": 40000,
                         },
+                        "bounding_box": {
+                            "left": 0,
+                            "top": 10,
+                            "right": 120,
+                            "bottom": 130,
+                        },
                     }
                 ]
             },
@@ -145,6 +160,8 @@ def test_backend_client_parses_optional_portion_geometry() -> None:
     assert detected_item.portion_reference.reference_type == "plate"
     assert detected_item.portion_reference.diameter_cm == 26.0
     assert detected_item.portion_reference.area_px == 40000
+    assert detected_item.bounding_box is not None
+    assert detected_item.bounding_box.right == 120
 
 
 def test_backend_client_raises_unavailable_for_transport_error_without_retrying() -> None:
@@ -176,6 +193,30 @@ def test_backend_client_raises_unavailable_for_transport_error_without_retrying(
         httpx.Response(
             200,
             json={"items": [{"label": "rice", "confidence": 0.92, "segment_area_px": -1}]},
+        ),
+        httpx.Response(
+            200,
+            json={
+                "items": [
+                    {
+                        "label": "rice",
+                        "confidence": 0.92,
+                        "bounding_box": {"left": 10, "top": 0, "right": 5, "bottom": 20},
+                    }
+                ]
+            },
+        ),
+        httpx.Response(
+            200,
+            json={
+                "items": [
+                    {
+                        "label": "rice",
+                        "confidence": 0.92,
+                        "bounding_box": {"left": -1, "top": 0, "right": 10, "bottom": 20},
+                    }
+                ]
+            },
         ),
         httpx.Response(
             200,
