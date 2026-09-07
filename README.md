@@ -258,4 +258,12 @@ Food scan uploads в local development сохраняются в приватн�
 
 В Docker Compose backend обращается к Vision по `VISION_SERVICE_URL=http://vision:8001`. Vision port не публикуется на host по умолчанию; для прямого локального теста запускайте сервис командой `uvicorn` выше.
 
+Для local scan backend/Celery и Vision используют общий каталог
+`FOOD_SCAN_LOCAL_STORAGE_PATH` (default `./local_uploads/private`); Vision видит его только для чтения.
+Модели кэшируются в `VISION_MODEL_CACHE_PATH` (default `./.cache/huggingface`) и прогреваются перед
+готовностью HTTP-сервера. Первый запуск скачивает веса; дождитесь healthy Vision и Celery.
+В существующем `.env` обновите `VISION_SERVICE_TIMEOUT_SECONDS=60.0`,
+`CELERY_TASK_SOFT_TIME_LIMIT_SECONDS=90`, `CELERY_TASK_TIME_LIMIT_SECONDS=120`.
+После изменения настроек пересоздайте контейнеры через `docker compose --env-file .env up -d`.
+
 Celery использует Redis как broker/result backend. Upload endpoint не ждёт Vision: клиент получает `scan_id`, затем опрашивает `GET /api/v1/food-scans/{id}/results/` до статуса `needs_confirmation`, `failed` или `confirmed`.

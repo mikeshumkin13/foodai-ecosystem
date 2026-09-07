@@ -57,6 +57,11 @@ feature-ветками и объединяется в `feature/mvp-high-priority
 - Fresh v2 smoke-test прошёл: migrations применены в корректном порядке,
   PostgreSQL/Redis/backend healthy, `migrate --check` и health endpoint прошли.
 - Recovery regression tests: `3 passed`; shell syntax, Compose recovery config и Ruff прошли.
+- Этап 30, `feature/vision-runtime-connectivity`: исправлен HIGH-разрыв local scan между
+  private storage и Vision; добавлены общий read-only mount, persistent model cache,
+  прогрев модели до готовности сервера и согласованные timeout budgets.
+- Добавлены regression tests конфигурации storage, прогрева и времени обработки;
+  окончательная проверка выполняется на интеграционной ветке этапа 30.
 
 - Создан каталог `foodai-ecosystem`.
 - Внутри каталога инициализирован Git-репозиторий.
