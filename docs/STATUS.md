@@ -62,6 +62,12 @@ feature-ветками и объединяется в `feature/mvp-high-priority
   прогрев модели до готовности сервера и согласованные timeout budgets.
 - Добавлены regression tests конфигурации storage, прогрева и времени обработки;
   окончательная проверка выполняется на интеграционной ветке этапа 30.
+- Этап 30, `feature/scan-confirmation-postgres`: устранён BLOCKER первого подтверждения scan
+  в PostgreSQL (`FOR UPDATE cannot be applied to the nullable side of an outer join`).
+- Блокировка ограничена строкой FoodScan через `select_for_update(of=("self",))`;
+  nullable `confirmed_meal` по-прежнему загружается, повторное подтверждение возвращает тот же Meal.
+- Добавлен regression test первой и повторной операции с проверкой SQL locking clause на PostgreSQL.
+- Проверка на реальной тестовой PostgreSQL базе: `1 passed`; Ruff прошёл.
 
 - Создан каталог `foodai-ecosystem`.
 - Внутри каталога инициализирован Git-репозиторий.
