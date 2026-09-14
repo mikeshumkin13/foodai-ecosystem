@@ -96,6 +96,25 @@ production требует заранее полученный persistent cache �
 выборке явно недостаточен для обещаний accuracy. Baseline подтверждает работоспособность
 multi-region pipeline и обнаруживает полную регрессию, но не подтверждает production-качество.
 
+## Повторная проверка этапа 30
+
+2026-09-07 тот же pinned pipeline повторно проверен в CPU Docker container с read-only cache,
+`--network none`, `HF_HUB_OFFLINE=1` и `TRANSFORMERS_OFFLINE=1`. Пользовательские фотографии и
+внешние платные API не использовались.
+
+| Метрика | Результат |
+|---|---:|
+| Число crop | `8` |
+| `multi_region_rate` | `1.0` |
+| `expected_label_recall` | `0.48` |
+| `confidence_coverage` | `1.0` |
+| `latency_ms_avg` | `18482.812` |
+| `latency_ms_p50` | `15817.995` |
+
+Exploratory gate пройден; первый sample с инициализацией занял `35923.111 ms`.
+Разница latency с baseline зависит от локальной нагрузки. Значения не являются SLA.
+Функциональный scan через HTTP/Celery проверяется отдельно в `MVP_QA_REPORT.md`.
+
 ## Ограничения
 
 - Grounding DINO возвращает bounding boxes, а не ingredient segmentation masks.

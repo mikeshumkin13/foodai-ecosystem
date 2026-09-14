@@ -1,12 +1,32 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-09-07
+Last updated / Обновлено: 2026-09-14
 
 ## Текущий завершённый этап
 
-ЭТАП 30, PROMPT 30 — исправление BLOCKER/CRITICAL/HIGH проблем выполняется отдельными
-feature-ветками и объединяется в `feature/mvp-high-priority-integration`; merge в `develop` и
-`main` не выполнялся.
+ЭТАП 30, PROMPT 30 завершён локально: BLOCKER/CRITICAL/HIGH из MVP QA устранены,
+регрессионные проверки и повторный MVP flow прошли. Семь независимых feature-веток собраны
+в `feature/mvp-high-priority-integration`; ветки сохранены. Merge в `develop` и `main`
+не выполнялся, GitHub PR/CI не заявляются пройденными.
+
+## Итог этапа 30
+
+- Закрыты 4 BLOCKER и 8 HIGH, включая два дефекта, найденных повторным QA. CRITICAL не обнаружены.
+- Сохранены отдельные группы frontend, Celery, AI provider, Vision, PostgreSQL recovery,
+  Vision runtime и PostgreSQL scan confirmation. MEDIUM/LOW не исправлялись.
+- Ruff, mypy (183 files), Django checks, 287 Python tests (coverage 88.02%), migration/OpenAPI
+  validation и `pip check` прошли. PostgreSQL regression: 36 tests passed.
+- Frontend frozen install, lint (69 files), TypeScript, Vitest (21 tests), production build,
+  3 desktop и 3 дополнительных mobile Playwright сценария прошли.
+- Docker backend/Vision/Celery images собраны 2026-09-14; все 5 сервисов healthy.
+- Реальный API flow с PostgreSQL, Redis, Celery и Vision повторён на финальных образах:
+  register/verify/login, profile, photo, estimate/correction, confirm, manual meal, diary,
+  snapshots, two-user isolation, export и удаление данных. QA-данные очищены.
+- Финальная Vision-обработка: 23.01 секунды, 3 proposals. AI summary проверен с mocked LLM,
+  без платного API и реальной SMTP-доставки. Все proposals требуют подтверждения.
+- Остаются 5 MEDIUM и 2 LOW из `docs/MVP_QA_REPORT.md`, низкое exploratory качество Vision
+  и отдельные production requirements. Это не разрешение на production launch.
+- Подробности, ветки и commits: `docs/MVP_QA_REPORT.md`; предлагаемый PR: `docs/STAGE30_PR.md`.
 
 ## Состояние
 
@@ -61,7 +81,7 @@ feature-ветками и объединяется в `feature/mvp-high-priority
   private storage и Vision; добавлены общий read-only mount, persistent model cache,
   прогрев модели до готовности сервера и согласованные timeout budgets.
 - Добавлены regression tests конфигурации storage, прогрева и времени обработки;
-  окончательная проверка выполняется на интеграционной ветке этапа 30.
+  окончательная проверка пройдена на интеграционной ветке этапа 30.
 - Этап 30, `feature/scan-confirmation-postgres`: устранён BLOCKER первого подтверждения scan
   в PostgreSQL (`FOR UPDATE cannot be applied to the nullable side of an outer join`).
 - Блокировка ограничена строкой FoodScan через `select_for_update(of=("self",))`;
@@ -662,5 +682,5 @@ feature-ветками и объединяется в `feature/mvp-high-priority
 
 ## Следующий этап
 
-Остановиться после PROMPT 29. Feature-ветки из QA report создавать только после явной команды
-пользователя.
+Остановиться после PROMPT 30. Следующий этап, исправления MEDIUM/LOW и действия с GitHub
+выполнять только по отдельной команде пользователя.

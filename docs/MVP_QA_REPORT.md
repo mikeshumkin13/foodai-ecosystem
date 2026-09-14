@@ -1,5 +1,122 @@
 # MVP QA Report / Отчёт по качеству MVP
 
+## Повторная проверка этапа 30
+
+Завершено: 2026-09-14. Интеграционная ветка: `feature/mvp-high-priority-integration`.
+Проверяемый код: `e09f085` (ниже сохранён исходный аудит этапа 29).
+
+**Этап 30 завершён в локальной интеграционной ветке.** Исправления 12 BLOCKER/HIGH находок
+собраны из семи независимых feature-веток. Все обязательные локальные проверки прошли;
+основной MVP flow повторно выполнен после финальной Docker-сборки.
+MEDIUM/LOW намеренно не исправлялись. Merge в `develop` и `main` не выполнялся.
+
+| Severity | Исправлено в этапе 30 | Осталось в границах QA |
+|---|---:|---:|
+| BLOCKER | 4 | 0 |
+| CRITICAL | 0 | 0 |
+| HIGH | 8 | 0 |
+| MEDIUM | 0 | 5 |
+| LOW | 0 | 2 |
+
+В число исправлений включены две дополнительные находки повторного QA: 018 и 019.
+
+### Группы исправлений
+
+| Ветка | Commit | Находки |
+|---|---|---|
+| `feature/mvp-frontend-flow` | `aa490e5` | 001, 002, 003, 004, 009: onboarding, session, profile, coach, browser tests |
+| `feature/celery-enqueue-resilience` | `bc011b4` | 005: recoverable broker enqueue failure |
+| `feature/ai-provider-production` | `2f3bb11` | 006, 007: provider abstraction, timeout, output schema и 503 |
+| `feature/vision-mvp-validation` | `aa78e30` | 008: multi-region inference и licensed exploratory benchmark |
+| `feature/dev-postgres-migration-recovery` | `8a6bca7` | 010: versioned volume, inspect/backup без удаления старой БД |
+| `feature/vision-runtime-connectivity` | `0a204de` | 018: private mount, warm-up и timeout budgets |
+| `feature/scan-confirmation-postgres` | `674a63a` | 019: блокировка только FoodScan, без nullable outer join lock |
+
+Frontend-связанные исправления разделены на осмысленные commits внутри одной группы. Security,
+broker, database recovery и ML runtime не смешивались с frontend commits. Все ветки сохранены.
+
+### Сквозной сценарий
+
+2026-09-10, затем повторно 2026-09-14 на финальных Docker-образах выполнен локальный smoke
+через Django APIClient с настоящими cookie sessions и
+`enforce_csrf_checks=True`. Использовались PostgreSQL 16, Redis, отдельный Celery worker и
+реальная прогретая Vision-модель. Celery eager mode отключён. Два временных QA-пользователя
+зарегистрированы через API; email verification прочитана из in-memory mail backend.
+
+| Шаг | Результат |
+|---|---|
+| Register → verification → login | PASS: два независимых активированных аккаунта и cookie sessions |
+| Profile | PASS: owner-only чтение/сохранение, consent; чужой UUID возвращает 404 |
+| Photo → Celery → Vision | PASS: реальный JPEG из разрешённого fixture, асинхронный анализ и `needs_confirmation` |
+| Detected food → estimated portion | PASS: proposals/оценка поступили из реального pipeline; точность массы не заявляется |
+| Correction | PASS: исправление food/200 г, удаление лишних и добавление chicken/100 г; исходная оценка сохранена |
+| Calculation → confirm | PASS: rice 200 г = 260 ккал; 2 MealItem; повторный confirm возвращает тот же Meal |
+| Ручное добавление без AI | PASS: отдельный snack rice 50 г; не зависит от Vision/Celery |
+| Snapshot → diary | PASS: изменение тестового FoodNutrient не меняет MealItem; 2 приёма пищи, 490 ккал за дату |
+| Cross-user isolation | PASS: чужие profile, scan/results/confirm, meal и photo delete возвращают 404; чужой дневник пуст |
+| AI nutrition summary | PASS: schema и дневные агрегаты проверены с mocked LLM; context без email/UUID, история не сохраняется |
+| Export → photo/account delete | PASS: экспорт без password/object key, файл удалён из storage, второй аккаунт не затронут |
+| Cleanup | PASS: удалены только созданные QA-аккаунты, фото и food entries; audit records сохранены |
+
+Последний асинхронный анализ занял 23.01 секунды и вернул 3 предложения. Дополнительно проверены
+наличие первоначальной оценки, `min_estimate <= estimated_mass <= max_estimate` и confidence
+в диапазоне `[0, 1]`. Это наблюдение на одном fixture, не SLA или оценка accuracy.
+
+Dashboard и пользовательские переходы дополнительно покрываются production-browser Playwright
+сценариями; там API детерминированно подменён. Это два дополняющих уровня проверки, а не заявление
+о едином browser-тесте со всеми production-зависимостями. Реальная доставка SMTP и платный LLM API
+не вызывались. Отказы Vision/Celery/AI, роли support/content_manager/admin, privacy и safety
+проверяются отдельными автоматическими regression tests.
+
+PostgreSQL regression gate: **36 passed** за 48.60 секунды. Проверялись
+`test_postgres_confirmation.py`, `test_scan_orchestration.py`, `test_background_jobs.py` и
+`test_food_diary_api.py` на отдельной тестовой БД, без замены PostgreSQL на SQLite.
+
+### Итоговые проверки
+
+| Проверка | Результат |
+|---|---|
+| Ruff | PASS |
+| mypy backend/Vision | PASS, 183 source files |
+| Django system check | PASS |
+| Общий pytest backend/Vision/contract | PASS, 287 tests; coverage 88.02%, минимум 80% |
+| PostgreSQL regression | PASS, 36 tests на отдельной тестовой PostgreSQL БД |
+| Migration dry-run / applied migrations | PASS, нет drift и неприменённых migrations |
+| OpenAPI validation / `pip check` | PASS |
+| Frontend frozen install | PASS, lockfile не изменён, 412 packages из cache |
+| Frontend lint / TypeScript | PASS, lint 69 files |
+| Vitest | PASS, 12 files / 21 tests |
+| Next.js production build | PASS, 13 static pages generated |
+| Playwright Desktop Chromium | PASS, 3 tests |
+| Дополнительный Mobile Chromium 390×844 | PASS, те же 3 сценария; QA-скриншоты просмотрены |
+| Docker Compose config / backend, Vision, Celery build | PASS |
+| Финальный Compose startup | PASS, PostgreSQL/Redis/backend/Vision/Celery: 5/5 healthy |
+| Реальный scan/diary/privacy smoke | PASS на пересобранных образах 2026-09-14 |
+| Реальный offline Vision benchmark | PASS exploratory gate; recall 0.48, 8 crop, см. `VISION_VALIDATION.md` |
+| Production deploy check | PASS с известным `foodai_security.W002` о local storage |
+| `git diff --check` | PASS |
+
+Python-часть `make check` прошла 2026-09-10 на том же коде `e09f085`. Frontend-часть первоначально
+остановилась из-за sandbox `ENOTFOUND` при доступе к npm/package store. После frozen install
+с разрешённым доступом `pnpm check` полностью прошёл 2026-09-14. Проверки не отключались,
+пороги coverage/benchmark не снижались ради завершения. Остаётся известный сторонний
+`StarletteDeprecationWarning`; в Playwright есть не влияющее на результат предупреждение NO_COLOR.
+
+### Границы результата
+
+- Vision exploratory recall `0.48` на восьми crop не доказывает пользовательскую точность;
+  benchmark и CPU latency приведены в `VISION_VALIDATION.md`. Любой scan требует подтверждения.
+- Portion estimation остаётся оценкой по ограниченным данным, не измерением точной массы.
+- LLM transport проверен mocked HTTP/LLM tests; live quality, RU/EN safety eval и доступность
+  выбранной модели в конкретном provider account требуют отдельной проверки.
+- MEDIUM: runtime RU/EN, password recovery UI, PostgreSQL/Redis CI, deletion compensation и
+  production private S3. LOW: TestClient warning и Docker dependency cache.
+- Локальные feature-ветки не отправлялись в GitHub на этапе итоговой интеграции; PR/remote CI и
+  merge не заявляются выполненными. `main` и `develop` не изменены.
+- Закрытие этапа 30 не означает готовность к production или отсутствие иных уязвимостей.
+
+## Исходные данные этапа 29
+
 Дата аудита: 2026-08-26
 
 Проверяемая ветка: `develop`
@@ -8,7 +125,7 @@
 
 Режим работы: аудит без создания feature-ветки и без исправления найденных проблем.
 
-## Итог
+## Исходный итог этапа 29
 
 **Вердикт: MVP пока не готов к пользовательскому release.**
 
@@ -27,7 +144,7 @@ Backend-домен, permissions, snapshots, nutrition calculation, privacy found
 | MEDIUM | 5 |
 | LOW | 2 |
 
-## Методика
+## Методика этапа 29
 
 - Выполнен статический аудит Django, FastAPI, Celery и Next.js слоёв.
 - Проверены API routes, permissions, object ownership, storage boundaries и frontend API clients.
@@ -42,7 +159,7 @@ Backend-домен, permissions, snapshots, nutrition calculation, privacy found
 - Полного browser E2E теста нет в проекте; это отдельная находка аудита, а не доказательство
   успешного пользовательского сценария.
 
-## Основной сценарий
+## Основной сценарий на момент этапа 29
 
 | Шаг | Статус | Результат |
 |---|---|---|
@@ -60,7 +177,7 @@ Backend-домен, permissions, snapshots, nutrition calculation, privacy found
 | Dashboard | PASS | Показывает дневные calories, target, БЖУ и meals; зависит от API profile, который нельзя заполнить через UI. |
 | AI nutrition summary | FAIL | Backend endpoint есть, но frontend route/client/экран отсутствуют; production LLM provider не подключён. |
 
-## Дополнительные сценарии
+## Дополнительные сценарии на момент этапа 29
 
 | Сценарий | Статус | Результат |
 |---|---|---|
@@ -235,6 +352,33 @@ recovery path и проверка, есть ли в старой БД ценны
 PostgreSQL/Redis/backend стали healthy, `migrate --check` и `/api/v1/health/` прошли. Если на другой
 машине legacy volume содержит данные, остаётся обязательным отдельный контролируемый data migration.
 
+## Дополнительные находки при повторной проверке этапа 30
+
+### MVP-QA-018 (HIGH) — healthy Vision не мог обработать локальную фотографию
+
+У Vision отсутствовал mount приватного каталога, в который backend сохраняет подготовленное
+изображение. Кроме того, прежний timeout 2 секунды был короче измеренного CPU inference.
+Health endpoint без загрузки модели не доказывал готовность к анализу.
+
+**Исправление:** `feature/vision-runtime-connectivity`, commit `0a204de`. Один private каталог
+монтируется в backend/Celery и только для чтения в Vision. Добавлены persistent model cache,
+прогрев в том же процессе до запуска HTTP и согласованные бюджеты времени 60/90/120 секунд.
+Контракт проверяется `backend/core/tests/test_vision_runtime.py`; архитектура описана в ADR-0034.
+Это локальная файловая интеграция, а не реализация production S3.
+
+### MVP-QA-019 (BLOCKER) — первое подтверждение scan падало в PostgreSQL
+
+Живой сквозной тест остановился на `POST /food-scans/{id}/confirm/`:
+`FOR UPDATE cannot be applied to the nullable side of an outer join`.
+`select_related("confirmed_meal")` создавал nullable outer join, к которому применялась блокировка.
+SQLite не выявляла ошибку, поскольку не выполняет такую блокировку строк.
+
+**Исправление:** `feature/scan-confirmation-postgres`, commit `674a63a`.
+`select_for_update(of=("self",))` блокирует только FoodScan; transaction и проверка уже созданного
+Meal сохраняются. Добавлен regression test первого и повторного подтверждения, количества
+Meal/MealItem и фактического PostgreSQL SQL locking clause. Тест прошёл на PostgreSQL.
+Необходимость PostgreSQL/Redis job в CI (MVP-QA-013) остаётся отдельной MEDIUM-задачей.
+
 ## MEDIUM
 
 ### MVP-QA-011 — выбор русского/английского языка не применяется
@@ -292,7 +436,7 @@ Dockerfile копирует backend source до `pip install -e ".[dev]"`, по�
 - Export/delete ownership, account deletion happy path и audit events.
 - AI safety/moderation и минимизация передаваемого provider context.
 
-## Выполненные проверки
+## Выполненные проверки этапа 29
 
 | Проверка | Результат |
 |---|---|
@@ -316,9 +460,10 @@ Dockerfile копирует backend source до `pip install -e ".[dev]"`, по�
 | `pip check` | PASS, broken requirements отсутствуют |
 | Temporary failure probes | PASS: подтверждены два ожидаемых дефекта HTTP 500 |
 
-## Предлагаемые feature branches
+## Исходный список feature branches этапа 29
 
-Ветки перечислены в порядке выполнения. На этом этапе они **не создавались**.
+Ветки перечислены в порядке, предложенном аудитом. На этапе 29 они **не создавались**.
+Фактические группы исправлений этапа 30 перечисляются отдельно; MEDIUM/LOW не входят в его scope.
 
 1. `feature/mvp-onboarding-flow` — email verification/resend UI, корректный post-register state.
 2. `feature/frontend-nutrition-profile` — рабочая profile form, consent и сохранение.
@@ -337,7 +482,7 @@ Dockerfile копирует backend source до `pip install -e ".[dev]"`, по�
 15. `feature/production-object-storage` — private S3-compatible backend и signed access policy.
 16. `feature/dependency-maintenance` — TestClient/httpx compatibility и Docker cache layers.
 
-## Release gate
+## Исходный release gate этапа 29
 
 До MVP release необходимо закрыть все BLOCKER, повторить полный backend/frontend quality gate и
 добавить browser E2E для основного пользовательского сценария. HIGH findings по Celery/AI failure
