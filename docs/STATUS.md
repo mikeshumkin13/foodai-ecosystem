@@ -1,12 +1,93 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-08-25
+Last updated / Обновлено: 2026-09-14
 
 ## Текущий завершённый этап
 
-ЭТАП 28, PROMPT 28 — logging и monitoring завершены.
+ЭТАП 30, PROMPT 30 завершён локально: BLOCKER/CRITICAL/HIGH из MVP QA устранены,
+регрессионные проверки и повторный MVP flow прошли. Семь независимых feature-веток собраны
+в `feature/mvp-high-priority-integration`; ветки сохранены. Merge в `develop` и `main`
+не выполнялся, GitHub PR/CI не заявляются пройденными.
+
+## Итог этапа 30
+
+- Закрыты 4 BLOCKER и 8 HIGH, включая два дефекта, найденных повторным QA. CRITICAL не обнаружены.
+- Сохранены отдельные группы frontend, Celery, AI provider, Vision, PostgreSQL recovery,
+  Vision runtime и PostgreSQL scan confirmation. MEDIUM/LOW не исправлялись.
+- Ruff, mypy (183 files), Django checks, 287 Python tests (coverage 88.02%), migration/OpenAPI
+  validation и `pip check` прошли. PostgreSQL regression: 36 tests passed.
+- Frontend frozen install, lint (69 files), TypeScript, Vitest (21 tests), production build,
+  3 desktop и 3 дополнительных mobile Playwright сценария прошли.
+- Docker backend/Vision/Celery images собраны 2026-09-14; все 5 сервисов healthy.
+- Реальный API flow с PostgreSQL, Redis, Celery и Vision повторён на финальных образах:
+  register/verify/login, profile, photo, estimate/correction, confirm, manual meal, diary,
+  snapshots, two-user isolation, export и удаление данных. QA-данные очищены.
+- Финальная Vision-обработка: 23.01 секунды, 3 proposals. AI summary проверен с mocked LLM,
+  без платного API и реальной SMTP-доставки. Все proposals требуют подтверждения.
+- Остаются 5 MEDIUM и 2 LOW из `docs/MVP_QA_REPORT.md`, низкое exploratory качество Vision
+  и отдельные production requirements. Это не разрешение на production launch.
+- Подробности, ветки и commits: `docs/MVP_QA_REPORT.md`; предлагаемый PR: `docs/STAGE30_PR.md`.
 
 ## Состояние
+
+- В `feature/mvp-frontend-flow` устранены MVP-QA-001 и MVP-QA-004: web onboarding ожидает email
+  verification, добавлен verification/resend UI, единый session provider, protected route guard,
+  logout, session refresh и корректная очистка CSRF cache после ротации token.
+- В `feature/mvp-frontend-flow` устранён MVP-QA-002: nutrition profile загружается и сохраняется
+  через owner-only API, форма использует backend enum/field contract, требует consent и преобразует
+  выбранные imperial units в единую внутреннюю систему `cm/kg` на API boundary.
+- В `feature/mvp-frontend-flow` устранён MVP-QA-003: добавлен `/coach`, typed AI coach API client,
+  structured response/safety UI и управление consent на историю; сохранение отдельного ответа
+  остаётся выключенным по умолчанию.
+- В `feature/mvp-frontend-flow` устранён MVP-QA-009: Playwright Chromium проверяет onboarding,
+  protected dashboard, profile, AI summary и scan confirmation/diary flow; browser tests добавлены
+  в обязательный frontend CI job без production secrets.
+- В `feature/celery-enqueue-resilience` устранён MVP-QA-005: broker enqueue failure больше не даёт
+  HTTP 500 и не оставляет ложный `uploaded`; scan получает `failed/task_enqueue_failed`, task/run
+  metadata инвалидируются безопасно, user retry остаётся доступен без automatic retry storm.
+- В `feature/ai-provider-production` устранены MVP-QA-006/007: добавлен production OpenAI Responses
+  adapter с `gpt-5.6-luna`, strict output schema, real timeout, generic HTTP 503 и безопасной
+  telemetry; provider abstraction, минимизация context и pre/post safety layer сохранены.
+- Создана ветка `feature/vision-mvp-validation` от audit baseline этапа 29.
+- Vision v1 расширен Grounding DINO Tiny multi-region detector с pinned revision, safetensors,
+  bounded NMS и optional bounding boxes в internal contract.
+- Detector labels нормализуются к allowlist; Food-101 classifier используется только для общих
+  regions и full-image fallback.
+- Добавлен разрешённый exploratory fixture FoodSeg103, attribution, benchmark thresholds и
+  отдельный `docs/VISION_VALIDATION.md`.
+- Реальный cached-model benchmark на восьми multi-food crop пройден: multi-region rate `1.0`,
+  expected label recall `0.48`, confidence coverage `1.0`, CPU p50 `12428.854 ms`.
+- Accuracy не обещается: ложные/повторные detections, CPU latency и отсутствие segmentation
+  остаются явно документированными рисками; пользовательское подтверждение обязательно.
+- Узкие Vision/backend contract tests: `54 passed`; Ruff и scoped mypy прошли.
+- Полный Python quality gate: `267 passed`, coverage `88.49%`, Ruff, mypy по 179 source files и
+  Django system check прошли; остаётся одно стороннее `StarletteDeprecationWarning`.
+- Frontend quality gate после frozen offline dependency verification: lint 55 files, TypeScript,
+  Vitest `7 files / 10 tests` и Next.js production build прошли.
+- Migration drift check, OpenAPI validation, `pip check` и `docker compose config --quiet` прошли.
+- Production deploy check прошёл с известным warning `foodai_security.W002` о local filesystem
+  storage, который должен быть заменён private S3-compatible adapter до production.
+- Docker images `backend`, `vision` и `celery_worker` успешно пересобраны.
+- В `feature/dev-postgres-migration-recovery` default local PostgreSQL переведён на versioned volume
+  `foodai-ecosystem_postgres_data_v2`; legacy volume не удаляется и не переиспользуется.
+- Добавлен `scripts/postgres-volume-recovery.sh` для non-destructive inspect и custom-format backup
+  legacy volume через отдельный external Compose override.
+- Старый local volume проверен: применены только `admin.0001–0003`, `auth_user=0`, FoodAI domain
+  tables отсутствуют; backup создан и проверен через `pg_restore --list`.
+- Fresh v2 smoke-test прошёл: migrations применены в корректном порядке,
+  PostgreSQL/Redis/backend healthy, `migrate --check` и health endpoint прошли.
+- Recovery regression tests: `3 passed`; shell syntax, Compose recovery config и Ruff прошли.
+- Этап 30, `feature/vision-runtime-connectivity`: исправлен HIGH-разрыв local scan между
+  private storage и Vision; добавлены общий read-only mount, persistent model cache,
+  прогрев модели до готовности сервера и согласованные timeout budgets.
+- Добавлены regression tests конфигурации storage, прогрева и времени обработки;
+  окончательная проверка пройдена на интеграционной ветке этапа 30.
+- Этап 30, `feature/scan-confirmation-postgres`: устранён BLOCKER первого подтверждения scan
+  в PostgreSQL (`FOR UPDATE cannot be applied to the nullable side of an outer join`).
+- Блокировка ограничена строкой FoodScan через `select_for_update(of=("self",))`;
+  nullable `confirmed_meal` по-прежнему загружается, повторное подтверждение возвращает тот же Meal.
+- Добавлен regression test первой и повторной операции с проверкой SQL locking clause на PostgreSQL.
+- Проверка на реальной тестовой PostgreSQL базе: `1 passed`; Ruff прошёл.
 
 - Создан каталог `foodai-ecosystem`.
 - Внутри каталога инициализирован Git-репозиторий.
@@ -294,6 +375,20 @@ Last updated / Обновлено: 2026-08-25
   context; `audit.AuditLog` остаётся отдельным authoritative security trail.
 - Добавлены automated tests для redaction, correlation ID, HTTP metrics, error-monitoring boundary,
   security event separation, tag allowlist, AI latency и Vision/Celery/scan metrics.
+- PROMPT 29 выполнен как аудит на `develop` без автоматического создания feature-ветки и без
+  изменения application code.
+- Создан `docs/MVP_QA_REPORT.md` с матрицей основного MVP flow, ролей, IDOR, privacy и отказных
+  сценариев.
+- Аудит выявил 3 BLOCKER, 0 CRITICAL, 7 HIGH, 5 MEDIUM и 2 LOW findings; MVP пока не готов к
+  пользовательскому release.
+- Подтверждены frontend-разрывы onboarding/email verification, nutrition profile и AI nutrition
+  summary.
+- Временными failure probes подтверждены HTTP 500 при runtime exception AI provider и при отказе
+  Celery broker во время enqueue; probe-файлы находились в `/tmp` и репозиторий не изменяли.
+- Compose smoke-test выявил несовместимую migration history в существующем local PostgreSQL volume;
+  fresh isolated database успешно применила все migrations, после чего все пять сервисов стали
+  healthy и backend health endpoint вернул `ok`.
+- Сформирован упорядоченный список будущих feature-веток для исправлений; сами ветки не создавались.
 
 ## Проверки
 
@@ -551,7 +646,41 @@ Last updated / Обновлено: 2026-08-25
 - `docker compose --env-file .env build backend vision celery_worker` — первый запуск был
   заблокирован sandbox-доступом к Docker buildx activity; повтор с разрешённым Docker Desktop
   доступом passed, backend, Vision и Celery worker images собраны.
+- `make check` — passed для PROMPT 29: Ruff без ошибок, mypy без ошибок в 177 source files, Django
+  system check без ошибок, pytest 249 passed, coverage 88.66%; frontend lint прошёл 55 files,
+  TypeScript typecheck passed, Vitest 7 test files / 10 tests passed, Next.js production build
+  сгенерировал 11 routes.
+- `backend/manage.py makemigrations --check --dry-run` с безопасными test env — passed, no changes
+  detected.
+- `backend/manage.py spectacular --validate --file /tmp/foodai-mvp-qa-openapi.yml` — passed,
+  OpenAPI schema валидируется без ошибок.
+- `backend/manage.py check --deploy --settings=config.settings.production` с production-like
+  конфигурацией — passed; остаётся известный warning `foodai_security.W002` о local filesystem
+  storage до production S3-compatible backend.
+- `.venv/bin/python -m pip check` — passed, broken requirements не найдены; pip сообщил только
+  локальное cache permission warning.
+- `docker compose --env-file .env config --quiet` — passed.
+- `docker compose --env-file .env build backend vision celery_worker` — passed после запуска Docker
+  Desktop; backend, Vision и Celery worker images собраны.
+- Два временных pytest failure probe — passed и подтвердили текущие дефекты: AI provider runtime
+  failure возвращает HTTP 500; Celery enqueue failure возвращает HTTP 500 и оставляет scan в
+  `uploaded` без реально поставленной задачи.
+- `docker compose up` на существующем default volume — failed: backend получил
+  `InconsistentMigrationHistory` для `admin.0001_initial`/`accounts.0001_initial`.
+- Isolated Compose startup на свежих volumes — passed: PostgreSQL, Redis, Vision, backend и Celery
+  worker healthy, все Django migrations применены, `/api/v1/health/` вернул `{"status":"ok"}`.
+- Проверки `feature/ai-provider-production`: targeted Ruff и mypy passed; 23 AI coach tests passed.
+- Полный Python/Vision gate для AI provider группы: Ruff passed, mypy passed для 178 source files,
+  Django system check passed, 259 tests passed, coverage 88.17%; остаётся одно стороннее
+  `StarletteDeprecationWarning` из FastAPI TestClient.
+- Frontend regression gate после синхронизации frozen lockfile: lint 55 files, TypeScript typecheck,
+  Vitest 7 files / 10 tests и Next.js production build — passed.
+- Migration dry-run и OpenAPI validation для AI provider группы — passed; production deploy check
+  passed с известным `foodai_security.W002` о local photo storage.
+- `pip check`, `docker compose config --quiet`, `git diff --check` и Docker backend image build —
+  passed.
 
 ## Следующий этап
 
-Остановиться после PROMPT 28. Следующую задачу начинать только после явной команды пользователя.
+Остановиться после PROMPT 30. Следующий этап, исправления MEDIUM/LOW и действия с GitHub
+выполнять только по отдельной команде пользователя.

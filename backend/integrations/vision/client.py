@@ -40,11 +40,20 @@ class VisionPortionReference:
 
 
 @dataclass(frozen=True)
+class VisionBoundingBox:
+    left: float
+    top: float
+    right: float
+    bottom: float
+
+
+@dataclass(frozen=True)
 class VisionDetectedItem:
     label: str
     confidence: float
     segment_area_px: float | None = None
     portion_reference: VisionPortionReference | None = None
+    bounding_box: VisionBoundingBox | None = None
 
 
 @dataclass(frozen=True)
@@ -155,6 +164,7 @@ def _parse_detected_item(item: Any) -> VisionDetectedItem:
         confidence=normalized_confidence,
         segment_area_px=_parse_optional_positive_float(item.get("segment_area_px")),
         portion_reference=_parse_optional_portion_reference(item.get("portion_reference")),
+        bounding_box=_parse_optional_bounding_box(item.get("bounding_box")),
     )
 
 
@@ -181,6 +191,37 @@ def _parse_optional_positive_float(value: Any) -> float | None:
     if isinstance(value, bool) or not isinstance(value, int | float):
         raise VisionInvalidResponseError
     normalized_value = float(value)
+    if normalized_value <= 0:
+        raise VisionInvalidResponseError
+    return normalized_value
+
+
+def _parse_optional_bounding_box(value: Any) -> VisionBoundingBox | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise VisionInvalidResponseError
+
+    left = _parse_nonnegative_float(value.get("left"))
+    top = _parse_nonnegative_float(value.get("top"))
+    right = _parse_positive_float(value.get("right"))
+    bottom = _parse_positive_float(value.get("bottom"))
+    if right <= left or bottom <= top:
+        raise VisionInvalidResponseError
+    return VisionBoundingBox(left=left, top=top, right=right, bottom=bottom)
+
+
+def _parse_nonnegative_float(value: Any) -> float:
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise VisionInvalidResponseError
+    normalized_value = float(value)
+    if normalized_value < 0:
+        raise VisionInvalidResponseError
+    return normalized_value
+
+
+def _parse_positive_float(value: Any) -> float:
+    normalized_value = _parse_nonnegative_float(value)
     if normalized_value <= 0:
         raise VisionInvalidResponseError
     return normalized_value

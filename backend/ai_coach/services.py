@@ -12,8 +12,10 @@ from ai_coach.context import AICoachContext, build_ai_coach_context
 from ai_coach.models import AICoachMessage, AICoachSettings
 from ai_coach.providers import (
     AICoachProvider,
+    AICoachProviderError,
     AICoachProviderRequest,
     AICoachProviderResponse,
+    AICoachProviderRuntimeError,
     get_ai_coach_provider,
 )
 from ai_coach.safety import (
@@ -85,11 +87,16 @@ def ask_nutrition_coach(
         context=context,
         output_schema_version=AI_COACH_OUTPUT_SCHEMA_VERSION,
     )
-    provider_response = call_with_ai_provider_metrics(
-        assistant="nutrition",
-        provider=resolved_provider.name,
-        operation=lambda: resolved_provider.generate(provider_request),
-    )
+    try:
+        provider_response = call_with_ai_provider_metrics(
+            assistant="nutrition",
+            provider=resolved_provider.name,
+            operation=lambda: resolved_provider.generate(provider_request),
+        )
+    except AICoachProviderError:
+        raise
+    except Exception as exc:
+        raise AICoachProviderRuntimeError("ai_coach_provider_runtime_error") from exc
     output_safety = moderate_provider_text(_provider_response_text(provider_response))
     if output_safety.blocked:
         return _safety_result(

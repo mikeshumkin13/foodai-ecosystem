@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 from pytest import MonkeyPatch
 
-from vision_service.inference import FoodRecognition, get_food_recognition_model
+from vision_service.inference import BoundingBox, FoodRecognition, get_food_recognition_model
 from vision_service.main import app
 
 
@@ -70,6 +70,53 @@ def test_analyze_uses_food_recognition_model(tmp_path: Path, monkeypatch: Monkey
                 "label": "pizza",
                 "confidence": 0.42,
             }
+        ]
+    }
+
+
+def test_analyze_returns_multiple_detected_regions(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    app.dependency_overrides[get_food_recognition_model] = lambda: StubFoodRecognitionModel(
+        (
+            FoodRecognition(
+                label="rice",
+                confidence=0.72,
+                bounding_box=BoundingBox(left=1, top=2, right=100, bottom=120),
+            ),
+            FoodRecognition(
+                label="grilled chicken",
+                confidence=0.61,
+                bounding_box=BoundingBox(left=110, top=10, right=220, bottom=180),
+            ),
+        ),
+    )
+    client = TestClient(app)
+
+    try:
+        response = client.post("/v1/analyze", json=_valid_analyze_payload(tmp_path, monkeypatch))
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "items": [
+            {
+                "label": "rice",
+                "confidence": 0.72,
+                "bounding_box": {"left": 1.0, "top": 2.0, "right": 100.0, "bottom": 120.0},
+            },
+            {
+                "label": "grilled chicken",
+                "confidence": 0.61,
+                "bounding_box": {
+                    "left": 110.0,
+                    "top": 10.0,
+                    "right": 220.0,
+                    "bottom": 180.0,
+                },
+            },
         ]
     }
 

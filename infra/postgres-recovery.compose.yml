@@ -1,0 +1,4 @@
+volumes:
+  postgres_data:
+    external: true
+    name: ${POSTGRES_VOLUME_NAME:?Set POSTGRES_VOLUME_NAME for recovery}

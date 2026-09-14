@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "@/lib/config";
 import { clearCsrfToken, getCachedCsrfToken, rememberCsrfToken } from "@/lib/csrf";
+import { notifyAuthenticationRequired } from "@/lib/auth/session-events";
 
 import { createApiError } from "./errors";
 
@@ -53,10 +54,27 @@ export async function apiRequest<TResponse>(
   const payload = await parseJson(response);
 
   if (!response.ok) {
+    if (isAuthenticationFailure(response.status, payload)) {
+      notifyAuthenticationRequired();
+    }
     throw createApiError(response.status, payload);
   }
 
   return payload as TResponse;
+}
+
+function isAuthenticationFailure(status: number, payload: unknown): boolean {
+  if (status === 401) {
+    return true;
+  }
+
+  return (
+    status === 403 &&
+    typeof payload === "object" &&
+    payload !== null &&
+    "detail" in payload &&
+    payload.detail === "Authentication credentials were not provided."
+  );
 }
 
 export async function apiBlobRequest(

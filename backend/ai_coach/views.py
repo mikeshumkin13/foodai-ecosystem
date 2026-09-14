@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, cast
 
+from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import APIException
 from rest_framework.request import Request
@@ -11,7 +12,7 @@ from rest_framework.views import APIView
 
 from accounts.models import User
 from ai_coach.permissions import CanUseAICoach
-from ai_coach.providers import AICoachProviderConfigurationError
+from ai_coach.providers import AICoachProviderError
 from ai_coach.serializers import (
     AICoachAskRequestSerializer,
     AICoachAskResponseSerializer,
@@ -20,6 +21,7 @@ from ai_coach.serializers import (
     serialize_ai_coach_response,
 )
 from ai_coach.services import ask_nutrition_coach, get_ai_coach_settings
+from observability.events import report_application_error
 
 
 class AICoachProviderUnavailable(APIException):
@@ -73,7 +75,15 @@ class AICoachAskView(APIView):
                 context_date=serializer.validated_data.get("date"),
                 store_response=serializer.validated_data["store_response"],
             )
-        except AICoachProviderConfigurationError as exc:
+        except AICoachProviderError as exc:
+            report_application_error(
+                event_name="ai_coach_provider_failed",
+                error=exc,
+                metadata={
+                    "operation": "nutrition_coach_generate",
+                    "provider": settings.AI_COACH_PROVIDER,
+                },
+            )
             raise AICoachProviderUnavailable() from exc
 
         return Response(serialize_ai_coach_response(result.to_response_payload()))

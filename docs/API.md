@@ -65,18 +65,18 @@ API не должен привязывать клиентов к одному ч
 - `PATCH /api/v1/meals/{id}/` — изменение собственного приёма пищи; если передан `items`, состав заменяется новым набором snapshot items.
 - `DELETE /api/v1/meals/{id}/` — удаление собственного приёма пищи.
 - `GET /api/v1/diary/day/?date=YYYY-MM-DD` — дневная агрегация собственного дневника: totals по calories/protein/fat/carbs, `micronutrient_totals` и список meals за дату.
-- `POST /api/v1/food-scans/` — загрузка фотографии блюда текущего пользователя. Принимает `multipart/form-data` поле `photo`; backend проверяет фактический формат, strip EXIF/metadata, сохраняет объект в private storage, ставит Vision-анализ в Celery и быстро возвращает `{"scan_id": "...", "status": "uploaded"}`. Результат не создаёт дневник автоматически.
+- `POST /api/v1/food-scans/` — загрузка фотографии блюда текущего пользователя. Принимает `multipart/form-data` поле `photo`; backend проверяет фактический формат, strip EXIF/metadata, сохраняет объект в private storage, ставит Vision-анализ в Celery и быстро возвращает `scan_id` и статус. Обычно статус `uploaded`; при недоступном broker возвращается сохранённый scan со статусом `failed` и внутренним `failure_code=task_enqueue_failed`, доступным через results endpoint. Результат не создаёт дневник автоматически.
 - `GET /api/v1/food-scans/` — список собственных food scans; ответ содержит только metadata без private `object_key` и без постоянного публичного URL.
 - `GET /api/v1/food-scans/{id}/` — metadata собственного food scan по UUID.
 - `GET /api/v1/food-scans/{id}/results/` — результаты собственного scan: status, failure code, confirmed meal id и active detected items с label, Vision confidence, matched food, активной массой `mass_g`, optional `manual_mass_g`, nested `portion_estimate` и proposal nutrient snapshots. Пока scan находится в `uploaded`, `processing` или `failed`, `detected_items` возвращается пустым списком, чтобы не показывать stale proposal results от предыдущего запуска.
-- `POST /api/v1/food-scans/{id}/retry/` — повторно ставит собственный scan в Celery-обработку и возвращает `{"scan_id": "...", "status": "uploaded"}` или текущий `processing`; confirmed scan не переобрабатывается.
+- `POST /api/v1/food-scans/{id}/retry/` — повторно ставит собственный scan в Celery-обработку и возвращает `scan_id` и текущий `uploaded`, `processing` или `failed`; confirmed scan не переобрабатывается. `failed/task_enqueue_failed` означает, что broker снова не принял постановку и retry storm не создавался.
 - `PATCH /api/v1/food-scans/{id}/items/{item_id}/` — исправить detected item: `food_id`, `mass_g` или оба поля. Пересчитывает и сохраняет proposal snapshot, выставляет `manually_corrected=true`; если передан `mass_g`, он сохраняется отдельно как `manual_mass_g`, а исходный `portion_estimate` остаётся доступен для сравнения.
 - `DELETE /api/v1/food-scans/{id}/items/{item_id}/` — удалить ошибочный detected item из active results через soft-delete; удалённый item не попадёт в confirmation.
 - `POST /api/v1/food-scans/{id}/items/` — добавить отсутствующий detected item вручную. Тело: `food_id`, `mass_g`, optional `label`.
 - `POST /api/v1/food-scans/{id}/confirm/` — подтвердить scan и создать `Meal`/`MealItem` только из active matched items. Тело: `meal_type`, optional `logged_at`, optional `name`. Endpoint идемпотентно возвращает существующий meal для уже confirmed scan.
 - `GET /api/v1/ai/coach/settings/` — чтение собственных AI coach settings без `user_id`; возвращает consent state для хранения истории AI-чата.
 - `PATCH /api/v1/ai/coach/settings/` — принять или отозвать consent на историю AI-чата через `chat_history_consent_accepted=true` или `chat_history_consent_revoked=true`.
-- `POST /api/v1/ai/coach/ask/` — запрос к AI Nutrition Coach. Тело: `message`, optional `date`, optional `store_response`. Backend строит минимальный context из цели, дневных агрегатов, dietary preferences и текущего запроса. Ответ использует schema `ai_nutrition_coach_response_v1`: `answer`, `suggestions`, `nutrition_notes`, `warnings`, `safety`, `provider`, `stored`. `stored=true` возможен только при явном chat history consent.
+- `POST /api/v1/ai/coach/ask/` — запрос к AI Nutrition Coach. Тело: `message`, optional `date`, optional `store_response`. Backend строит минимальный context из цели, дневных агрегатов, dietary preferences и текущего запроса. Ответ использует schema `ai_nutrition_coach_response_v1`: `answer`, `suggestions`, `nutrition_notes`, `warnings`, `safety`, `provider`, `stored`. `stored=true` возможен только при явном chat history consent. Timeout, network/runtime failure и invalid provider response возвращают generic `503 ai_coach_provider_unavailable` без raw provider details.
 - `GET /api/v1/fitness/exercises/` — список active exercise catalog items; authenticated read-only доступ для пользователей.
 - `GET /api/v1/fitness/exercises/{id}/` — карточка упражнения по UUID.
 - `POST/PUT/PATCH/DELETE /api/v1/fitness/exercises/` и `/api/v1/fitness/exercises/{id}/` — управление exercise catalog; требуется `accounts.manage_fitness_catalog`.
@@ -99,7 +99,13 @@ API не должен привязывать клиентов к одному ч
 - `DELETE /api/v1/privacy/account/` — удалить аккаунт и связанные данные. Тело: `current_password`. Учитываются private photo objects, PostgreSQL rows, DB sessions, user-scoped cache keys и stale background tasks.
 - Internal Vision API:
   - `GET /health` — health check Vision service. Ответ: `{"status": "ok"}`.
-  - `POST /v1/analyze` — internal endpoint Vision service. Принимает `object_reference` на приватный backend-controlled объект: `scan_id`, `storage_backend`, `object_key`, `content_type`, `checksum_sha256`. Vision v1 читает подготовленное изображение из private local storage, проверяет checksum и возвращает результат real food classifier как `{"items": [{"label": "...", "confidence": 0.0-1.0}]}`. Contract также допускает optional future geometry fields `segment_area_px` и `portion_reference`, но текущая модель обычно возвращает один dish-level top prediction без bounding boxes и portion estimate.
+  - `POST /v1/analyze` — internal endpoint Vision service. Принимает `object_reference` на
+    приватный backend-controlled объект: `scan_id`, `storage_backend`, `object_key`,
+    `content_type`, `checksum_sha256`. Multi-region pipeline возвращает один или несколько items:
+    `{"items": [{"label": "...", "confidence": 0.0-1.0, "bounding_box": {"left": 0, "top": 0, "right": 100, "bottom": 100}}]}`.
+    `bounding_box` optional и обозначает detector rectangle, не segmentation mask. Contract также
+    допускает `segment_area_px` и `portion_reference`, только если их вернёт отдельная
+    segmentation/reference система.
 - `GET /api/v1/schema/` — OpenAPI schema.
 - `GET /api/v1/docs/` — Swagger UI.
 

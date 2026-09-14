@@ -21,9 +21,16 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 pnpm dev
 ```bash
 pnpm lint
 pnpm typecheck
+pnpm test
+pnpm test:e2e
 pnpm build
 pnpm check
 ```
+
+`pnpm test:e2e` выполняет production build, запускает Playwright Chromium и локальный Next.js
+server на `127.0.0.1:3100`.
+Browser tests используют детерминированный mock API и проверяют onboarding, profile/AI summary и
+scan confirmation/diary flow. Установить browser runtime: `pnpm exec playwright install chromium`.
 
 ## Auth и CSRF
 
@@ -33,6 +40,13 @@ Web-клиент использует backend session-cookie схему:
 - запросы к API выполняются с `credentials: "include"`;
 - перед unsafe request frontend получает CSRF через `GET /api/v1/auth/csrf/`;
 - CSRF отправляется в заголовке `X-CSRFToken`.
+
+Регистрация не открывает защищённые страницы до активации аккаунта. Пользователь получает экран
+ожидания письма и может повторить отправку; route `/auth/email/verify` подтверждает одноразовую
+ссылку backend. `AuthSessionProvider` проверяет текущего пользователя, продлевает активную Django
+session через `/auth/refresh/`, централизованно обрабатывает истёкшую сессию и предоставляет logout.
+После ротации session/CSRF frontend очищает только in-memory CSRF cache и получает актуальный token
+перед следующим unsafe request.
 
 API-вызовы должны идти через `src/lib/api`, а презентационные UI components не должны содержать бизнес-логику API.
 
@@ -64,6 +78,22 @@ API-вызовы должны идти через `src/lib/api`, а презен
 `/diary` поддерживает календарную дату, список приёмов пищи, ручное создание еды из nutrition catalog, редактирование и удаление собственных meals.
 
 Ручной diary flow обязателен: пользователь должен иметь возможность вести питание даже при недоступном AI Scan, Vision service или Celery.
+
+## Nutrition Profile
+
+`/profile` загружает профиль через owner-only `GET /api/v1/accounts/nutrition-profiles/me/` и
+сохраняет изменения через detail `PATCH`. Первое сохранение требует явного consent. UI использует
+privacy-friendly age category и не смешивает dietary preferences с аллергиями или медицинскими
+ограничениями. Backend хранит рост и массу в `cm/kg`; при выборе imperial units форма преобразует
+значения на API boundary.
+
+## AI Nutrition Coach
+
+`/coach` использует `GET/PATCH /api/v1/ai/coach/settings/` и
+`POST /api/v1/ai/coach/ask/`. Ответ отображается по schema
+`ai_nutrition_coach_response_v1`: answer, suggestions, nutrition notes, warnings и safety state.
+История выключена по умолчанию. Даже после consent пользователь отдельно выбирает сохранение
+конкретного запроса и ответа; frontend не передаёт email, UUID, фотографии или полную историю.
 
 ## Privacy & Data
 

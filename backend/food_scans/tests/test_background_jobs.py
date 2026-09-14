@@ -14,7 +14,7 @@ from rest_framework.test import APIClient
 from accounts.models import User
 from accounts.tests.factories import make_user
 from diary.models import Meal, MealItem
-from food_scans.jobs import enqueue_food_scan_analysis
+from food_scans.jobs import SCAN_TASK_ENQUEUE_FAILURE_CODE, enqueue_food_scan_analysis
 from food_scans.models import FoodScan
 from food_scans.orchestration import add_manual_detected_item
 from food_scans.tasks import process_food_scan_analysis_task
@@ -79,6 +79,62 @@ def test_enqueue_food_scan_analysis_sets_idempotency_metadata(
     assert isinstance(headers, dict)
     assert isinstance(headers[CELERY_ENQUEUED_AT_HEADER], float)
     assert food_scan.object_key not in str(scheduled_tasks)
+
+
+def test_enqueue_failure_marks_scan_failed_without_sensitive_error_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    food_scan = _make_food_scan()
+    error_reports: list[dict[str, object]] = []
+
+    def fail_apply_async(*args: object, **kwargs: object) -> None:
+        raise ConnectionError("broker unavailable")
+
+    def capture_error_report(**kwargs: object) -> None:
+        error_reports.append(kwargs)
+
+    monkeypatch.setattr(
+        "food_scans.jobs.process_food_scan_analysis_task.apply_async",
+        fail_apply_async,
+    )
+    monkeypatch.setattr("food_scans.jobs.report_application_error", capture_error_report)
+
+    result = enqueue_food_scan_analysis(food_scan=food_scan)
+
+    assert result.status == FoodScan.Status.FAILED
+    assert result.failure_code == SCAN_TASK_ENQUEUE_FAILURE_CODE
+    assert result.analysis_run_id is None
+    assert result.analysis_task_id == ""
+    assert len(error_reports) == 1
+    assert error_reports[0]["metadata"] == {"operation": "food_scan_analysis_enqueue"}
+    assert food_scan.object_key not in str(error_reports)
+
+
+def test_retry_endpoint_returns_failed_status_when_broker_is_unavailable(
+    api_client: APIClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = make_user()
+    food_scan = _make_food_scan(user=user, status=FoodScan.Status.FAILED)
+
+    def fail_apply_async(*args: object, **kwargs: object) -> None:
+        raise ConnectionError("broker unavailable")
+
+    monkeypatch.setattr(
+        "food_scans.jobs.process_food_scan_analysis_task.apply_async",
+        fail_apply_async,
+    )
+    monkeypatch.setattr("food_scans.jobs.report_application_error", lambda **kwargs: None)
+    api_client.force_authenticate(user=user)
+
+    response = api_client.post(_retry_url(food_scan.id), {}, format="json")
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+    assert response.json() == {"scan_id": str(food_scan.id), "status": FoodScan.Status.FAILED}
+    food_scan.refresh_from_db()
+    assert food_scan.failure_code == SCAN_TASK_ENQUEUE_FAILURE_CODE
+    assert food_scan.analysis_run_id is None
+    assert food_scan.analysis_task_id == ""
 
 
 def test_retry_endpoint_requeues_failed_scan_and_clears_failure(

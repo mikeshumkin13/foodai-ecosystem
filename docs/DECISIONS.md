@@ -629,6 +629,18 @@ Idempotency:
 - подтверждение scan остаётся единственным местом создания `Meal`/`MealItem` и уже идемпотентно
   возвращает существующий meal для confirmed scan.
 
+Broker enqueue failure:
+
+- ошибка `apply_async` не должна оставлять scan в ложном `uploaded` без поставленной задачи;
+- если текущий run всё ещё `uploaded`, он инвалидируется, task metadata очищается, scan переходит в
+  `failed` с безопасным кодом `task_enqueue_failed` и может быть повторно запущен пользователем;
+- если scan уже перешёл в `processing`, enqueue error не перезаписывает его: broker мог принять
+  задачу до возврата ошибки;
+- ошибка отправляется в error monitoring только с безопасной operation metadata, без фотографии,
+  object key или пользовательского payload;
+- автоматический повтор enqueue в HTTP request не выполняется, чтобы не создать retry storm или
+  duplicate task при неопределённом результате отправки.
+
 Rationale / Обоснование:
 
 - Vision processing может быть медленным и не должен держать HTTP request открытым.
@@ -644,6 +656,8 @@ Consequences / Последствия:
 - Локальный `make dev-up` запускает дополнительный worker container.
 - Production deployment должен запускать минимум один Celery worker рядом с backend и Redis.
 - API clients должны после upload polling-ом ждать `needs_confirmation` или `failed`.
+- Upload/retry могут сразу вернуть `status=failed`, если broker недоступен; клиент предлагает
+  контролируемый пользовательский retry по сохранённому `scan_id`.
 - Future queue routing, task observability, dead-letter policy и signed object access требуют
   отдельного решения перед production.
 - Любые новые background tasks должны сохранять правило: в task payload только минимальные IDs, без
@@ -1508,3 +1522,193 @@ Consequences / Последствия:
   Celery task или скрывать исходную provider error.
 - Текущий structured-log metrics backend является foundation, а не полноценным time-series
   хранилищем, dashboard или alerting system.
+
+## ADR-0031: OpenAI Responses Provider For AI Nutrition Coach
+
+Date / Дата: 2026-08-28
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Production adapter AI Nutrition Coach реализуется как `OpenAIAICoachProvider` за существующей
+границей `AICoachProvider`. Бизнес-логика, context builder, safety layer и API schema не зависят от
+OpenAI и сохраняют возможность заменить provider.
+
+Provider использует OpenAI Responses API `POST /v1/responses` и Structured Outputs с strict JSON
+Schema. Текущий конфигурируемый default model: `gpt-5.6-luna`. На дату решения официальный каталог
+OpenAI рекомендует эту модель для cost-sensitive/high-volume workloads; model ID задаётся через
+`AI_COACH_OPENAI_MODEL`, поэтому замена модели не требует изменения domain service.
+
+Источники:
+
+- модель и назначение: <https://developers.openai.com/api/docs/models>;
+- Responses API и structured JSON output: <https://developers.openai.com/api/reference/cli/resources/responses/methods/create>.
+
+Provider boundary:
+
+- API key читается только из `OPENAI_API_KEY`; секрет не коммитится и не логируется;
+- endpoint должен использовать HTTPS и по умолчанию равен
+  `https://api.openai.com/v1/responses`;
+- наружу передаётся только уже минимизированный `AICoachContext`, без email, имени, UUID,
+  фотографий, private object keys или chat history;
+- request использует `store=false`, не создаёт conversation и не передаёт provider metadata;
+- timeout задаётся `AI_COACH_PROVIDER_TIMEOUT_SECONDS`, output budget —
+  `AI_COACH_PROVIDER_MAX_OUTPUT_TOKENS`;
+- automatic retry отсутствует, чтобы не создавать retry storm, повторную стоимость или
+  неоднозначные дубли при сетевой ошибке;
+- HTTP/runtime/timeout/invalid response нормализуются в typed provider errors и generic HTTP 503;
+- error monitoring получает только provider/operation/error type, без prompt, context или raw
+  provider response;
+- Structured Output повторно валидируется локально: provider response остаётся недоверенным вводом;
+- existing pre/post safety layer продолжает блокировать medical decisions и extreme diets.
+
+`mock` остаётся default только для local development и tests. Production settings выбирают
+`openai` по умолчанию и fail fast требуют `OPENAI_API_KEY`. Реальный model availability, расходы,
+rate limits, provider data controls и юридические условия должны проверяться для конкретного
+production project перед запуском; это решение не обещает качество или медицинскую пригодность
+ответов.
+
+Rationale / Обоснование:
+
+- Responses API предоставляет официальный structured-output контракт вместо парсинга свободного
+  текста.
+- `gpt-5.6-luna` соответствует короткому multilingual nutrition-summary сценарию, где важны
+  latency и cost, но выбор должен подтверждаться продуктовым eval dataset.
+- Raw HTTP adapter поверх уже используемого `httpx` сохраняет малый dependency surface и не
+  протаскивает provider SDK в domain layer.
+- Generic 503 предотвращает утечку provider error details клиенту и устраняет необработанный HTTP
+  500 из MVP-QA-006.
+
+Consequences / Последствия:
+
+- Production deployment должен предоставить отдельный project-scoped API key и настроить spend/rate
+  limits на стороне OpenAI Platform.
+- Перед production нужны AI response evals на русском и английском, cost/latency budget и legal
+  review provider terms/data controls.
+- Смена provider должна реализовываться новым adapter, а не условными HTTP-вызовами во views.
+- Live provider smoke tests не входят в обычный CI и не должны использовать production secrets.
+
+## ADR-0032: Multi-Region Food Recognition Pipeline
+
+Date / Дата: 2026-08-31
+
+Status / Статус: Accepted for MVP validation / принято для MVP-валидации
+
+Decision / Решение:
+
+Vision inference становится двухступенчатым и остаётся сменяемым через существующий
+`FoodRecognitionModel` boundary:
+
+1. `IDEA-Research/grounding-dino-tiny`, revision
+   `a2bb814dd30d776dcf7e30523b00659f4f141c71`, находит несколько food regions по одному
+   объединённому open-vocabulary prompt;
+2. detector output нормализуется к одной канонической метке из настроенного allowlist, чтобы
+   составные token phrases не попадали в Nutrition matching;
+3. существующий `nateraw/food`, revision
+   `ddbd0f9ed493f03fc6a45527e5e52904161d3e09`, классифицирует crop только для общих detector labels
+   `food`/`dish`/`meal`/`ingredient`;
+4. для classifier path итоговый confidence равен минимуму detector и classifier confidence;
+5. overlapping boxes дедуплицируются через NMS, число regions ограничено;
+6. если detector не вернул region, применяется прежний full-image classifier fallback.
+
+Grounding DINO source: `https://huggingface.co/IDEA-Research/grounding-dino-tiny`; официальный
+implementation: `https://github.com/IDEA-Research/GroundingDINO`; license модели и official
+repository: Apache-2.0. Загружается только `model.safetensors`. Прямой
+`AutoProcessor`/`AutoModelForZeroShotObjectDetection` вызов выбран вместо high-level pipeline,
+потому что он выполняет один forward pass с объединённым prompt.
+
+`bounding_box` в internal Vision response обозначает прямоугольную область detector. Это не
+segmentation mask и не `segment_area_px`; backend не использует площадь bounding box как точную
+площадь еды или основание для точной массы.
+
+Validation fixture содержит восемь crop из официальной FoodSeg103 demonstration figure. Проект
+FoodSeg103 указывает Apache-2.0 и требует сохранения copyright notice. Fixture не содержит
+пользовательские фотографии FoodAI и не используется для обучения. Отдельный legal review прав на
+исходные изображения, training datasets и model artifacts остаётся обязательным до коммерческого
+production launch.
+
+Rationale / Обоснование:
+
+- dish-level classifier не мог представить несколько продуктов на одном фото;
+- open-vocabulary detector добавляет multi-region capability без переноса CV-логики в Django;
+- classifier fallback сохраняет совместимость для одиночного блюда и detector miss;
+- пользователь по-прежнему подтверждает, исправляет или удаляет каждый proposal до дневника;
+- pinned revisions и safetensors обеспечивают воспроизводимую supply-chain baseline.
+
+Consequences / Последствия:
+
+- два checkpoint увеличивают cold start, RAM, CPU latency и размер model cache; production требует
+  warm worker и вероятно GPU либо более лёгкий проверенный detector;
+- bounding boxes дают локализацию, но не ingredient segmentation и не точную portion geometry;
+- Food-101 vocabulary остаётся ограничением label quality, особенно для ингредиентов, локальных блюд
+  и смешанных тарелок;
+- exploratory baseline на восьми multi-food crop дал expected label recall `0.48`; ложные и
+  повторные detections остаются, поэтому результат нельзя выдавать за точный;
+- threshold/prompt/checkpoint можно менять только вместе с повторным licensed validation benchmark;
+- точность не обещается пользователю; low-confidence и любой scan result требуют подтверждения.
+
+## ADR-0033: Versioned Local PostgreSQL Volume And Non-Destructive Recovery
+
+Date / Дата: 2026-09-01
+
+Status / Статус: Accepted / принято
+
+Decision / Решение:
+
+Physical name local PostgreSQL volume задаётся environment variable `POSTGRES_VOLUME_NAME`.
+Текущий default — `foodai-ecosystem_postgres_data_v2`; старый
+`foodai-ecosystem_postgres_data`, созданный до custom `accounts.User`, не подключается к backend и
+не удаляется автоматически.
+
+Legacy volume можно подключить только через `infra/postgres-recovery.compose.yml` как external к
+изолированному diagnostic project. `scripts/postgres-volume-recovery.sh` поддерживает только:
+
+- `inspect`: schema migration metadata и aggregate row counts без содержимого записей;
+- `backup`: PostgreSQL custom-format dump с owner-only permissions и проверкой
+  `pg_restore --list`.
+
+Recovery tool не выполняет `migrate`, restore, `down -v` или `docker volume rm`. Если legacy volume
+содержит ценные данные, перенос реализуется отдельным reviewed data migration в свежую схему после
+backup.
+
+Rationale / Обоснование:
+
+- custom User migration нельзя безопасно исправить простым fake migration или продолжением работы
+  поверх противоречивой `django_migrations` history;
+- удаление local volume без проверки может уничтожить пользовательские данные;
+- versioned name обеспечивает предсказуемый default startup и одновременно сохраняет возможность
+  forensic inspection/backup старой схемы;
+- external recovery override не меняет обычный service topology и не публикует PostgreSQL port.
+
+Consequences / Последствия:
+
+- при намеренной смене несовместимого local schema baseline physical volume version повышается и
+  решение фиксируется в документации;
+- backup содержит потенциально чувствительные данные, хранится вне Git с ограниченными правами и
+  требует отдельной retention/secure deletion политики;
+- script не является универсальным production migration tool и не переносит данные автоматически;
+- default v2 volume сохраняется между `docker compose down` и повторными запусками.
+
+## ADR-0034: Shared Private Storage And Warm Vision Runtime
+
+Дата: 2026-09-07. Статус: принято в рамках повторной проверки этапа 30.
+
+В local Compose backend и Celery записывают подготовленные изображения в общий bind mount.
+Vision получает тот же каталог только для чтения и использует тот же внутренний путь.
+Весь репозиторий Vision не монтируется; порт сервиса остаётся внутренним.
+
+Кэш pinned моделей сохраняется между перезапусками в `.cache/huggingface` (вне Git).
+Перед запуском HTTP-сервера модель выполняет inference на синтетическом изображении в том же
+процессе. Поэтому успешный healthcheck означает завершённую инициализацию модели; неуспешный
+cold start не расходует короткий timeout пользовательского scan. Первый запуск требует доступа
+к источнику модели и может занимать десятки минут; healthcheck имеет startup grace period 30 минут.
+
+Рекомендуемые local значения: Vision request timeout 60 секунд, Celery soft limit 90 секунд,
+hard limit 120 секунд. Число CPU threads ограничивается `VISION_CPU_THREADS` (default 2).
+Значения являются ресурсным бюджетом для MVP CPU и должны проверяться на целевом оборудовании.
+Controlled retry, max retries и обязательное подтверждение scan сохраняются.
+
+Это исправляет обнаруженный при повторном QA HIGH-разрыв: healthy Vision не видел private objects,
+а прежние 2 секунды timeout были меньше измеренного времени inference. Для production сохраняется
+отдельная задача private S3 adapter, resource sizing и мониторинга готовности модели.

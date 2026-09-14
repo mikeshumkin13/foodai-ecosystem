@@ -147,7 +147,15 @@ Brute-force/rate limiting:
 - Docker Compose не публикует Vision port на host по умолчанию; backend обращается к `vision` внутри compose network.
 - Backend client использует короткий timeout и не делает automatic retries, чтобы не создавать retry storm при деградации Vision.
 - Ошибки Vision нормализуются без включения object key, фото или пользовательских health/nutrition данных в логи/ответы.
-- Vision model v1 (`nateraw/food`) выполняет dish-level classification внутри Vision service и возвращает только label/confidence. Низкий confidence не может создать `MealItem` автоматически: backend сохраняет только proposal results и требует явного подтверждения пользователя.
+- Multi-region Vision pipeline выполняется внутри Vision service: Grounding DINO Tiny находит
+  rectangular food regions, а `nateraw/food` классифицирует подготовленные crops. Internal response
+  содержит label/confidence и optional bounding box, но не пользовательские идентификаторы,
+  object key или фото bytes.
+- Bounding box не является segmentation mask и не используется как точная площадь еды. Низкий
+  confidence и несколько найденных regions не могут создать `MealItem` автоматически: backend
+  сохраняет только proposal results и требует явного подтверждения пользователя.
+- Detector/classifier revisions pinned; model adapters загружают safetensors. Изменение model,
+  prompt или thresholds требует повторного validation и supply-chain review.
 - Перед production требуется отдельная legal/supply-chain проверка выбранной модели, weights artifact и training data provenance; Food-101 dataset metadata указывает unknown license.
 
 ## Scan orchestration security
@@ -177,6 +185,14 @@ Brute-force/rate limiting:
 - Backend публикует только HTTP-порт разработки.
 - Redis включён с паролем даже в локальной инфраструктуре.
 - Celery worker использует Redis внутри Docker Compose network, не публикует отдельные host-порты и не выполняет migrations параллельно с backend.
+- Local PostgreSQL volume имеет versioned physical name; смена migration baseline не переиспользует
+  несовместимый legacy volume и не удаляет его автоматически.
+- `scripts/postgres-volume-recovery.sh` подключает legacy volume как external только к изолированному
+  diagnostic project, не публикует PostgreSQL port, не применяет migrations и удаляет diagnostic
+  containers/network без `-v`.
+- Recovery inspection показывает только migration metadata и aggregate row counts. Backup создаётся
+  с `umask 077`, валидируется через `pg_restore --list` и хранится в ignored `.local-backups/`;
+  dump следует считать чувствительным и не коммитить/не передавать без защищённого канала.
 
 ## Admin security
 
@@ -263,11 +279,16 @@ AI получает только минимально необходимый к�
 Текущий AI Nutrition Coach foundation:
 
 - реализован в backend app `ai_coach` через provider abstraction, без привязки бизнес-логики к конкретному LLM-провайдеру;
+- production adapter использует OpenAI Responses API только через HTTPS, с ограниченным timeout,
+  output budget, без automatic retry и с `store=false`; local/tests сохраняют `mock` provider;
+- API key поступает только через `OPENAI_API_KEY`, не возвращается клиенту и не попадает в логи;
 - получает только цель, дневные агрегаты, разрешённые dietary preferences и текущий запрос пользователя;
 - не получает email, display name, UUID пользователя, фотографии, private object keys, sensitive restrictions или полную историю аккаунта;
 - использует moderation/safety layer до и после provider call;
 - хранит AI response/history только при явном chat history consent пользователя;
 - unsafe user requests и unsafe provider outputs не сохраняются как `AICoachMessage`;
+- timeout/runtime/invalid provider response возвращают generic HTTP 503; raw provider response,
+  prompt и пользовательский context не включаются в error telemetry;
 - AI-диалоги не регистрируются в Django Admin на этом этапе.
 
 AI не должен:

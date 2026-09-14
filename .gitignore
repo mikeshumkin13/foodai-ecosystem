@@ -12,11 +12,15 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+.cache/
 .coverage
 .coverage*
 coverage.xml
 htmlcov/
+.cache/
+.local-backups/
 .venv/
+.cache/
 venv/
 *.egg-info/
 
@@ -37,6 +41,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 *.tsbuildinfo
+playwright-report/
+test-results/
+blob-report/
 
 # IDE and OS
 .DS_Store

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
 import { authApi } from "@/lib/api/auth";
 import { getErrorMessage } from "@/lib/api/errors";
+import { getSafeNextPath } from "@/lib/auth/redirects";
 import { messages } from "@/lib/i18n/messages";
 
 const copy = messages.ru;
@@ -28,7 +29,8 @@ export function LoginForm() {
         email: String(formData.get("email") ?? ""),
         password: String(formData.get("password") ?? ""),
       });
-      window.location.assign("/dashboard");
+      const nextPath = getSafeNextPath(new URLSearchParams(window.location.search).get("next"));
+      window.location.assign(nextPath);
     } catch (requestError) {
       setError(getErrorMessage(requestError));
     } finally {

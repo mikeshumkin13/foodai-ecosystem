@@ -219,6 +219,16 @@ AI_COACH_PROVIDER_TIMEOUT_SECONDS = get_env_float(
     "AI_COACH_PROVIDER_TIMEOUT_SECONDS",
     default=10.0,
 )
+AI_COACH_PROVIDER_MAX_OUTPUT_TOKENS = get_env_int(
+    "AI_COACH_PROVIDER_MAX_OUTPUT_TOKENS",
+    default=1200,
+)
+AI_COACH_OPENAI_MODEL = get_env("AI_COACH_OPENAI_MODEL", default="gpt-5.6-luna")
+OPENAI_RESPONSES_API_URL = get_env(
+    "OPENAI_RESPONSES_API_URL",
+    default="https://api.openai.com/v1/responses",
+)
+OPENAI_API_KEY = get_env("OPENAI_API_KEY", default="")
 FITNESS_COACH_PROVIDER = get_env("FITNESS_COACH_PROVIDER", default="mock")
 FITNESS_COACH_PROVIDER_TIMEOUT_SECONDS = get_env_float(
     "FITNESS_COACH_PROVIDER_TIMEOUT_SECONDS",

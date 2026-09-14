@@ -55,6 +55,7 @@ services:
       - "${BACKEND_PORT:?Set BACKEND_PORT in .env}:8000"
     volumes:
       - .:/app
+      - ${FOOD_SCAN_LOCAL_STORAGE_PATH:-./local_uploads/private}:${FOOD_SCAN_PRIVATE_MEDIA_ROOT:-/app/local_uploads/private}
     healthcheck:
       test:
         [
@@ -103,6 +104,7 @@ services:
       ]
     volumes:
       - .:/app
+      - ${FOOD_SCAN_LOCAL_STORAGE_PATH:-./local_uploads/private}:${FOOD_SCAN_PRIVATE_MEDIA_ROOT:-/app/local_uploads/private}
     healthcheck:
       test:
         [
@@ -121,6 +123,23 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      VISION_LOCAL_PRIVATE_MEDIA_ROOT: ${FOOD_SCAN_PRIVATE_MEDIA_ROOT:-/app/local_uploads/private}
+      HF_HOME: /tmp/huggingface
+      OMP_NUM_THREADS: ${VISION_CPU_THREADS:-2}
+      MKL_NUM_THREADS: ${VISION_CPU_THREADS:-2}
+    volumes:
+      - ${FOOD_SCAN_LOCAL_STORAGE_PATH:-./local_uploads/private}:${FOOD_SCAN_PRIVATE_MEDIA_ROOT:-/app/local_uploads/private}:ro
+      - ${VISION_MODEL_CACHE_PATH:-./.cache/huggingface}:/tmp/huggingface
+    command:
+      - python
+      - -c
+      - |
+        from PIL import Image
+        from vision_service.inference import get_food_recognition_model
+        import uvicorn
+        get_food_recognition_model().predict(Image.new('RGB', (224, 224)))
+        uvicorn.run('vision_service.main:app', host='0.0.0.0', port=8001)
     healthcheck:
       test:
         [
@@ -132,8 +151,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
-      start_period: 10s
+      start_period: 30m
 
 volumes:
   postgres_data:
+    name: ${POSTGRES_VOLUME_NAME:-foodai-ecosystem_postgres_data_v2}
   redis_data:

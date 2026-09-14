@@ -163,12 +163,20 @@ Vision не владеет пользователями, дневниками, �
 - FastAPI service расположен в `services/vision`.
 - Endpoint `GET /health` возвращает `{"status": "ok"}`.
 - Endpoint `POST /v1/analyze` принимает internal object reference на уже подготовленное backend изображение, читает private local object, проверяет checksum и запускает food recognition model через pluggable inference adapter.
-- Vision model v1: Hugging Face `nateraw/food`, pinned revision `ddbd0f9ed493f03fc6a45527e5e52904161d3e09`, Apache-2.0 model license, `model.safetensors` weights.
-- Текущий v1 является dish-level classifier, а не object detector: он возвращает top label и confidence без bounding boxes, portion size или multi-object segmentation.
+- Multi-region Vision pipeline использует Grounding DINO Tiny detector
+  `a2bb814dd30d776dcf7e30523b00659f4f141c71` и Food-101 classifier `nateraw/food`
+  `ddbd0f9ed493f03fc6a45527e5e52904161d3e09`; обе model cards/repositories указывают
+  Apache-2.0, adapters форсируют safetensors.
+- Detector находит несколько rectangular regions. Конкретная detector label нормализуется к одной
+  метке из настроенного allowlist; для общих меток `food`/`dish` classifier определяет dish label
+  по crop. При отсутствии regions используется full-image classifier fallback.
+- Bounding box не считается segmentation mask и не передаётся estimator как
+  `segment_area_px`; точная portion geometry из него не выводится.
 - Vision contract поддерживает optional future geometry fields `segment_area_px` и `portion_reference`, но текущая модель их обычно не заполняет; backend portion estimator использует их только если они доступны.
 - Low-confidence results не создают diary records автоматически; backend всегда переводит scan в `needs_confirmation` до явного пользовательского подтверждения.
 - Vision service запускается отдельным контейнером Docker Compose и не публикует порт на host по умолчанию; backend обращается к нему внутри compose network по `VISION_SERVICE_URL`.
-- Benchmark script: `services/vision/scripts/benchmark_food_model.py`.
+- Benchmark script: `services/vision/scripts/benchmark_food_model.py`; licensed fixture и
+  acceptance thresholds находятся в `services/vision/fixtures/validation`.
 
 ## Frontend
 
@@ -225,7 +233,11 @@ Production-окружение должно использовать deny-by-defa
 
 - локальная инфраструктура запускается через Docker Compose;
 - `postgres` и `redis` не публикуют порты наружу и доступны backend только внутри compose-сети;
-- данные PostgreSQL и Redis хранятся в named volumes `postgres_data` и `redis_data`;
+- данные PostgreSQL и Redis хранятся в named volumes `postgres_data` и `redis_data`; physical name
+  PostgreSQL volume задаётся `POSTGRES_VOLUME_NAME`, local default имеет версию
+  `foodai-ecosystem_postgres_data_v2`;
+- несовместимые legacy PostgreSQL volumes подключаются только через external recovery override для
+  inspect/backup; backend migrations и автоматическое удаление в recovery workflow запрещены;
 - backend container ждёт готовности PostgreSQL и Redis через healthchecks и management command `wait_for_dependencies`;
 - vision container имеет собственный healthcheck `GET /health`;
 - `celery_worker` ждёт PostgreSQL, Redis, Vision и healthy backend, использует тот же backend image и не запускает migrations параллельно с backend;

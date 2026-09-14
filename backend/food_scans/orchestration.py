@@ -199,7 +199,7 @@ def confirm_food_scan(
 ) -> Meal:
     with transaction.atomic():
         locked_scan = (
-            FoodScan.objects.select_for_update()
+            FoodScan.objects.select_for_update(of=("self",))
             .select_related("user", "confirmed_meal")
             .get(id=food_scan.id)
         )
