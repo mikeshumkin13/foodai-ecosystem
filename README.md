@@ -46,6 +46,15 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
+Подготовка первого release candidate ведётся в `release/0.1.0` от `develop` после PR #49.
+Публичный production-выпуск пока не разрешён. Локальный Compose использует `runserver` и
+local settings, а фактически реализованное хранилище фотографий пока только private filesystem.
+
+- [Пошаговый запуск и использование](docs/GETTING_STARTED.md)
+- [Release checklist и условия допуска](docs/RELEASE_CHECKLIST.md)
+- [Release notes](docs/RELEASE_NOTES.md)
+- [История изменений](CHANGELOG.md)
+
 Создан backend foundation на Django + Django REST Framework, локальная Docker Compose инфраструктура с PostgreSQL, Redis, backend, Celery worker и Vision service, приложение `accounts` с custom User model, RBAC foundation, session-cookie authentication, защищённой Django Admin foundation и MVP nutrition profile. Добавлены приложение `nutrition` с расширяемым каталогом продуктов, нутриентов и calculation engine для КБЖУ/micronutrients, приложение `diary` с Meal/MealItem, историческими nutrient snapshots и дневной агрегацией, `food_scans` для безопасной загрузки фотографий еды в private storage, async Vision processing через Celery, estimator оценки порции v1, AI Nutrition/Fitness/Wellbeing foundations, Privacy Center для export/consent/deletion controls, `audit` security audit trail и безопасный structured observability foundation. FastAPI `services/vision` содержит real food recognition model v1. Frontend foundation расположен в `frontend`: Next.js + TypeScript App Router, responsive PWA-ready shell, страницы `/login`, `/register`, `/dashboard`, `/diary`, `/scan`, `/profile`, `/privacy`, централизованный API client и CSRF/session-cookie flow без access token в `localStorage`.
 
 ## Backend: локальная установка

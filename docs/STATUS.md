@@ -1,13 +1,36 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-09-14
+Last updated / Обновлено: 2026-09-16
 
 ## Текущий завершённый этап
 
-ЭТАП 30, PROMPT 30 завершён локально: BLOCKER/CRITICAL/HIGH из MVP QA устранены,
-регрессионные проверки и повторный MVP flow прошли. Семь независимых feature-веток собраны
-в `feature/mvp-high-priority-integration`; ветки сохранены. Merge в `develop` и `main`
-не выполнялся, GitHub PR/CI не заявляются пройденными.
+ЭТАП 30 завершён и объединён пользователем в `develop` через PR #49 (`363ed3a`), CI прошёл.
+ЭТАП 31: подготовлен локальный release candidate в `release/0.1.0`, changelog, release notes,
+checklist и пошаговая инструкция запуска. Публичный production и стабильный тег пока NO-GO;
+merge в `main` не выполнялся. Завершение подготовки RC не означает закрытие production-гейтов.
+
+## Release candidate 0.1.0
+
+- Основание: `develop` `363ed3a`, tree совпадает с финальным integration commit `97b6295`.
+- `CHANGELOG.md`, `docs/RELEASE_NOTES.md`, `docs/RELEASE_CHECKLIST.md` описывают состав RC,
+  результаты проверок, staging/backup/rollback и ручной порядок review/merge.
+- `docs/GETTING_STARTED.md` содержит запуск через Docker + Next.js, локальный onboarding без SMTP,
+  ручной дневник, Scan, Coach, Privacy Center, остановку и диагностику.
+- В release-ветке не менялись application code, migrations, API и dependency manifests.
+- Повторный Python gate: Ruff, mypy 183 files, Django checks, 287 tests, coverage 88.02%.
+- PostgreSQL regression повторён: 36 passed. Frontend dependencies восстановлены по lockfile;
+  lint (69 files), TypeScript, 21 Vitest test и production build прошли повторно.
+- Playwright Chromium: 3 scenarios passed 2026-09-16. Docker images backend/Vision/Celery собраны
+  2026-09-15. Платные LLM-вызовы и реальная SMTP-доставка не выполнялись.
+- Финальный запуск 2026-09-16: все 5 Docker-сервисов healthy, backend health вернул `status: ok`.
+- Проверены 7 release-документов и 20 локальных ссылок, `git diff --check` прошёл.
+- Production module проверен на временной БД с синтетическими env, без реальных секретов:
+  DEBUG=false, HTTPS, hosts/CORS/CSRF/cookies/headers, migrations, OpenAPI и 163 static files.
+- Strict deploy check не проходит: `foodai_security.W002`, local photo storage. S3-адаптер,
+  SMTP-настройки, shared cache для throttles и production server/proxy требуют завершения.
+- Backup/restore, dependency vulnerability audit, внешний monitoring и live provider safety
+  остаются отдельными production-гейтами. Это не утверждение полной безопасности системы.
+- Тег, release PR и merge в `main` не создавались; инструкция пользователю находится в checklist.
 
 ## Итог этапа 30
 
