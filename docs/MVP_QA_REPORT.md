@@ -1,5 +1,18 @@
 # MVP QA Report / Отчёт по качеству MVP
 
+## Интеграция и подготовка релиза
+
+2026-09-14 пользователь объединил [PR #49](https://github.com/mikeshumkin13/foodai-ecosystem/pull/49)
+в `develop`: merge commit `363ed3a6864002dda9e75fd4d2279b4bd2ba951e`.
+[CI run 34889212744](https://github.com/mikeshumkin13/foodai-ecosystem/actions/runs/34889212744)
+для head `97b6295` завершён успешно: Backend, Vision, Frontend. Reviews и review threads на момент
+проверки отсутствовали. Дерево `develop` совпадает с финальным integration commit.
+
+От этого состояния создана `release/0.1.0`. Подготовка RC описана в
+[RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md); выявленные production-условия не закрыты одним
+успешным CI. Merge в `main` не выполнялся. Утверждения ниже об отсутствии PR/merge относятся
+к моменту локального завершения этапа 30, до пользовательской публикации, и сохранены как история.
+
 ## Повторная проверка этапа 30
 
 Завершено: 2026-09-14. Интеграционная ветка: `feature/mvp-high-priority-integration`.
