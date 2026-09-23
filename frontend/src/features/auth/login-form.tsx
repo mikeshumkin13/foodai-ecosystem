@@ -78,6 +78,9 @@ export function LoginForm() {
       <p className="auth-form__footer">
         {copy.auth.noAccount} <Link href="/register">{copy.auth.goToRegister}</Link>
       </p>
+      <p className="auth-form__footer">
+        <Link href="/auth/email/verify">{copy.auth.resendLink}</Link>
+      </p>
     </form>
   );
 }

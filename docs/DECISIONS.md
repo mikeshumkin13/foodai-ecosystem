@@ -1712,3 +1712,31 @@ Controlled retry, max retries и обязательное подтвержден
 Это исправляет обнаруженный при повторном QA HIGH-разрыв: healthy Vision не видел private objects,
 а прежние 2 секунды timeout были меньше измеренного времени inference. Для production сохраняется
 отдельная задача private S3 adapter, resource sizing и мониторинга готовности модели.
+
+## ADR-0035: Воспроизводимый локальный onboarding через SMTP
+
+Дата: 2026-09-22. Статус: принято, bugfix/deployment config для release candidate.
+
+Обнаружено при тестировании с телефона: locmem email backend не доставляет confirmation email,
+а обычный loaddata падает на уникальном Nutrient.code при непустом справочнике. Наличие healthy
+контейнеров не означало работоспособность пользовательской регистрации.
+
+Решение: opt-in Compose override с Mailpit `axllent/mailpit:v1.31.2`, внутренним SMTP и UI только
+на localhost Mac. SMTP host/port/auth/TLS/timeout подключены через environment variables.
+Одноразовые verification tokens, CSRF, session cookies и rate limits не обходятся. На login есть
+повторная отправка для ранее зарегистрированных, но неподтверждённых аккаунтов.
+
+`scripts/local_test.py` согласует конкретный local/LAN hostname frontend/backend, ждёт healthchecks
+и запускает транзакционный `seed_demo_catalog`. Seed использует natural keys справочников,
+не меняет существующие значения и отказывает при конфликте единиц. Остановка сохраняет volumes.
+Локальный API smoke проверяет настоящий SMTP, PostgreSQL, Redis, Celery и Vision без моков этих
+компонентов; AI Coach остаётся mock, чтобы локальная проверка не расходовала платный API.
+
+Ограничения: mailbox доступен всем с локальным доступом к Mac; письма временные, без backup.
+Это не настоящая внешняя доставка и не подтверждение владения email. HTTP LAN предназначен
+только для доверенной сети. Production требует HTTPS, настроенного sender/provider и проверки
+deliverability; локальный SMTP override нельзя использовать как production конфигурацию.
+
+Источники: [Mailpit Docker](https://mailpit.axllent.org/docs/install/docker/),
+[Mailpit v1.31.2](https://github.com/axllent/mailpit/releases/tag/v1.31.2),
+[Django email](https://docs.djangoproject.com/en/5.2/topics/email/).

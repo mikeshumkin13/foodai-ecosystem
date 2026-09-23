@@ -46,6 +46,19 @@ foodai-ecosystem/
 
 ## Текущее состояние
 
+Для проверки в PyCharm и с телефона используйте [пошаговый local-test сценарий](docs/GETTING_STARTED.md).
+Он запускает настоящие PostgreSQL/Redis/Celery/Vision и локальный SMTP-ящик Mailpit:
+письма подтверждения читаются на Mac по `http://localhost:8025`, а не во внешней почте.
+Во втором терминале запускается frontend. AI Coach в этом режиме демонстрационный, без платных вызовов.
+
+```bash
+python3 scripts/local_test.py up --host "$(ipconfig getifaddr en0)"
+```
+
+```bash
+python3 scripts/local_test.py frontend
+```
+
 Подготовка первого release candidate ведётся в `release/0.1.0` от `develop` после PR #49.
 Публичный production-выпуск пока не разрешён. Локальный Compose использует `runserver` и
 local settings, а фактически реализованное хранилище фотографий пока только private filesystem.
