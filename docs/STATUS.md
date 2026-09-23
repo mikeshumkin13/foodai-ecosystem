@@ -1,6 +1,6 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-09-16
+Last updated / Обновлено: 2026-09-22
 
 ## Текущий завершённый этап
 
@@ -11,12 +11,34 @@ merge в `main` не выполнялся. Завершение подготов
 
 ## Release candidate 0.1.0
 
+### Исправление локального запуска, 2026-09-22
+
+- Устранены разрывы local onboarding: locmem без доставки, несогласованные LAN origins и
+  неидемпотентный demo fixture при уже существующих Nutrient.code.
+- Добавлены SMTP env, opt-in Mailpit, launcher для PyCharm/телефона, безопасный seed и ссылка
+  повторного подтверждения на login. `.env`, реальные аккаунты и пользовательские фото сохранены.
+- `docs/GETTING_STARTED.md` теперь использует настоящее локальное письмо вместо shell-активации.
+- HTTP smoke повторён на финальных образах: SMTP/verify/login двух аккаунтов, CSRF/CORS, профиль,
+  настоящая фотография, Celery/Vision (3 proposals, 23,0 сек), коррекция 200 г → 260 ккал,
+  ручное добавление 50 г → 65 ккал,
+  итог 325 ккал, повторный confirm без дубликата, IDOR, mock Coach, export/photo/account deletion.
+- Проверки: 305 Python tests, coverage 88,08%; Ruff; mypy 188 files; Django check, migrations check
+  и OpenAPI validation; frontend lint, TypeScript, 22 component tests, build, 3 Playwright scenarios.
+- Дополнительно реальный Chromium в mobile viewport без API mocks: register → resend → SMTP →
+  verification в отдельном браузерном контексте → login → dashboard/scan. Временные QA-аккаунты удалены.
+- Docker backend/worker/Vision build прошёл, шесть сервисов healthy. Повторный seed создал 0 записей.
+- Зависший прежний frontend перезапущен. Сгенерированный `.next` с дубликатами `* 2.ts` сохранён
+  вне Git в `.cache/next-before-local-test-20260922`, затем создан заново. Исходники не сбрасывались.
+- Внешняя SMTP-доставка и платный LLM не выполнялись. Production NO-GO остаётся в силе.
+
+### Исходная подготовка, 2026-09-16
+
 - Основание: `develop` `363ed3a`, tree совпадает с финальным integration commit `97b6295`.
 - `CHANGELOG.md`, `docs/RELEASE_NOTES.md`, `docs/RELEASE_CHECKLIST.md` описывают состав RC,
   результаты проверок, staging/backup/rollback и ручной порядок review/merge.
 - `docs/GETTING_STARTED.md` содержит запуск через Docker + Next.js, локальный onboarding без SMTP,
   ручной дневник, Scan, Coach, Privacy Center, остановку и диагностику.
-- В release-ветке не менялись application code, migrations, API и dependency manifests.
+- При исходной подготовке не менялись application code, migrations, API и dependency manifests.
 - Повторный Python gate: Ruff, mypy 183 files, Django checks, 287 tests, coverage 88.02%.
 - PostgreSQL regression повторён: 36 passed. Frontend dependencies восстановлены по lockfile;
   lint (69 files), TypeScript, 21 Vitest test и production build прошли повторно.
@@ -27,7 +49,7 @@ merge в `main` не выполнялся. Завершение подготов
 - Production module проверен на временной БД с синтетическими env, без реальных секретов:
   DEBUG=false, HTTPS, hosts/CORS/CSRF/cookies/headers, migrations, OpenAPI и 163 static files.
 - Strict deploy check не проходит: `foodai_security.W002`, local photo storage. S3-адаптер,
-  SMTP-настройки, shared cache для throttles и production server/proxy требуют завершения.
+  внешняя SMTP-доставка, shared cache для throttles и production server/proxy требуют завершения.
 - Backup/restore, dependency vulnerability audit, внешний monitoring и live provider safety
   остаются отдельными production-гейтами. Это не утверждение полной безопасности системы.
 - Тег, release PR и merge в `main` не создавались; инструкция пользователю находится в checklist.

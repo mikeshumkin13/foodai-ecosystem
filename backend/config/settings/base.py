@@ -183,6 +183,17 @@ EMAIL_BACKEND = get_env(
     "DJANGO_EMAIL_BACKEND",
     default="django.core.mail.backends.locmem.EmailBackend",
 )
+EMAIL_HOST = get_env("DJANGO_EMAIL_HOST", default="localhost")
+EMAIL_PORT = get_env_int("DJANGO_EMAIL_PORT", default=25)
+EMAIL_HOST_USER = get_env("DJANGO_EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = get_env("DJANGO_EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = get_env_bool("DJANGO_EMAIL_USE_TLS", default=False)
+EMAIL_USE_SSL = get_env_bool("DJANGO_EMAIL_USE_SSL", default=False)
+EMAIL_TIMEOUT = get_env_float("DJANGO_EMAIL_TIMEOUT_SECONDS", default=10.0)
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise ImproperlyConfigured("Choose either SMTP STARTTLS or implicit TLS, not both.")
+if EMAIL_TIMEOUT <= 0:
+    raise ImproperlyConfigured("SMTP timeout must be positive.")
 DEFAULT_FROM_EMAIL = get_env("DJANGO_DEFAULT_FROM_EMAIL", default="security@foodai.local")
 FRONTEND_BASE_URL = get_env("FRONTEND_BASE_URL", default="http://localhost:3000")
 

@@ -1,305 +1,231 @@
 # Запуск и использование FoodAI Ecosystem
 
-Для локальной версии `0.1.0` / release candidate. Обновлено: 2026-09-16.
-Это инструкция для вашего компьютера, **не инструкция публикации в интернете**.
-Production пока имеет незакрытые условия из [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md).
+Локальный release candidate 0.1.0. Обновлено: 2026-09-22.
+Это проверка на Mac и телефоне в доверенной Wi-Fi сети, **не production-развёртывание**.
+Незакрытые production-условия: [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md).
 
-## 1. Что открыть и установить
+## 1. Открыть проект
 
-Откройте в PyCharm через File → Open именно папку
-`/Users/a12345/Documents/fitnes/foodai-ecosystem`, не родительскую `fitnes`.
-Команды можно вводить в Terminal на Mac или во вкладке Terminal в PyCharm: результат одинаков.
-В терминале сначала перейдите в корень проекта:
+В PyCharm: File → Open → `/Users/a12345/Documents/fitnes/foodai-ecosystem`.
+Не открывайте родительский устаревший репозиторий `fitnes`.
+Все команды ниже выполняются во вкладке **Terminal**, не в Python Console.
 
 ```bash
 cd /Users/a12345/Documents/fitnes/foodai-ecosystem
 git status
 git branch --show-current
-```
-
-Для этого кандидата нужна ветка `release/0.1.0`. При чистом working tree:
-
-```bash
-git switch release/0.1.0
-```
-
-Если Git сообщает о локальных изменениях, не используйте reset/force checkout: сначала сохраните
-свою работу. Не выполняйте `git pull origin develop` из release-ветки: это смешает ветки.
-
-Необходимы Docker Desktop с Compose v2, Node.js 22.13+ и pnpm версии из `frontend/package.json`
-(`11.19.0` для этого RC). Python 3.12 нужен только для локальных Python-проверок/IDE;
-backend, PostgreSQL, Redis, Celery и Vision запускаются в Docker.
-
-```bash
+open -a Docker
 docker version
 docker compose version
+```
+
+Дождитесь Docker Engine running. Текущая версия подготовлена в `release/0.1.0`.
+Не выполняйте reset, удаление volumes или `git pull origin develop` из release-ветки.
+
+Нужны Python 3.12, Docker Compose 2.24.4+ (поддержка `!override`), Node.js 22.13+
+и pnpm 11.19.0. На текущем Mac launcher также находит уже установленный Node/pnpm
+из локального runtime Codex; Codex для работы приложения запускать не нужно.
+
+При самостоятельной установке Node/npm:
+```bash
 node --version
+npm install --global pnpm@11.19.0
 pnpm --version
 ```
 
-Если pnpm отсутствует, при уже установленном Node/npm:
+## 2. Запустить backend, Vision и тестовую почту
 
+Для проверки **с телефона и Mac в одной Wi-Fi сети**:
 ```bash
-npm install --global pnpm@11.19.0
+cd /Users/a12345/Documents/fitnes/foodai-ecosystem
+python3 scripts/local_test.py up --host "$(ipconfig getifaddr en0)"
+python3 scripts/local_test.py status
 ```
 
-Первый запуск скачивает Docker images, npm/Python dependencies и веса Vision-моделей.
-Нужны интернет, свободное место и достаточная память Docker. CPU inference может быть медленным.
-
-## 2. Настроить локальный environment
-
-Существующий `.env` **не перезаписывать**. Если его нет:
-
+Если `en0` не возвращает адрес, посмотрите IPv4 Mac в системных настройках Wi-Fi и передайте
+его явно через `--host 192.168.x.x`. Launcher принимает только private IPv4 или `localhost`.
+Для проверки **только на Mac** вместо предыдущего up:
 ```bash
-test -f .env || cp .env.example .env
+python3 scripts/local_test.py up --host localhost
 ```
 
-Откройте `.env` в редакторе. Для локального тестирования проверьте следующие значения:
+При первом запуске на чистом компьютере или после изменения зависимостей добавьте `--build`.
+Без этого флага Compose строит отсутствующие образы, но повторно не собирает существующие.
+Первое скачивание/прогрев Vision может занять много минут. Дождитесь завершения команды:
+все шесть сервисов должны стать healthy, затем появится адрес приложения.
 
-```dotenv
-DJANGO_DEBUG=true
-DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,backend
-DJANGO_CORS_ALLOWED_ORIGINS=http://localhost:3000
-DJANGO_CORS_ALLOW_CREDENTIALS=true
-DJANGO_CSRF_TRUSTED_ORIGINS=http://localhost:3000
-FRONTEND_BASE_URL=http://localhost:3000
-BACKEND_PORT=127.0.0.1:8000
-DJANGO_RUN_MIGRATIONS=true
-DJANGO_EMAIL_BACKEND=django.core.mail.backends.locmem.EmailBackend
-AI_COACH_PROVIDER=mock
-VISION_SERVICE_TIMEOUT_SECONDS=60.0
-CELERY_TASK_SOFT_TIME_LIMIT_SECONDS=90
-CELERY_TASK_TIME_LIMIT_SECONDS=120
-```
+Launcher:
+- сохраняет имеющийся `.env`; только при отсутствии копирует безопасный local example;
+- не удаляет БД, фото или volumes; migrations выполняет backend entrypoint;
+- настраивает точные hosts/CORS/CSRF и cookies для локального HTTP, не отключая CSRF;
+- подключает локальный SMTP Mailpit; **не отправляет письма в Gmail/Яндекс**;
+- выставляет `AI_COACH_PROVIDER=mock`, поэтому платных LLM-запросов нет;
+- добавляет 3 демо-продукта (яблоко, куриная грудка, рис), сохраняя существующие записи;
+- запоминает выбранный адрес в игнорируемой Git папке `.cache`.
 
-`BACKEND_PORT=127.0.0.1:8000` ограничивает Compose port mapping вашим компьютером.
-Остальные обязательные параметры, включая `DATABASE_URL`, `REDIS_URL`, пути storage и pinned
-model revisions, берите из `.env.example`. Не меняйте существующий `POSTGRES_VOLUME_NAME`:
-иначе можно случайно открыть другую пустую БД. Изменение пароля в `.env` само по себе не меняет
-пароль PostgreSQL в уже созданном volume.
+Не меняйте существующие DB credentials, `POSTGRES_VOLUME_NAME` или storage paths ради запуска.
+При несовместимых единицах уже существующего нутриента seed останавливается без частичной записи:
+исправьте справочник осознанно, а не удаляйте базу.
 
-`mock` позволяет проверить Coach без платного LLM API. Настоящий LLM требует отдельно настроенного
-provider account/ключа, проверки доступности модели и бюджета. Не помещайте ключи в frontend
-`NEXT_PUBLIC_*`, Git, чат или screenshots. `.env.example` содержит только локальные примеры;
-для production они непригодны. Не используйте console email backend: одноразовые ссылки не должны
-попадать в логи приложения.
+## 3. Запустить интерфейс
 
-## 3. Запустить backend и зависимости
-
-Запустите Docker Desktop и дождитесь готовности, затем из корня проекта:
-
+Откройте **вторую вкладку Terminal** в PyCharm:
 ```bash
-docker compose --env-file .env up --build -d
-docker compose --env-file .env ps
+cd /Users/a12345/Documents/fitnes/foodai-ecosystem
+python3 scripts/local_test.py frontend
 ```
 
-Ожидаются пять работающих сервисов: `postgres`, `redis`, `backend`, `vision`, `celery_worker`.
-На первом старте Vision загружает и прогревает модели, поэтому `starting` может сохраняться
-дольше остальных. Worker ждёт готовности Vision. Не повторяйте upload много раз во время прогрева.
+Терминал должен оставаться открытым. При отсутствии node_modules устанавливаются зависимости
+по lockfile. Если порт 3000 занят, остановите прежний frontend через Ctrl+C, не запускайте
+дубликат и не меняйте порт без согласованной настройки origins.
 
-```bash
-curl -fsS http://localhost:8000/api/v1/health/
-docker compose --env-file .env exec backend python backend/manage.py migrate --check
-```
+Откройте напечатанный адрес `http://<IP-Mac>:3000` на Mac и телефоне.
+Используйте **один и тот же hostname**, не чередуйте IP/localhost/127.0.0.1.
+Не используйте `localhost` на телефоне: это адрес самого телефона.
+При смене Wi-Fi/IP повторите up с новым адресом, остановите и запустите frontend заново.
+HTTP допускается только в доверенной локальной сети, с отдельным тестовым паролем.
+Не публикуйте порты в интернете, не настраивайте port forwarding.
 
-Health должен ответить HTTP 200 с `status: ok`; migration check завершиться без ошибки.
-Migrations при локальном старте запускает entrypoint. Не удаляйте volumes и не применяйте `--fake`
-при ошибке. Для legacy PostgreSQL см. [порядок recovery](../scripts/postgres-volume-recovery.sh)
-и [QA report](MVP_QA_REPORT.md).
+## 4. Регистрация, письмо и вход
 
-Если это новая пустая локальная база, один раз загрузите небольшой демонстрационный каталог:
+1. На телефоне откройте `/register`, введите тестовый email и отдельный пароль.
+2. После отправки формы откройте **на Mac** [локальную почту](http://localhost:8025).
+3. Найдите самое новое письмо на указанный email и перейдите по ссылке подтверждения.
+4. На странице должно появиться «Email подтверждён».
+5. Вернитесь на телефон, откройте `/login`, войдите теми же email и паролем.
 
-```bash
-docker compose --env-file .env exec backend python backend/manage.py loaddata demo_nutrition_catalog
-```
+Это обычный одноразовый verification token и SMTP-доставка в локальный ящик,
+**не ручная активация и не доказательство владения реальным внешним email**.
+Доступ к тестовому ящику означает доступ к письмам всех локальных тестовых аккаунтов:
+его UI слушает только localhost Mac, SMTP доступен только внутри Docker.
 
-Не запускайте fixture повторно над отредактированным каталогом: совпадающие fixture IDs могут
-перезаписать изменения. Demo dataset мал и не заменяет полноценную проверенную nutrition database.
+Если аккаунт уже был создан при неудачной попытке, **не регистрируйтесь повторно**:
+на `/login` нажмите «Не пришло письмо подтверждения?», введите прежний email и запросите
+новое письмо. Откройте его в Mailpit. Старые/уже использованные ссылки не работают.
+Для уже подтверждённого аккаунта новое verification-письмо не отправляется: просто войдите.
+Не повторяйте запросы быстро подряд: rate limits остаются включены.
 
-## 4. Запустить frontend
+Mailpit хранит письма временно в tmpfs, не более 24 часов/100 писем; после остановки/пересоздания
+они могут исчезнуть. Можно повторно запросить verification, не сбрасывая аккаунт.
+Для настоящей внешней доставки нужны отдельные SMTP credentials, verified sender/domain,
+TLS и HTTPS frontend URL; локальная инструкция этого не настраивает.
 
-Откройте второй терминал:
+## 5. Проверить полный сценарий
 
-```bash
-cd /Users/a12345/Documents/fitnes/foodai-ecosystem/frontend
-pnpm install --frozen-lockfile
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 pnpm dev --hostname 127.0.0.1 --port 3000
-```
+### Профиль и ручной дневник
 
-Откройте [приложение](http://localhost:3000). Терминал frontend должен оставаться работающим.
-Если порт занят, сначала выясните, какой процесс его использует; при смене frontend-порта нужно
-согласованно изменить backend CORS/CSRF/FRONTEND_BASE_URL и пересоздать backend. Не смешивайте
-`localhost` и `127.0.0.1` в адресах браузера и API: cookies и origins должны совпадать со схемой.
+1. Откройте `/profile`, заполните цель, рост, массу, возрастную категорию и активность.
+   Отметьте согласие на обработку профиля и сохраните.
+2. В `/diary` выберите сегодняшнюю дату → добавьте приём пищи.
+3. Найдите **рис**, укажите **100 г**, сохраните. В демо-каталоге это **130 ккал**.
+4. Измените массу на **200 г**: должно стать **260 ккал**.
+5. В `/dashboard` проверьте тот же дневной итог и число приёмов пищи.
+6. Удалите только эту тестовую запись, чтобы начать фото-сценарий с пустого дня.
 
-Адреса:
+Ручное добавление не зависит от AI. Каталог пока демонстрационный: неизвестные продукты
+не превращаются автоматически в достоверные нутриентные данные.
 
-| Что | Адрес |
-|---|---|
-| Регистрация / вход | `http://localhost:3000/register`, `/login` |
-| Сводка дня | `http://localhost:3000/dashboard` |
-| Дневник | `http://localhost:3000/diary` |
-| Фото блюда | `http://localhost:3000/scan` |
-| Профиль | `http://localhost:3000/profile` |
-| Nutrition Coach | `http://localhost:3000/coach` |
-| Privacy & Data | `http://localhost:3000/privacy` |
-| API docs | `http://localhost:8000/api/v1/docs/` |
-| Django Admin | `http://localhost:8000/admin/` |
+### Реальная фотография → подтверждение → дневник
 
-## 5. Зарегистрировать тестового пользователя
+1. В `/scan` выберите камеру/файл; сфотографируйте блюдо, например рис с курицей.
+   Допускаются JPEG/PNG до 5 MiB и 20 млн пикселей; HEIC не поддерживается.
+   Если камера телефона сохраняет HEIC, выберите JPEG/совместимый режим или заранее
+   преобразуйте собственное фото. Не отправляйте посторонние приватные изображения.
+2. Дождитесь результата. Vision работает локально с реальными моделями, не с mock.
+3. Проверьте карточки: название, confidence, оценочную массу/диапазон и КБЖУ.
+   До подтверждения записи в Diary быть не должно.
+4. Исправьте продукт через поиск в каталоге и массу по весам, удалите ложные карточки,
+   добавьте пропущенные продукты.
+5. Для численно проверяемого примера оставьте **рис 200 г + куриная грудка 100 г**:
+   демо-сумма должна быть **425 ккал**. Исходная оценка и исправленная масса хранятся раздельно.
+6. Подтвердите. Откроется Diary с одним приёмом пищи из двух продуктов.
+7. Проверьте ту же сумму в Dashboard. Повторное подтверждение не создаёт дубликат.
 
-1. Откройте `/register`, укажите отдельный тестовый email и пароль, не используемый в других сервисах.
-2. После регистрации появится ожидание email verification. Это ожидаемо: default locmem backend
-   не отправляет письмо в настоящий почтовый ящик; повторная отправка этого не исправляет.
-3. Только для собственного локального тестового аккаунта разработчик может имитировать получение
-   одноразовой ссылки через Django shell. Это привилегированная QA-операция, **не проверка владения
-   email и не способ активации пользователей в production**.
+Распознавание и масса могут существенно ошибаться. Demo catalog имеет только 3 продукта;
+если модель предложила неизвестный продукт, требуется ручное сопоставление.
+Confidence не доказывает точность. Это тест рабочего сценария, не медицинской достоверности.
 
-Из корня проекта:
+### Coach, изоляция и Privacy
 
-```bash
-docker compose --env-file .env exec backend python backend/manage.py shell
-```
+- На `/coach` запросите итог дня. В этом режиме ответ **демонстрационный**,
+  без платного LLM. Настоящий provider требует отдельной настройки и бюджета.
+- Создайте второй тестовый аккаунт в другом браузере/приватном окне. Дневник и фото
+  первого пользователя не должны быть доступны второму.
+- В `/privacy` проверьте JSON export, consent и удаление своих тестовых фото/истории.
+- Удаление аккаунта проверяйте только на одноразовом QA-аккаунте: оно необратимо.
+  Export содержит приватные данные, не публикуйте его.
 
-В открывшейся Python-консоли выполните:
+## 6. Автоматические проверки
 
-```python
-from django.conf import settings
-from accounts.models import User
-from accounts.auth_tokens import issue_email_verification_token, consume_email_verification_token
+При существующем `.venv` не создавайте его заново. Для PyCharm выберите Existing Interpreter:
+`/Users/a12345/Documents/fitnes/foodai-ecosystem/.venv/bin/python`.
 
-assert settings.DEBUG and settings.SETTINGS_MODULE == "config.settings.local"
-assert settings.EMAIL_BACKEND == "django.core.mail.backends.locmem.EmailBackend"
-email = input("Email вашего локального тестового аккаунта: ").strip().lower()
-user = User.objects.get(email=email, is_active=False)
-issued = issue_email_verification_token(user)
-activated = consume_email_verification_token(issued.token_id, issued.token)
-assert activated is not None
-print("Локальный тестовый аккаунт подтвержден. Теперь можно войти через /login.")
-exit()
-```
-
-Пароль и token не выводятся. Если аккаунт уже активен, условие `is_active=False` не найдёт его:
-просто войдите через `/login`. Для production требуется настоящая доставка письма и переход по
-одноразовой ссылке в интерфейсе; ручная QA-операция выше там не применяется.
-
-## 6. Пользоваться приложением
-
-### Профиль и dashboard
-
-Откройте `/profile`, задайте цель, рост, массу, age category, активность, единицы и dietary
-preferences. Сохранение требует явного consent. Не вносите диагнозы в свободный текст.
-На `/dashboard` будут дневные калории, БЖУ, число приёмов пищи и оценочный calorie target.
-Target не является медицинским назначением; без данных профиля он может отсутствовать.
-
-### Ручной дневник без AI
-
-1. Откройте `/diary` и выберите дату.
-2. Добавьте приём пищи, его тип/время, найдите продукт в каталоге и укажите граммы.
-3. Добавьте ещё продукты при необходимости и сохраните.
-4. Проверьте КБЖУ и дневную сумму; измените массу или удалите тестовый meal.
-
-Этот способ работает без Vision/Celery. Если поиск пуст, проверьте наличие demo catalog или
-попросите content manager наполнить каталог. Произвольный неизвестный продукт нельзя считать
-автоматически нутриентно достоверным.
-
-### Scan фотографии
-
-1. Дождитесь `healthy` для Vision/worker. Откройте `/scan`, выберите JPEG/PNG до 5 MiB и 20 млн pixels
-   при стандартных лимитах. На совместимом мобильном браузере доступен camera input.
-2. После загрузки дождитесь результатов. Фото ещё не создаёт запись в Diary.
-3. Проверьте каждую карточку: продукт, confidence, оценочную массу/диапазон и КБЖУ.
-4. Исправьте продукт и граммы, удалите ложные detections, добавьте пропущенное из каталога.
-5. Подтвердите состав. Только после этого создаётся Meal и открывается Diary.
-
-Оценка по RGB может существенно ошибаться; при необходимости используйте кухонные весы.
-Низкий confidence не означает безопасную или точную оценку. Повторное подтверждение одного scan
-не должно создавать дубликат. При недоступном Vision воспользуйтесь ручным дневником.
-
-### Coach и приватность
-
-В `/coach` можно запросить объяснение дневного баланса. При `AI_COACH_PROVIDER=mock` ответ
-демонстрационный, а не настоящий LLM-анализ. История по умолчанию выключена: хранение требует
-consent и отдельного выбора сохранения ответа. AI не заменяет врача или лечение.
-
-В `/privacy` доступны категории данных, JSON export, настройки согласий, удаление фото и истории.
-Фотографии по умолчанию не разрешены для обучения. Удаление аккаунта требует текущего пароля.
-Проверяйте необратимые действия только на специально созданных тестовых данных. Export содержит
-приватные данные: не публикуйте его. Export не заменяет backup системы.
-
-### Django Admin
-
-Только для начальной локальной настройки:
-
-```bash
-docker compose --env-file .env exec backend python backend/manage.py createsuperuser
-```
-
-Пароль вводится интерактивно. Superuser имеет технический полный доступ: не используйте его для
-повседневного дневника. Support/content manager видят только разрешённые модели; наличие staff
-само по себе не заменяет permissions. Матрица ролей: [SECURITY.md](SECURITY.md).
-
-## 7. Проверить перед использованием
-
-- Создать два тестовых аккаунта в разных профилях браузера. Meals, scans и profiles второго
-  не должны быть видны первому даже при известном UUID.
-- Создать meal из двух продуктов и проверить сумму; изменение каталога не должно менять старую запись.
-- Проверить scan → correction → confirm → diary и ручное добавление без Scan.
-- Проверить logout, export и удаление только собственных тестовых данных.
-- Не считать показанный confidence доказательством точности или медицинской безопасности.
-
-Полные автоматические проверки, при установленном Python 3.12 и локальном virtualenv:
-
+Первичная установка инструментов (при необходимости):
 ```bash
 cd /Users/a12345/Documents/fitnes/foodai-ecosystem
 test -x .venv/bin/python || python3.12 -m venv .venv
 .venv/bin/python -m pip install -e '.[dev]'
 .venv/bin/python -m pip install -e 'services/vision[dev]'
+```
+
+С запущенным local-test контуром:
+```bash
+.venv/bin/python scripts/smoke_local_flow.py
+```
+
+Smoke создаёт два одноразовых аккаунта, проверяет SMTP/CSRF/login, профиль, реальное
+фото из разрешённой fixture, Celery/Vision, коррекцию, подтверждение, дневник, IDOR,
+mock Coach, export и удаление QA-данных. Пользовательские аккаунты не затрагиваются.
+Он использует демо-значение риса 130 ккал/100 г; намеренно изменённый демо-каталог
+может дать другой численный результат.
+
+Полный test/lint/type/build gate:
+```bash
 make check
+```
+
+Frontend browser regression (API в этих UI-тестах замокан; real API проверяется smoke выше):
+```bash
 cd frontend
 pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-Не пересоздавайте исправное существующее `.venv` без необходимости. Для PyCharm выберите existing
-interpreter `/Users/a12345/Documents/fitnes/foodai-ecosystem/.venv/bin/python`.
-Тесты используют отдельную БД; не подставляйте production credentials.
+## 7. Остановка и повторный запуск
 
-## 8. Остановка, повторный запуск и ошибки
-
-Frontend: `Ctrl+C` в его терминале. Backend и зависимости из корня:
-
+Frontend: Ctrl+C в его терминале. Остальные сервисы:
 ```bash
-docker compose --env-file .env stop
+cd /Users/a12345/Documents/fitnes/foodai-ecosystem
+python3 scripts/local_test.py stop
 ```
 
-Повторный запуск без пересборки:
-
+Повторный запуск с сохранённым IP:
 ```bash
-docker compose --env-file .env up -d
+python3 scripts/local_test.py up
 ```
 
-Frontend запускается отдельно командой из шага 4. Не используйте `down -v`: это удаляет volumes
-с данными. Перед обновлением делайте согласованный backup, см. release checklist.
+Во втором терминале снова `python3 scripts/local_test.py frontend`.
+**Не используйте `down -v`**: это удаляет volumes.
 
-| Симптом | Что сделать |
+## Диагностика
+
+| Симптом | Проверка |
 |---|---|
-| Cannot connect to Docker daemon | Открыть Docker Desktop, дождаться Engine running, повторить `docker version` |
-| Нет нужной ветки в PyCharm | Проверить корень Git; открыть `foodai-ecosystem`, выполнить `git fetch origin`, посмотреть `git branch -a` |
-| `tsc`/`next`/`playwright` not found | Установка зависимостей не завершена; повторить `pnpm install --frozen-lockfile`, не менять lockfile вслепую |
-| Не пришло письмо / login не проходит после регистрации | Default locmem не отправляет email; для локального QA выполнить шаг 5 |
-| 403 CSRF / Failed to fetch | Проверить backend health, одинаковый hostname, CORS/CSRF origins; после правки `.env` пересоздать backend |
-| Пустой каталог | Для новой тестовой БД один раз загрузить demo fixture; не перезаписывать рабочий каталог |
-| Scan долго processing / failed | Проверить Vision/worker health и загрузку моделей; после устранения причины один раз retry, либо ручной дневник |
-| Coach недоступен | Проверить выбранный provider; для бесплатного локального QA выбрать mock, не вставлять ключ в UI |
-| Migration error / старая база | Остановиться, сохранить backup и изучить recovery; не удалять volume и не применять `--fake` |
-
-Диагностика инфраструктуры:
+| Docker daemon недоступен | Открыть Docker Desktop, дождаться Engine running |
+| Письма нет в Gmail/Яндекс | В local-test письма в Mailpit на Mac, localhost:8025 |
+| Email уже занят | На login запросить повторное подтверждение, не создавать дубликат |
+| 403 / Failed to fetch | Повторить up для текущего IP и frontend; открыть один hostname |
+| Порт занят | Остановить старый dev frontend; не запускать второй |
+| TypeScript ругается на `.next/types/* 2.ts` | Остановить frontend, сохранить `.next` в отдельную папку `.cache`, выполнить `make frontend-build`, затем снова запустить frontend; это сгенерированный кэш, не исходники |
+| Пустой поиск продуктов | up должен завершиться сообщением Demo catalog ready |
+| Scan failed | Проверить healthy Vision/worker; после исправления один раз Retry |
+| Фото не загружается | JPEG/PNG, размер до 5 MiB, не HEIC |
+| Нужны реальные AI-ответы | Этот тест использует mock Coach, нужна отдельная настройка LLM |
 
 ```bash
-docker compose --env-file .env ps
-docker compose --env-file .env logs --tail=50 backend celery_worker vision
+python3 scripts/local_test.py status
+docker compose --env-file .env exec backend python backend/manage.py migrate --check
 ```
 
-Не публикуйте полный `.env`, `docker inspect` или конфигурацию с подставленными секретами.
-При обращении за помощью достаточно названия сервиса, времени, безопасного кода ошибки и
-`X-Request-ID`. Перед передачей журналов удаляйте чувствительные значения.
+Не публикуйте `.env`, конфигурацию с подставленными секретами, письма/токены или личные данные.
+Для диагностики достаточно безопасного error code и X-Request-ID.

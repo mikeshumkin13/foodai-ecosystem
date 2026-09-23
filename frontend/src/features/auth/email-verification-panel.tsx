@@ -12,7 +12,7 @@ import { messages } from "@/lib/i18n/messages";
 
 const copy = messages.ru;
 
-type VerificationStatus = "verifying" | "verified" | "failed";
+type VerificationStatus = "verifying" | "verified" | "failed" | "resend";
 
 export function EmailVerificationPanel() {
   const [status, setStatus] = useState<VerificationStatus>("verifying");
@@ -31,6 +31,10 @@ export function EmailVerificationPanel() {
     const searchParams = new URLSearchParams(window.location.search);
     const tokenId = searchParams.get("token_id");
     const token = searchParams.get("token");
+    if (!tokenId && !token) {
+      setStatus("resend");
+      return;
+    }
     if (!tokenId || !token) {
       setStatus("failed");
       setError(copy.auth.verificationInvalid);
@@ -86,8 +90,8 @@ export function EmailVerificationPanel() {
   return (
     <form className="auth-form" onSubmit={handleResend}>
       <header>
-        <h1>{copy.auth.verificationFailedTitle}</h1>
-        <p>{copy.auth.verificationFailedDescription}</p>
+        <h1>{status === "resend" ? copy.auth.registrationPendingTitle : copy.auth.verificationFailedTitle}</h1>
+        <p>{status === "resend" ? copy.auth.resendDescription : copy.auth.verificationFailedDescription}</p>
       </header>
       {error ? <p className="form-error" role="alert">{error}</p> : null}
       {resendCompleted ? <p className="form-success">{copy.auth.resendCompleted}</p> : null}
