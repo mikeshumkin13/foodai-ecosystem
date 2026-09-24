@@ -1,8 +1,25 @@
 # Status / Статус
 
-Last updated / Обновлено: 2026-09-22
+Last updated / Обновлено: 2026-09-24
 
 ## Текущий завершённый этап
+
+Выполняется запрос довести существующий web MVP до рабочего состояния. Общие критерии и
+оставшиеся группы: `docs/WORKING_MVP_CHECKLIST.md`. Это не объявление готовности всей экосистемы.
+
+### Восстановление доступа
+
+- Ветка `feature/frontend-account-recovery` создана от актуального `origin/develop` (`363ed3a`),
+  затем отдельными commits перенесены release docs и проверенное исправление local onboarding.
+- Добавлены `/forgot-password`, `/auth/password/reset`, смена пароля и mobile logout в профиле.
+  Generic ответы сохраняются; пароли не записываются в storage; cached CSRF сбрасывается после смены.
+- Проверены frontend lint, TypeScript/build, 33 tests и 4 Playwright scenarios; backend reset/change
+  regression: 2 passed. Ruff/mypy 188 files и Django system check прошли.
+- Live mobile Chromium + реальный PostgreSQL/SMTP: register/resend/verify/login, reset из письма,
+  отзыв старой сессии, вход с новым паролем, change password с сохранением текущей сессии,
+  mobile logout и повторный вход прошли. Временный QA-аккаунт удалён.
+- Предыдущее исправление local SMTP/launcher опубликовано в `release/0.1.0`: `7e5a11c`.
+  Merge в main не выполнялся. Публикация текущей feature/CI ещё не завершена.
 
 ЭТАП 30 завершён и объединён пользователем в `develop` через PR #49 (`363ed3a`), CI прошёл.
 ЭТАП 31: подготовлен локальный release candidate в `release/0.1.0`, changelog, release notes,

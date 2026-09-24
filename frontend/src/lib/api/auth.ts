@@ -1,4 +1,5 @@
 import { clearCsrfToken } from "@/lib/csrf";
+import { notifyAuthenticationRequired } from "@/lib/auth/session-events";
 
 import { apiRequest, ensureCsrfToken } from "./client";
 import type { ApiCodeResponse, AuthUserResponse, LocaleCode, UserSummary } from "./types";
@@ -39,6 +40,26 @@ export const authApi = {
       method: "POST",
       body: { email },
     });
+  },
+  requestPasswordReset(email: string) {
+    return apiRequest<ApiCodeResponse>("/api/v1/auth/password/reset/request/", {
+      method: "POST", body: { email },
+    });
+  },
+  async resetPassword(payload: EmailVerificationPayload & { new_password: string }) {
+    const response = await apiRequest<ApiCodeResponse>("/api/v1/auth/password/reset/confirm/", {
+      method: "POST", body: payload,
+    });
+    clearCsrfToken();
+    notifyAuthenticationRequired();
+    return response;
+  },
+  async changePassword(currentPassword: string, newPassword: string) {
+    const response = await apiRequest<ApiCodeResponse>("/api/v1/auth/password/change/", {
+      method: "POST", body: { current_password: currentPassword, new_password: newPassword },
+    });
+    clearCsrfToken();
+    return response;
   },
   async login(payload: LoginPayload) {
     const response = await apiRequest<AuthUserResponse>("/api/v1/auth/login/", {

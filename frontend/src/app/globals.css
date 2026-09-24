@@ -1359,6 +1359,13 @@ button:disabled {
   padding: 24px;
 }
 
+.password-form {
+  display: grid;
+  gap: 16px;
+  max-width: 480px;
+  margin-top: 32px;
+}
+
 .auth-form h1 {
   margin: 0;
   font-size: 28px;

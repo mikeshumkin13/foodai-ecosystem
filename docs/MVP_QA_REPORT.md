@@ -404,6 +404,14 @@ RU/EN messages существуют, но все страницы и компо�
 Backend endpoints и security tests существуют, но frontend не содержит API methods, страниц и
 переходов восстановления/изменения пароля.
 
+**Доработка 2026-09-24:** `feature/frontend-account-recovery` добавляет forgot-password,
+reset по одноразовой ссылке, change password в профиле, mobile logout и централизованные API methods.
+Сброс инвалидирует client session state, смена очищает cached CSRF после backend rotation.
+Проверены generic reset response, отсутствие token, mismatch, expired link, pending/error/retry,
+очистка password fields. Frontend: 33 component/API tests, lint, typecheck/build;
+4 Playwright regression scenarios. Backend password reset/change: 2 tests passed.
+Финальный live SMTP/browser результат и публикация фиксируются в STATUS.md.
+
 ### MVP-QA-013 — CI не проверяет PostgreSQL и Redis integration
 
 Backend CI использует SQLite in-memory, Celery memory broker и не поднимает PostgreSQL/Redis service

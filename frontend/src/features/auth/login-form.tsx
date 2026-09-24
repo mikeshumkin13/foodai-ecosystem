@@ -81,6 +81,9 @@ export function LoginForm() {
       <p className="auth-form__footer">
         <Link href="/auth/email/verify">{copy.auth.resendLink}</Link>
       </p>
+      <p className="auth-form__footer">
+        <Link href="/forgot-password">{copy.auth.forgotPassword}</Link>
+      </p>
     </form>
   );
 }

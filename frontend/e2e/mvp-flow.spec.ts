@@ -174,6 +174,54 @@ async function mockApi(
   });
 }
 
+test("password recovery and password change are reachable from the client", async ({ page }) => {
+  let authenticated = false;
+  await mockApi(page, async (route, path, method) => {
+    if (path === "/api/v1/auth/me/") {
+      return authenticated ? json(route, user) : json(route, { detail: "Authentication credentials were not provided." }, 403);
+    }
+    if (path === "/api/v1/auth/password/reset/request/" && method === "POST") {
+      return json(route, { code: "password_reset_if_account_exists" });
+    }
+    if (path === "/api/v1/auth/password/reset/confirm/" && method === "POST") {
+      expect(route.request().postDataJSON()).toEqual({ token_id: "reset-id", token: "reset-secret", new_password: "Recovered-password123!" });
+      return json(route, { code: "password_reset_complete" });
+    }
+    if (path === "/api/v1/auth/login/" && method === "POST") {
+      authenticated = true;
+      return json(route, { code: "login_success", user });
+    }
+    if (path === "/api/v1/auth/password/change/" && method === "POST") {
+      expect(route.request().postDataJSON()).toEqual({ current_password: "Recovered-password123!", new_password: "Changed-password123!" });
+      return json(route, { code: "password_changed" });
+    }
+    return commonAuthenticatedResponse(route, path);
+  });
+  await page.goto("/login");
+  await page.getByRole("link", { name: "Забыли пароль?" }).click();
+  await expect(page.getByRole("heading", { name: "Восстановление пароля" })).toBeVisible();
+  await page.getByLabel("Email").fill("mvp@example.com");
+  await page.getByRole("button", { name: "Отправить ссылку" }).click();
+  await expect(page.getByRole("status")).toContainText("Если подтверждённый аккаунт существует");
+  await page.goto("/auth/password/reset?token_id=reset-id&token=reset-secret");
+  await page.getByLabel("Новый пароль", { exact: true }).fill("Recovered-password123!");
+  await page.getByLabel("Повторите новый пароль").fill("Recovered-password123!");
+  await page.getByRole("button", { name: "Установить пароль" }).click();
+  await expect(page.getByRole("status")).toContainText("Войдите с новым паролем");
+  await page.getByRole("link", { name: "Войти", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Вход" })).toBeVisible();
+  await page.getByLabel("Email").fill("mvp@example.com");
+  await page.getByLabel("Пароль", { exact: true }).fill("Recovered-password123!");
+  await page.getByRole("button", { name: "Войти", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Обзор дня" })).toBeVisible();
+  await page.goto("/profile");
+  await page.getByLabel("Текущий пароль").fill("Recovered-password123!");
+  await page.getByLabel("Новый пароль", { exact: true }).fill("Changed-password123!");
+  await page.getByLabel("Повторите новый пароль").fill("Changed-password123!");
+  await page.getByRole("button", { name: "Изменить пароль" }).click();
+  await expect(page.getByRole("status")).toContainText("текущая сессия сохранена");
+});
+
 async function commonAuthenticatedResponse(route: Route, path: string) {
   if (path === "/api/v1/auth/me/") {
     return json(route, user);
